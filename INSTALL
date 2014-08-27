@@ -1,5 +1,10 @@
-- out-of-source install with cmake:
+1. out-of-source build with cmake:
 $ mkdir build
 $ cd build
 $ cmake ..
-$ make
+
+2. build the source code
+build> $ make
+
+3. generating the doxygen documentation:
+build> $ make doc
