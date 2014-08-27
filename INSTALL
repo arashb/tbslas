@@ -1,0 +1,5 @@
+- out-of-source install with cmake:
+$ mkdir build
+$ cd build
+$ cmake ..
+$ make
