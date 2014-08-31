@@ -21,8 +21,17 @@ namespace semilag {
 
   // unit length
   template <typename real_t>
-  std::vector<real_t> reg_grid_points(size_t N);
+  std::vector<real_t> gen_reg_grid_points(size_t N);
+
+  // template<typename real_t>
+  // std::vector<real_t> traj_rk2(std::vector<real_t> ipos,
+  //                              fvel,
+  //                              real_t ti,
+  //                              real_t tf,
+  //                              int n);
 
 } // namespace: semilag
+
+#include "semilag.ipp"
 
 #endif /* SEMILAG_HPP */

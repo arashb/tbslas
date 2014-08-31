@@ -16,19 +16,19 @@
  * @file   semilag.cpp
  * @author Arash Bakhtiari <bakhtiar@in.tum.de>
  * @date   Wed Aug 27 19:53:22 2014
- * 
+ *
  * @brief  Contains the implementation of semilag library
- * 
- * 
+ *
+ *
  */
 
-#include <semilag.hpp>
+#include <cstdlib>              // contains declaration of size_t
 #include <vector>
 
 namespace semilag {
 
   template <typename real_t>
-  std::vector<real_t> reg_grid_points(size_t N) {
+  std::vector<real_t> gen_reg_grid_points(size_t N) {
     std::vector<real_t> rgp_pos;    // regular grid points positions
     size_t total = N*N*N;
     for (size_t i = 0; i < total; i++) {
@@ -39,7 +39,13 @@ namespace semilag {
     return rgp_pos;
   }
 
-  // explicit instantiation
-  template std::vector<double> reg_grid_points<double>(size_t);
+  // template<typename real_t>
+  // std::vector<real_t> traj_rk2(std::vector<real_t> ipos,
+  //                              fvel,
+  //                              real_t ti,
+  //                              real_t tf,
+  //                              int n)
+  // // explicit instantiation
+  // template std::vector<double> reg_grid_points<double>(size_t);
 
 }  // namespace semilag
