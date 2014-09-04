@@ -11,7 +11,7 @@ enable_testing()
 
 # compile googletest and defined unittests.
 # provides a target to run the unittests with "make test".
-option(BUILD-GTEST-UNITTEST "Compile googletest and run the unittests." OFF)
+option(BUILD-GTEST-UNITTEST "Compile googletest and run the unittests." ON)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${tbslad_SOURCE_DIR}/bin)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${tbslad_SOURCE_DIR}/lib)

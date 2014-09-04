@@ -11,27 +11,22 @@
 // limitations under the License.
 // *************************************************************************
 
-#ifndef SEMILAG_HPP
-#define SEMILAG_HPP
+#ifndef UTILS_HPP
+#define UTILS_HPP
 
 #include <cstdlib>
 #include <vector>
+#include <sstream>
+#include <iomanip>
 
 namespace semilag {
 
   // unit length
-  template <typename real_t>
+  template <typename real_t, int dim>
   std::vector<real_t> gen_reg_grid_points(size_t N);
 
-  // template<typename real_t>
-  // std::vector<real_t> traj_rk2(std::vector<real_t> ipos,
-  //                              fvel,
-  //                              real_t ti,
-  //                              real_t tf,
-  //                              int n);
+}  // namespace semilag
 
-} // namespace: semilag
+#include "utils.ipp"
 
-#include "semilag.ipp"
-
-#endif /* SEMILAG_HPP */
+#endif /* UTILS_HPP */

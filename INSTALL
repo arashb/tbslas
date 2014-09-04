@@ -3,8 +3,9 @@ $ mkdir build
 $ cd build
 $ cmake ..
 
-2. build the source code
+2. build and test the source code
 build> $ make
+build> $ make test
 
 3. generating the doxygen documentation:
 build> $ make doc

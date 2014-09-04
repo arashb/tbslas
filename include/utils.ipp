@@ -11,41 +11,29 @@
 // limitations under the License.
 // *************************************************************************
 
-
-/**
- * @file   semilag.cpp
- * @author Arash Bakhtiari <bakhtiar@in.tum.de>
- * @date   Wed Aug 27 19:53:22 2014
- *
- * @brief  Contains the implementation of semilag library
- *
- *
- */
-
-#include <cstdlib>              // contains declaration of size_t
+#include <iostream>
 #include <vector>
 
 namespace semilag {
 
-  template <typename real_t>
+  template <typename real_t, int dim>
   std::vector<real_t> gen_reg_grid_points(size_t N) {
     std::vector<real_t> rgp_pos;    // regular grid points positions
     size_t total = N*N*N;
-    for (size_t i = 0; i < total; i++) {
-      rgp_pos.push_back(((real_t)((i / 1) %N))/N);  // x cooridnate
-      rgp_pos.push_back(((real_t)((i / N) %N))/N);  // y coordinate
-      rgp_pos.push_back(((real_t)((i /(N*N)) %N))/N);  // z coordinate
+    real_t dx = 1.0/(N-1);
+    real_t xcor;
+    real_t ycor;
+    real_t zcor;
+  for (size_t i = 0; i < total; i++) {
+       xcor = ((real_t)((i / 1)    %N))*dx;
+       ycor = ((real_t)((i / N)    %N))*dx;
+       zcor = ((real_t)((i /(N*N)) %N))*dx;
+      // std::cout << xcor << " " << ycor << " " << zcor << std::endl;
+      rgp_pos.push_back(xcor);  // x cooridnate
+      rgp_pos.push_back(ycor);  // y coordinate
+      rgp_pos.push_back(zcor);  // z coordinate
     }
     return rgp_pos;
   }
-
-  // template<typename real_t>
-  // std::vector<real_t> traj_rk2(std::vector<real_t> ipos,
-  //                              fvel,
-  //                              real_t ti,
-  //                              real_t tf,
-  //                              int n)
-  // // explicit instantiation
-  // template std::vector<double> reg_grid_points<double>(size_t);
 
 }  // namespace semilag
