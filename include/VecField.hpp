@@ -27,11 +27,11 @@
 #include <cstdlib>
 #include <vector>
 
-namespace semilag {
+namespace tbslas {
 
 template<typename real_t, int sdim = 3, int vdim = 3>
 class VecField {
-public:
+ public:
   VecField();
   VecField(std::vector<real_t> pos,
            std::vector<real_t> vals,
@@ -39,6 +39,8 @@ public:
   virtual ~VecField();
 
  public:
+  template<typename C>
+  std::vector<real_t> interp(std::vector<real_t>& pnts, C& interpolant);
   void write2file(const char* fname);
 
  private:
@@ -47,13 +49,7 @@ public:
   size_t _size;                  // number of field's points
 };  // class: VecField
 
-class tst {
- public:
-  tst();
-  virtual ~tst();
-};
-
-}  // namespace semilag
+}  // namespace tbslas
 
 #include "VecField.ipp"
 

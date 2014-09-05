@@ -35,16 +35,24 @@ if(DOXYGEN_FOUND)
 endif(DOXYGEN_FOUND)
 
 ##############################
+# EXTERNALS
+##############################
+set(EXT_PROJECTS_DIR ${PROJECT_SOURCE_DIR}/ext)
+
+# tricubic interpolation lib
+add_subdirectory(${EXT_PROJECTS_DIR}/tricubic)
+include_directories(${tricubic_SOURCE_DIR})
+
+# google c++ test framework
+if(BUILD-GTEST-UNITTEST)
+  add_subdirectory(${EXT_PROJECTS_DIR}/gtest)
+  include_directories(${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
+endif()
+
+##############################
 # SUB-DIRECTORIES
 ##############################
 add_subdirectory(src)
-
-##############################
-# UNITTESTS
-##############################
 if(BUILD-GTEST-UNITTEST)
-  set(EXT_PROJECTS_DIR ${PROJECT_SOURCE_DIR}/ext)
-  add_subdirectory(${EXT_PROJECTS_DIR}/gtest)
-  include_directories(${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
   add_subdirectory(tests)
 endif()

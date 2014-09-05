@@ -11,29 +11,31 @@
 // limitations under the License.
 // *************************************************************************
 
-#include <iostream>
+#ifndef CUBICINTERPOLANT_H
+#define CUBICINTERPOLANT_H
+
+#include <TriCubicInterpolator.h>
 #include <vector>
 
 namespace tbslas {
 
-template <typename real_t, int dim>
-std::vector<real_t> gen_reg_grid_points(size_t N) {
-  std::vector<real_t> rgp_pos;    // regular grid points positions
-  size_t total = N*N*N;
-  real_t dx = 1.0/(N-1);
-  real_t xcor;
-  real_t ycor;
-  real_t zcor;
-  for (size_t i = 0; i < total; i++) {
-    xcor = ((real_t)((i / 1)    %N))*dx;
-    ycor = ((real_t)((i / N)    %N))*dx;
-    zcor = ((real_t)((i /(N*N)) %N))*dx;
-    // std::cout << xcor << " " << ycor << " " << zcor << std::endl;
-    rgp_pos.push_back(xcor);  // x cooridnate
-    rgp_pos.push_back(ycor);  // y coordinate
-    rgp_pos.push_back(zcor);  // z coordinate
-  }
-  return rgp_pos;
-}
+template<typename real_t>
+class CubicInterpolant {
+ public:
+  CubicInterpolant();
+  virtual ~CubicInterpolant();
+
+ public:
+  std::vector<real_t> interp(std::vector<real_t>& grid_pnts, int sdim,
+                             std::vector<real_t>& grid_vals, int vdim,
+                             std::vector<real_t>& query_pnts);
+
+ private:
+  //  likely::TriCubicInterpolator tri_cubic_inerpolator;
+};
 
 }  // namespace tbslas
+
+#include "CubicInterpolant.ipp"
+
+#endif /* CUBICINTERPOLANT_H */

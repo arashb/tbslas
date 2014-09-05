@@ -19,13 +19,13 @@
 #include <sstream>
 #include <iomanip>
 
-namespace semilag {
+namespace tbslas {
 
   // unit length
   template <typename real_t, int dim>
   std::vector<real_t> gen_reg_grid_points(size_t N);
 
-}  // namespace semilag
+}  // namespace tbslas
 
 #include "utils.ipp"
 
