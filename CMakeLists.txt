@@ -16,7 +16,7 @@ option(BUILD-GTEST-UNITTEST "Compile googletest and run the unittests." ON)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${tbslad_SOURCE_DIR}/bin)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${tbslad_SOURCE_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${tbslad_SOURCE_DIR}/lib)
-set(CMAKE_BUILD_TYPE debug)
+set(CMAKE_BUILD_TYPE release)
 
 # include/lib directories
 include_directories(${tbslad_SOURCE_DIR}/include)

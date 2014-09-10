@@ -26,13 +26,11 @@ class CubicInterpolant {
   virtual ~CubicInterpolant();
 
  public:
-  std::vector<real_t> interp(std::vector<real_t>& grid_pnts, int sdim,
-                             std::vector<real_t>& grid_vals, int vdim,
-                             std::vector<real_t>& query_pnts);
-
- private:
-  //  likely::TriCubicInterpolator tri_cubic_inerpolator;
-};
+  std::vector<real_t>
+  interp(std::vector<real_t>& grd_pnts, int sdim,
+         std::vector<real_t>& grd_vals, int vdim,
+         std::vector<real_t>& qry_pnts);
+};  // class CubicInterpolant
 
 }  // namespace tbslas
 

@@ -27,31 +27,34 @@ CubicInterpolant<real_t>::~CubicInterpolant() {
 
 template<typename real_t>
 std::vector<real_t>
-CubicInterpolant<real_t>::interp(std::vector<real_t>& grid_pnts, int sdim,
-                                 std::vector<real_t>& grid_vals, int vdim,
-                                 std::vector<real_t>& query_pnts) {
+CubicInterpolant<real_t>::interp(std::vector<real_t>& grd_pnts,
+                                 int sdim,
+                                 std::vector<real_t>& grd_vls,
+                                 int vdim,
+                                 std::vector<real_t>& qry_pnts) {
+  std::vector<real_t> qry_vls;          // interpolated values of query points
   // FIXME: at the moment only support 3d
-  // if (sdim != 3) return;
-  // FIXME: at moment only suppert one dimensional values
-  // if (vdim != 1) return;
+  if (sdim != 3) return qry_vls;
+  int ngrd_pnts = grd_pnts.size()/sdim;  // number of grid points
+  float dngrd_pnts = pow(ngrd_pnts, 1./sdim);
+  real_t spcng = 1.0/(dngrd_pnts-1);  // spacing
 
-  int pnt_cnt = grid_pnts.size()/sdim;
-  // FIXME: is correct only for the regular grid
-  float dpnt_cnt = pow(pnt_cnt, 1./sdim);
-  real_t spacing = 1.0/(dpnt_cnt-1);
-
-  // FIXME: move this the construction of Interpolator
+  // FIXME: move the construction of Interpolator
   // to the constructor of this class.
   // Here only initialize it with values.
-  likely::TriCubicInterpolator tc_intrpltr(grid_vals, spacing, dpnt_cnt);
+  for (int vdim_cnt = 0; vdim_cnt < vdim; vdim_cnt++) {
+    // see the header file to understand the memory layout of the
+    // vector field points and values of correspoding points.
+    real_t* dgrd_vls_array = &grd_vls[vdim_cnt*ngrd_pnts];
+    likely::TriCubicInterpolator tc_intrpltr(dgrd_vls_array, spcng, dngrd_pnts);
+    int nqry_pnts = qry_pnts.size()/sdim; // number of query points
+    for(int i=0; i < nqry_pnts; i += sdim)
+      qry_vls.push_back(tc_intrpltr(qry_pnts[i],      // x coordinate
+                                    qry_pnts[i+1],    // y coordinate
+                                    qry_pnts[i+2]));  // z coordinate
+  }
 
-  int qpnt_cnt = query_pnts.size()/sdim;
-  std::vector<real_t> query_vals;
-  for(int i=0; i < qpnt_cnt; i += sdim)
-    query_vals.push_back(tc_intrpltr(query_pnts[i],
-                                     query_pnts[i+1],
-                                     query_pnts[i+2]));
-  return query_vals;
+  return qry_vls;
 }
 
 }  // namespace tbslas

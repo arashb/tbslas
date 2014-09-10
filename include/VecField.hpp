@@ -33,21 +33,26 @@ template<typename real_t, int sdim = 3, int vdim = 3>
 class VecField {
  public:
   VecField();
-  VecField(std::vector<real_t> pos,
-           std::vector<real_t> vals,
-           size_t size);
+  VecField(std::vector<real_t> pnts,
+           std::vector<real_t> vls);
   virtual ~VecField();
 
  public:
+  void
+  init(std::vector<real_t> pnts,
+       std::vector<real_t> vls);
+
   template<typename C>
-  std::vector<real_t> interp(std::vector<real_t>& pnts, C& interpolant);
+  std::vector<real_t>
+  interp(std::vector<real_t>& pnts,
+         C& interpolant);
+
   void write2file(const char* fname);
 
  private:
-  std::vector<real_t> _pos;   // vector field's space subset
-  std::vector<real_t> _vals;  // values of the vector field's
-  size_t _size;                  // number of field's points
-};  // class: VecField
+  std::vector<real_t> _pnts;   // vector field's space subset
+  std::vector<real_t> _vls;    // values of the vector field's
+};  // class VecField
 
 }  // namespace tbslas
 

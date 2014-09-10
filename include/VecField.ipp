@@ -12,6 +12,7 @@
 // *************************************************************************
 
 #include <stdint.h>
+#include <assert.h>
 #include <string>       // std::string
 #include <vector>
 #include <iomanip>
@@ -20,20 +21,17 @@
 #include <iostream>     // std::cout
 #include <cmath>        // pow()
 
+
 namespace tbslas {
 
-template<typename real_t, int sdim, int vdim>
-VecField<real_t, sdim, vdim>::VecField() {}
-
-template<typename real_t, int sdim, int vdim>
-VecField<real_t, sdim, vdim>::VecField(std::vector<real_t> pos,
-                                       std::vector<real_t> vals,
-                                       size_t size):
-    _pos(pos),
-    _vals(vals),
-    _size(size)
-{};
-
+template<typename real_t>
+inline void
+validate_field_data(std::vector<real_t>& pnts,
+                    int sdim,
+                    std::vector<real_t>& vls,
+                    int vdim) {
+  assert((pnts.size()/sdim)  == (vls.size()/vdim));
+}
 
 inline bool isLittleEndian() {
   int n = 1;
@@ -41,22 +39,46 @@ inline bool isLittleEndian() {
 }
 
 template<typename real_t, int sdim, int vdim>
+VecField<real_t, sdim, vdim>::VecField() {}
+
+
+template<typename real_t, int sdim, int vdim>
+VecField<real_t, sdim, vdim>::VecField(std::vector<real_t> pnts,
+                                       std::vector<real_t> vls):
+    _pnts(pnts),
+    _vls(vls) {
+  validate_field_data(_pnts, sdim, _vls, vdim);
+}
+
+template<typename real_t, int sdim, int vdim>
+void
+VecField<real_t, sdim, vdim>::init(std::vector<real_t> pnts,
+                                   std::vector<real_t> vls) {
+  _pnts = pnts;
+  _vls = vls;
+  validate_field_data(_pnts, sdim, _vls, vdim);
+}
+
+
+
+template<typename real_t, int sdim, int vdim>
 template<typename C>  // Interpolant class
 std::vector<real_t>
 VecField<real_t, sdim, vdim>::interp(std::vector<real_t>& qry_pnts,
                                      C& interpolant) {
-  return interpolant.interp(_pos, sdim, _vals, vdim, qry_pnts);
+  return interpolant.interp(_pnts, sdim, _vls, vdim, qry_pnts);
 }
 
 template<typename real_t, int sdim, int vdim>
 VecField<real_t, sdim, vdim>::~VecField() {}
 
 template<typename real_t, int sdim, int vdim>
-void VecField<real_t, sdim, vdim>::write2file(const char* fname) {
-  int pnt_cnt = _pos.size()/sdim;
+void
+VecField<real_t, sdim, vdim>::write2file(const char* fname) {
+  int pnt_cnt = _pnts.size()/sdim;
   // FIXME: is correct only for the regular grid
   float dN = pow(pnt_cnt, 1./(sdim));
-  int cll_cnt = pow(dN-1, sdim);
+  // int cll_cnt = pow(dN-1, sdim);
   int myrank = 0;
 
   // open file for writing.
@@ -91,21 +113,21 @@ void VecField<real_t, sdim, vdim>::write2file(const char* fname) {
           <<"format=\"" << "appended" << "\" "
           <<"offset=\"" << data_size << "\" />\n";
   vtsfile <<"      </Points>\n";
-  int32_t points_block_size = _pos.size()*sizeof(real_t);
+  int32_t points_block_size = _pnts.size()*sizeof(real_t);
   data_size += sizeof(uint32_t)+ points_block_size;
   //**************************************************************************
-  vtsfile <<"      <PointData>\n";
+  vtsfile <<"      <PointData vectors=\"values\" >\n";
   vtsfile <<"        <DataArray type=\"Float" << sizeof(real_t)*8 << "\" "
+          <<"Name=\"values\" "
           <<"NumberOfComponents=\"" << vdim << "\" "
-          <<"Name=\"Value\" "
           <<"format=\"appended\" "
           <<"offset=\"" << data_size << "\" />\n";
   vtsfile <<"      </PointData>\n";
-  int32_t vals_block_size = _vals.size()*sizeof(real_t);
-  data_size += sizeof(uint32_t) + vals_block_size;
+  int32_t vls_block_size = _vls.size()*sizeof(real_t);
+  data_size += sizeof(uint32_t) + vls_block_size;
   //**************************************************************************
-  vtsfile <<"      <CellData>\n";
-  vtsfile <<"      </CellData>\n";
+  // vtsfile <<"      <CellData>\n";
+  // vtsfile <<"      </CellData>\n";
   //**************************************************************************
   vtsfile <<"    </Piece>\n";
   vtsfile <<"  </StructuredGrid>\n";
@@ -115,13 +137,19 @@ void VecField<real_t, sdim, vdim>::write2file(const char* fname) {
   // points
   vtsfile.write(reinterpret_cast<char*>(&points_block_size),
                 sizeof(points_block_size));
-  vtsfile.write(reinterpret_cast<char*>(&_pos[0]),
+  vtsfile.write(reinterpret_cast<char*>(&_pnts[0]),
                 points_block_size);
   // points data
-  vtsfile.write(reinterpret_cast<char*>(&vals_block_size),
-                sizeof(vals_block_size));
-  vtsfile.write(reinterpret_cast<char*>(&_vals[0]),
-                vals_block_size);
+  // see the data memmory layout in vector field class
+  vtsfile.write(reinterpret_cast<char*>(&vls_block_size),
+                sizeof(vls_block_size));
+  for (int i = 0; i < pnt_cnt; i++) {
+    for(int j = 0; j < vdim; j++)
+      vtsfile.write(reinterpret_cast<char*>(&_vls[i+j*pnt_cnt]),
+                    sizeof(real_t));
+  }
+  // vtsfile.write(reinterpret_cast<char*>(&_vls[0]),
+  //               vls_block_size);
   vtsfile <<"\n";
   vtsfile <<"  </AppendedData>\n";
   //**************************************************************************
