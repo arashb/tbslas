@@ -13,7 +13,7 @@ class VecFieldTest : public ::testing::Test {
   virtual void SetUp() {
     size_t dN = 11;
     size_t tN = dN*dN*dN;
-    VecD pnts_pos = tbslas::gen_reg_grid_points<double,3>(dN);
+    VecD pnts_pos = tbslas::gen_reg_grid_points<double>(dN);
     VecD pnts_vls = tbslas::vorticity_field(pnts_pos);
     vecfd.init(pnts_pos, pnts_vls);
   }

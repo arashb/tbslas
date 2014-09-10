@@ -134,11 +134,18 @@ VecField<real_t, sdim, vdim>::write2file(const char* fname) {
   //**************************************************************************
   vtsfile <<"  <AppendedData encoding=\"raw\">\n";
   vtsfile <<"    _";
-  // points
+
+  // points positions
   vtsfile.write(reinterpret_cast<char*>(&points_block_size),
                 sizeof(points_block_size));
-  vtsfile.write(reinterpret_cast<char*>(&_pnts[0]),
-                points_block_size);
+  for (int i = 0; i < pnt_cnt; i++) {
+    for(int j = 0; j < sdim; j++)
+      vtsfile.write(reinterpret_cast<char*>(&_pnts[i+j*pnt_cnt]),
+                    sizeof(real_t));
+  }
+  // vtsfile.write(reinterpret_cast<char*>(&_pnts[0]),
+  //               points_block_size);
+
   // points data
   // see the data memmory layout in vector field class
   vtsfile.write(reinterpret_cast<char*>(&vls_block_size),
