@@ -32,13 +32,13 @@ gen_reg_grid_points(size_t N) {
 
 template<typename real_t>
 std::vector<real_t>
-vorticity_field(std::vector<real_t>& pnts_pos) {
+vorticity_field(std::vector<real_t>& pnts_pos, real_t omega) {
   size_t tN = pnts_pos.size()/3;
   std::vector<real_t> pnts_vals(3*tN);
   for (size_t i = 0; i < tN; i++) {
-    pnts_vals[i]      = 0.5         - pnts_pos[i+tN] ;
-    pnts_vals[i+tN]   = pnts_pos[i] - 0.5            ;
-    pnts_vals[i+2*tN] = 0                            ;
+    pnts_vals[i]      = omega*(0.5         - pnts_pos[i+tN]) ;
+    pnts_vals[i+tN]   = omega*(pnts_pos[i] - 0.5           ) ;
+    pnts_vals[i+2*tN] = 0                                    ;
   }
   return pnts_vals;
 }

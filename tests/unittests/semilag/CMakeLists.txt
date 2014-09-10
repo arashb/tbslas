@@ -2,6 +2,7 @@
 # id of each test (.cpp file name wihout the .cpp extention)
 set(test_IDs
   VecFieldTest
+  TrajTest
   )
 set(test_LIBS  gtest gtest_main tricubic)
 

@@ -36,7 +36,8 @@ TEST_F(VecFieldTest, Interpolate) {
   VecD expected_res = tbslas::vorticity_field(qry_pnts);
 
   tbslas::CubicInterpolant<double> intrplnt;
-  VecD actual_res = vecfd.interp(qry_pnts, intrplnt);
+  VecD actual_res(qry_pnts.size());
+  vecfd.interp(qry_pnts, intrplnt, actual_res);
 
   ASSERT_DOUBLE_EQ(expected_res[0], actual_res[0]);
   ASSERT_DOUBLE_EQ(expected_res[1], actual_res[1]);

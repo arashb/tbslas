@@ -43,9 +43,10 @@ class VecField {
        std::vector<real_t> vls);
 
   template<typename C>
-  std::vector<real_t>
-  interp(std::vector<real_t>& pnts,
-         C& interpolant);
+  void
+  interp(std::vector<real_t>& qry_pnts,
+         C& interpolant,
+         std::vector<real_t>& qry_vls);
 
   void write2file(const char* fname);
 
