@@ -27,26 +27,30 @@ CubicInterpolant<real_t>::~CubicInterpolant() {
 
 template<typename real_t>
 void
-CubicInterpolant<real_t>::interp(std::vector<real_t>& grd_pnts,
+CubicInterpolant<real_t>::interp(std::vector<real_t>& grid_points,
                                  int sdim,
-                                 std::vector<real_t>& grd_vls,
+                                 std::vector<real_t>& grid_values,
                                  int vdim,
-                                 std::vector<real_t>& qry_pnts,
-                                 std::vector<real_t>& qry_vls) {
-  int ngp      = grd_pnts.size()/sdim;   // number of grid points
-  float dngp   = pow(ngp, 1./sdim);      // ngp in one dimension
-  real_t spcng = 1.0/(dngp-1);           // spacing
+                                 std::vector<real_t>& query_points,
+                                 std::vector<real_t>& query_values) {
+  int num_grid_points    = grid_points.size()/sdim;  // number of grid points
+  // num_grid_points in one dimension
+  float dnum_grid_points = pow(num_grid_points, 1./sdim);
+  real_t spacing           = 1.0/(dnum_grid_points-1); // spacing
 
   // FIXME: move the construction of Interpolator
   // to the constructor of this class.
   // Here only initialize it with values.
-  int nqp = qry_pnts.size()/sdim; // number of query points
+  int num_query_points = query_points.size()/sdim; // number of query points
   for (int vdim_cnt = 0; vdim_cnt < vdim; vdim_cnt++) {
-    real_t* dgrd_vls_array = &grd_vls[vdim_cnt*ngp];
-    likely::TriCubicInterpolator tc_intrpltr(dgrd_vls_array, spcng, dngp);
-    for(int i = 0; i < nqp; i++)
-      qry_vls[i+vdim_cnt*nqp] = tc_intrpltr(qry_pnts[i], qry_pnts[i+nqp],
-                                            qry_pnts[i+2*nqp]);
+    real_t* dgrid_values_array = &grid_values[vdim_cnt*num_grid_points];
+    likely::TriCubicInterpolator tc_intrpltr(dgrid_values_array, spacing,
+                                             dnum_grid_points);
+    for(int i = 0; i < num_query_points; i++)
+      query_values[i+vdim_cnt*num_query_points] =
+          tc_intrpltr(query_points[i],
+                      query_points[i+num_query_points],
+                      query_points[i+2*num_query_points]);
   }
 }
 

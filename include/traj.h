@@ -1,9 +1,9 @@
 // Copyright (C) 2014 by Arash Bakhtiari
 
-#ifndef TRAJ_H
-#define TRAJ_H
+#ifndef INCLUDE_TRAJ_H_
+#define INCLUDE_TRAJ_H_
 
-#include <VecField.hpp>
+#include <vec_field.h>
 #include <vector>
 
 namespace tbslas {
@@ -20,12 +20,11 @@ traj_rk2(VecField<real_t, sdim, vdim>& field,
          std::vector<real_t>& xinit,
          real_t tinit,
          real_t tfinal,
-         const int n,
+         const int num_rk_step,
          std::vector<real_t>& xsol);
-
 
 }  // namespace tbslas
 
-#include "Traj.ipp"
+#include "traj.inc"
 
-#endif /* TRAJ_H */
+#endif  // INCLUDE_TRAJ_H_

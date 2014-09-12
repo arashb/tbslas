@@ -11,9 +11,8 @@
 // limitations under the License.
 // *************************************************************************
 
-#include <VecField.hpp>
-#include <CubicInterpolant.hpp>
-
+#include <vec_field.h>
+#include "cubic_interpolant.h"
 #include <vector>
 
 namespace tbslas {
@@ -44,16 +43,16 @@ traj_rk2(VecField<real_t, sdim, vdim>& field,
          std::vector<real_t>& xinit,
          real_t tinit,
          real_t tfinal,
-         const int n,
+         const int num_rk_step,
          std::vector<real_t>& xsol) {
   // FIXME: currently supports only time-independent vector field
-  real_t tau = (tfinal - tinit)/n;
+  real_t tau = (tfinal - tinit)/num_rk_step;
 
   for (int i = 0; i < xinit.size(); i++)
       xsol[i] = xinit[i];
 
   // n-step RK2
-  for (int taustep = 0; taustep < n; taustep++) {
+  for (int taustep = 0; taustep < num_rk_step; taustep++) {
     // std::cout << xsol[0] << " " << xsol[1] << " " << xsol[2] << std::endl;
     integrate_rk2(field, xsol, tau, xsol);
   }

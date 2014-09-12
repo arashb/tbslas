@@ -1,7 +1,7 @@
 // Copyright (C) 2014 by Arash Bakhtiari
-#include <VecField.hpp>
-#include <CubicInterpolant.hpp>
-#include <utils.hpp>
+#include <vec_field.h>
+#include <cubic_interpolant.h>
+#include <utils.h>
 #include <gtest/gtest.h>
 #include <vector>
 

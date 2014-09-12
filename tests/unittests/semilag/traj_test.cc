@@ -1,8 +1,8 @@
 // Copyright (C) 2014 by Arash Bakhtiari
 
-#include <utils.hpp>
-#include <VecField.hpp>
-#include <Traj.hpp>
+#include <utils.h>
+#include <vec_field.h>
+#include <traj.h>
 #include <gtest/gtest.h>
 #include <vector>
 

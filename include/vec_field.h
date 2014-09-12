@@ -12,7 +12,7 @@
 // *************************************************************************
 
 /**
- * @file   VecField.hpp
+ * @file   vec_field.h
  * @author Arash Bakhtiari <bakhtiar@in.tum.de>
  * @date   Thu Sep  4 11:00:48 2014
  *
@@ -21,8 +21,8 @@
  *
  */
 
-#ifndef VECFIELD_H
-#define VECFIELD_H
+#ifndef INCLUDE_VEC_FIELD_H_
+#define INCLUDE_VEC_FIELD_H_
 
 #include <cstdlib>
 #include <vector>
@@ -33,30 +33,30 @@ template<typename real_t, int sdim = 3, int vdim = 3>
 class VecField {
  public:
   VecField();
-  VecField(std::vector<real_t> pnts,
-           std::vector<real_t> vls);
+  VecField(std::vector<real_t> field_points,
+           std::vector<real_t> field_values);
   virtual ~VecField();
 
  public:
   void
-  init(std::vector<real_t> pnts,
-       std::vector<real_t> vls);
+  init(std::vector<real_t> field_points,
+       std::vector<real_t> field_values);
 
   template<typename C>
   void
-  interp(std::vector<real_t>& qry_pnts,
+  interp(std::vector<real_t>& query_points,
          C& interpolant,
-         std::vector<real_t>& qry_vls);
+         std::vector<real_t>& query_values);
 
-  void write2file(const char* fname);
+  void write2file(const char* file_name);
 
  private:
-  std::vector<real_t> _pnts;   // vector field's space subset
-  std::vector<real_t> _vls;    // values of the vector field's
+  std::vector<real_t> field_points_;  // vector field's space subset
+  std::vector<real_t> field_values_;  // values of the vector field's
 };  // class VecField
 
 }  // namespace tbslas
 
-#include "VecField.ipp"
+#include "vec_field.inc"
 
-#endif /* VECFIELD_H */
+#endif  // INCLUDE_VEC_FIELD_H_

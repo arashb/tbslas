@@ -3,7 +3,7 @@
 // *************************************************************************
 // You may not use this file except in compliance with the License.
 // You obtain a copy of the License in the LICENSE file.
-
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -11,32 +11,37 @@
 // limitations under the License.
 // *************************************************************************
 
-#ifndef CUBICINTERPOLANT_H
-#define CUBICINTERPOLANT_H
+#ifndef INCLUDE_UTILS_H_
+#define INCLUDE_UTILS_H_
 
-#include <TriCubicInterpolator.h>
+#include <cstdlib>
 #include <vector>
+#include <sstream>
+#include <iomanip>
 
 namespace tbslas {
 
-template<typename real_t>
-class CubicInterpolant {
- public:
-  CubicInterpolant();
-  virtual ~CubicInterpolant();
+// unit length
+template <typename real_t, int dim>
+std::vector<real_t>
+gen_reg_grid_points(size_t N);
 
- public:
-  void
-  interp(std::vector<real_t>& grd_pnts,
-         int sdim,
-         std::vector<real_t>& grd_vals,
-         int vdim,
-         std::vector<real_t>& qry_pnts,
-         std::vector<real_t>& qry_vls);
-};  // class CubicInterpolant
+template<typename real_t>
+std::vector<real_t>
+vorticity_field(std::vector<real_t>& pnts_pos,
+                real_t omega = 1);
+
+template<typename real_t>
+std::vector<real_t>
+gaussian_field(std::vector<real_t>& pnts_pos,
+               real_t xcenter = 0.6,
+               real_t ycenter = 0.6,
+               real_t theta   = 0.0,
+               real_t sigma_x = 0.06,
+               real_t sigma_y = 0.06);
 
 }  // namespace tbslas
 
-#include "CubicInterpolant.ipp"
+#include "utils.inc"
 
-#endif /* CUBICINTERPOLANT_H */
+#endif  // INCLUDE_UTILS_H_
