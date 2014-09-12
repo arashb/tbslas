@@ -11,38 +11,38 @@
 // limitations under the License.
 // *************************************************************************
 
-#include <vec_field.h>
-#include "cubic_interpolant.h"
+#include "vec_field.h"
+#include "cubic_interp_policy.h"
 #include <vector>
 
 namespace tbslas {
 
 template<typename real_t, int sdim, int vdim>
 void
-integrate_rk2(VecField<real_t, sdim, vdim>& field,
-              std::vector<real_t>& xinit,
-              real_t dt,
+integrate_rk2(const VecField<real_t, sdim, vdim>& field,
+              const std::vector<real_t>& xinit,
+              const real_t dt,
               std::vector<real_t>& xsol) {
   // FIXME: currently supports only time-independent vector field
-  CubicInterpolant<real_t> intrplnt;
+  CubicInterpPolicy<real_t> cubic_interp_policy;
   std::vector<real_t> xtmp(xinit.size());
   std::vector<real_t> vtmp(xinit.size());
 
-  field.interp(xinit, intrplnt, vtmp);
+  field.interp(xinit, cubic_interp_policy, vtmp);
   for (int i = 0; i < xinit.size(); i++)
     xtmp[i] = xinit[i] + 0.5*dt*vtmp[i];
 
-  field.interp(xtmp, intrplnt, vtmp);
+  field.interp(xtmp, cubic_interp_policy, vtmp);
   for (int i = 0; i < xinit.size(); i++)
     xsol[i] = xinit[i] + dt*vtmp[i];
 }
 
 template<typename real_t, int sdim, int vdim>
 void
-traj_rk2(VecField<real_t, sdim, vdim>& field,
-         std::vector<real_t>& xinit,
-         real_t tinit,
-         real_t tfinal,
+traj_rk2(const VecField<real_t, sdim, vdim>& field,
+         const std::vector<real_t>& xinit,
+         const real_t tinit,
+         const real_t tfinal,
          const int num_rk_step,
          std::vector<real_t>& xsol) {
   // FIXME: currently supports only time-independent vector field

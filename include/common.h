@@ -11,31 +11,14 @@
 // limitations under the License.
 // *************************************************************************
 
-#ifndef INCLUDE_CUBIC_INTERPOLANT_H_
-#define INCLUDE_CUBIC_INTERPOLANT_H_
+#ifndef COMMON_H
+#define COMMON_H
 
 #include <vector>
 
-namespace tbslas {
+inline bool is_little_endian() {
+  int n = 1;
+  return (*reinterpret_cast<char*>(&n) == 1);
+}
 
-template<typename real_t>
-class CubicInterpolant {
- public:
-  CubicInterpolant();
-  virtual ~CubicInterpolant();
-
- public:
-  void
-  interp(std::vector<real_t>& grid_points,
-         int sdim,
-         std::vector<real_t>& grid_values,
-         int vdim,
-         std::vector<real_t>& query_points,
-         std::vector<real_t>& query_values);
-};  // class CubicInterpolant
-
-}  // namespace tbslas
-
-#include "cubic_interpolant.inc"
-
-#endif  // INCLUDE_CUBIC_INTERPOLANT_H_
+#endif /* COMMON_H */

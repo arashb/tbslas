@@ -12,7 +12,7 @@ class TriCubicInterpolator {
     // Based on http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.89.7835
  public:
     /* typedef boost::shared_array<double> DataCube; */
-    typedef double* DataCube;
+    typedef const double* DataCube;
     // Initializes an interpolator using the specified datacube of length n1*n2*n3 where
     // data is ordered first along the n1 axis [0,0,0], [1,0,0], ..., [n1-1,0,0], [0,1,0], ...
     // If n2 and n3 are both omitted, then n1=n2=n3 is assumed. Data is assumed to be

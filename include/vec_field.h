@@ -42,11 +42,11 @@ class VecField {
   init(std::vector<real_t> field_points,
        std::vector<real_t> field_values);
 
-  template<typename C>
+  template<typename InterpPolicy>
   void
-  interp(std::vector<real_t>& query_points,
-         C& interpolant,
-         std::vector<real_t>& query_values);
+  interp(const std::vector<real_t>& query_points,
+         const InterpPolicy& interpolant,
+         std::vector<real_t>& query_values) const;
 
   void write2file(const char* file_name);
 

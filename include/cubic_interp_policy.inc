@@ -18,21 +18,21 @@
 namespace tbslas {
 
 template<typename real_t>
-CubicInterpolant<real_t>::CubicInterpolant() {
+CubicInterpPolicy<real_t>::CubicInterpPolicy() {
 }
 
 template<typename real_t>
-CubicInterpolant<real_t>::~CubicInterpolant() {
+CubicInterpPolicy<real_t>::~CubicInterpPolicy() {
 }
 
 template<typename real_t>
 void
-CubicInterpolant<real_t>::interp(std::vector<real_t>& grid_points,
-                                 int sdim,
-                                 std::vector<real_t>& grid_values,
-                                 int vdim,
-                                 std::vector<real_t>& query_points,
-                                 std::vector<real_t>& query_values) {
+CubicInterpPolicy<real_t>::interp(const std::vector<real_t>& grid_points,
+                                 const int sdim,
+                                 const std::vector<real_t>& grid_values,
+                                 const int vdim,
+                                 const std::vector<real_t>& query_points,
+                                 std::vector<real_t>& query_values) const {
   int num_grid_points    = grid_points.size()/sdim;  // number of grid points
   // num_grid_points in one dimension
   float dnum_grid_points = pow(num_grid_points, 1./sdim);
@@ -43,7 +43,7 @@ CubicInterpolant<real_t>::interp(std::vector<real_t>& grid_points,
   // Here only initialize it with values.
   int num_query_points = query_points.size()/sdim; // number of query points
   for (int vdim_cnt = 0; vdim_cnt < vdim; vdim_cnt++) {
-    real_t* dgrid_values_array = &grid_values[vdim_cnt*num_grid_points];
+    const real_t* dgrid_values_array = &grid_values[vdim_cnt*num_grid_points];
     likely::TriCubicInterpolator tc_intrpltr(dgrid_values_array, spacing,
                                              dnum_grid_points);
     for(int i = 0; i < num_query_points; i++)

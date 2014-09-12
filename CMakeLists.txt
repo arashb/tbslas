@@ -53,6 +53,7 @@ endif()
 # SUB-DIRECTORIES
 ##############################
 add_subdirectory(src)
+add_subdirectory(examples)
 if(BUILD-GTEST-UNITTEST)
   add_subdirectory(tests)
 endif()

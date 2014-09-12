@@ -1,6 +1,6 @@
 // Copyright (C) 2014 by Arash Bakhtiari
 #include <vec_field.h>
-#include <cubic_interpolant.h>
+#include <cubic_interp_policy.h>
 #include <utils.h>
 #include <gtest/gtest.h>
 #include <vector>
@@ -13,9 +13,9 @@ class VecFieldTest : public ::testing::Test {
   virtual void SetUp() {
     size_t dN = 11;
     size_t tN = dN*dN*dN;
-    VecD pnts_pos = tbslas::gen_reg_grid_points<double>(dN);
-    VecD pnts_vls = tbslas::vorticity_field(pnts_pos);
-    vecfd.init(pnts_pos, pnts_vls);
+    VecD points_positions = tbslas::gen_reg_grid_points<double>(dN);
+    VecD points_values = tbslas::vorticity_field(points_positions);
+    vecfd.init(points_positions, points_values);
   }
 
   virtual void TearDown() {
@@ -29,15 +29,15 @@ TEST_F(VecFieldTest, WriteToFile) {
 }
 
 TEST_F(VecFieldTest, Interpolate) {
-  VecD qry_pnts;
-  qry_pnts.push_back(0.75);
-  qry_pnts.push_back(0.75);
-  qry_pnts.push_back(0.50);
-  VecD expected_res = tbslas::vorticity_field(qry_pnts);
+  VecD query_points;
+  query_points.push_back(0.75);
+  query_points.push_back(0.75);
+  query_points.push_back(0.50);
+  VecD expected_res = tbslas::vorticity_field(query_points);
 
-  tbslas::CubicInterpolant<double> intrplnt;
-  VecD actual_res(qry_pnts.size());
-  vecfd.interp(qry_pnts, intrplnt, actual_res);
+  tbslas::CubicInterpPolicy<double> cubic_interp_policy;
+  VecD actual_res(query_points.size());
+  vecfd.interp(query_points, cubic_interp_policy, actual_res);
 
   ASSERT_DOUBLE_EQ(expected_res[0], actual_res[0]);
   ASSERT_DOUBLE_EQ(expected_res[1], actual_res[1]);

@@ -11,6 +11,7 @@
 // limitations under the License.
 // *************************************************************************
 
+#include "common.h"
 #include <stdint.h>
 #include <assert.h>
 #include <string>       // std::string
@@ -33,14 +34,8 @@ validate_field_data(std::vector<real_t>& field_points,
   assert((field_points.size()/sdim)  == (field_values.size()/vdim));
 }
 
-inline bool is_little_endian() {
-  int n = 1;
-  return (*reinterpret_cast<char*>(&n) == 1);
-}
-
 template<typename real_t, int sdim, int vdim>
 VecField<real_t, sdim, vdim>::VecField() {}
-
 
 template<typename real_t, int sdim, int vdim>
 VecField<real_t, sdim, vdim>::VecField(std::vector<real_t> field_points,
@@ -62,11 +57,11 @@ VecField<real_t, sdim, vdim>::init(std::vector<real_t> field_points,
 
 
 template<typename real_t, int sdim, int vdim>
-template<typename C>  // Interpolant class
+template<typename InterpPolicy>
 void
-VecField<real_t, sdim, vdim>::interp(std::vector<real_t>& query_points,
-                                     C& interpolant,
-                                     std::vector<real_t>& query_values) {
+VecField<real_t, sdim, vdim>::interp(const std::vector<real_t>& query_points,
+                                     const InterpPolicy& interpolant,
+                                     std::vector<real_t>& query_values) const {
   interpolant.interp(field_points_, sdim, field_values_, vdim, query_points,
                      query_values);
 }
