@@ -28,7 +28,17 @@ gen_reg_grid_points(size_t N);
 
 template<typename real_t>
 std::vector<real_t>
-vorticity_field(std::vector<real_t>& pnts_pos, real_t omega=1);
+vorticity_field(std::vector<real_t>& pnts_pos,
+                real_t omega = 1);
+
+template<typename real_t>
+std::vector<real_t>
+gaussian_field(std::vector<real_t>& pnts_pos,
+               real_t xcenter = 0.6,
+               real_t ycenter = 0.6,
+               real_t theta   = 0.0,
+               real_t sigma_x = 0.06,
+               real_t sigma_y = 0.06);
 
 }  // namespace tbslas
 
