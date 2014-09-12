@@ -67,7 +67,7 @@ void
 VecField<real_t, sdim, vdim>::interp(std::vector<real_t>& qry_pnts,
                                      C& interpolant,
                                      std::vector<real_t>& qry_vls) {
-  interpolant.interp(_pnts, _vls, qry_pnts, qry_vls);
+  interpolant.interp(_pnts, sdim, _vls, vdim, qry_pnts, qry_vls);
 }
 
 template<typename real_t, int sdim, int vdim>

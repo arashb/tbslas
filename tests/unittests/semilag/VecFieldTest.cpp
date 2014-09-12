@@ -25,7 +25,7 @@ class VecFieldTest : public ::testing::Test {
 };
 
 TEST_F(VecFieldTest, WriteToFile) {
-  vecfd.write2file("VecFieldTest-WriteToFile");
+  vecfd.write2file("vecfieldtest_writetofile_");
 }
 
 TEST_F(VecFieldTest, Interpolate) {

@@ -24,7 +24,7 @@ integrate_rk2(VecField<real_t, sdim, vdim>& field,
               std::vector<real_t>& xinit,
               real_t dt,
               std::vector<real_t>& xsol) {
-  // FIXME: currently time-independent vector field is implemented
+  // FIXME: currently supports only time-independent vector field
   CubicInterpolant<real_t> intrplnt;
   std::vector<real_t> xtmp(xinit.size());
   std::vector<real_t> vtmp(xinit.size());
@@ -46,7 +46,7 @@ traj_rk2(VecField<real_t, sdim, vdim>& field,
          real_t tfinal,
          const int n,
          std::vector<real_t>& xsol) {
-  // FIXME: currently time-independent vector field is implemented
+  // FIXME: currently supports only time-independent vector field
   real_t tau = (tfinal - tinit)/n;
 
   for (int i = 0; i < xinit.size(); i++)

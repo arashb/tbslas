@@ -28,7 +28,9 @@ class CubicInterpolant {
  public:
   void
   interp(std::vector<real_t>& grd_pnts,
+         int sdim,
          std::vector<real_t>& grd_vals,
+         int vdim,
          std::vector<real_t>& qry_pnts,
          std::vector<real_t>& qry_vls);
 };  // class CubicInterpolant
