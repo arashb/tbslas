@@ -18,6 +18,8 @@
 #include <vector>
 #include <sstream>
 #include <iomanip>
+#include <cassert>
+#include <cmath>
 
 namespace tbslas {
 
@@ -39,6 +41,11 @@ gaussian_field(std::vector<real_t>& pnts_pos,
                real_t theta   = 0.0,
                real_t sigma_x = 0.06,
                real_t sigma_y = 0.06);
+
+template<typename real_t>
+inline int
+find_grid_index_1d(const std::vector<real_t>& grid,
+                   const real_t query);
 
 }  // namespace tbslas
 

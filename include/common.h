@@ -15,10 +15,28 @@
 #define COMMON_H
 
 #include <vector>
+#include <cassert>
+#include <cmath>
 
-inline bool is_little_endian() {
+inline bool
+is_little_endian() {
   int n = 1;
   return (*reinterpret_cast<char*>(&n) == 1);
+}
+
+template<typename real_t>
+inline int
+find_grid_index_1d(const std::vector<real_t>& grid,
+                   const real_t query) {
+  int num_el = grid.size();
+  assert(num_el >= 2);
+  // assume grid is sorted
+  real_t init    = grid[0];
+  real_t spacing = grid[1] - grid[0];
+  assert((query - init) >= 0);
+  int index = (int)std::floor((query - init) / spacing);
+  assert(index < num_el);
+  return index;
 }
 
 #endif /* COMMON_H */

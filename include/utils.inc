@@ -14,23 +14,23 @@
 #include <iostream>
 #include <vector>
 #include <cmath>
+#include <cassert>
 
 namespace tbslas {
 
-template <typename real_t>
+template <typename real_t, int dim>
 std::vector<real_t>
 gen_reg_grid_points(size_t N) {
-  size_t tN = N*N*N;
+  size_t tN = std::pow(N, dim);
   real_t dx = 1.0/(N-1);
   // regular grid points positions
-  std::vector<real_t> reg_grid_points_pos(tN*3);
-  for (size_t i = 0; i < tN; i++) {
-    // x cooridnate
-    reg_grid_points_pos[i]      = (((real_t)((i / 1)    %N))*dx);
-    // y coordinate
-    reg_grid_points_pos[i+tN]   = (((real_t)((i / N)    %N))*dx);
-    // z coordinate
-    reg_grid_points_pos[i+2*tN] = (((real_t)((i /(N*N)) %N))*dx);
+  std::vector<real_t> reg_grid_points_pos(tN*dim);
+  for ( int idim = 0; idim < dim; idim++) {
+    // idim's cooridnate
+    int index_shift = idim*tN;
+    size_t denom_shift = (size_t)std::pow(N, idim);
+    for (size_t i = 0; i < tN; i++)
+      reg_grid_points_pos[i+index_shift] = (((real_t)((i / denom_shift) % N))*dx);
   }
   return reg_grid_points_pos;
 }
@@ -80,6 +80,23 @@ gaussian_field(std::vector<real_t>& points_pos,
                               );
   }
   return points_values;
+}
+
+template<typename real_t>
+inline int
+find_grid_index_1d(const std::vector<real_t>& grid,
+                   const real_t query) {
+  int num_el = grid.size();
+  assert(num_el >= 2);
+  // assume grid is sorted
+  real_t init  = grid[0];
+  real_t final = grid[num_el-1];
+  // assume grid points are equidistant
+  real_t spacing = grid[1] - grid[0];
+  assert(query  >= init && query <= final);
+  int index = (int)std::floor((query - init) / spacing);
+  assert(index >= 0 && index < num_el);
+  return index;
 }
 
 }  // namespace tbslas

@@ -3,6 +3,8 @@
 set(test_IDs
   vec_field_test
   traj_test
+  utils_test
+  cubic_interp_policy_test
   )
 set(test_LIBS  gtest gtest_main tricubic)
 

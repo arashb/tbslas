@@ -34,25 +34,53 @@ class VecField {
  public:
   VecField();
   VecField(std::vector<real_t> field_points,
-           std::vector<real_t> field_values);
+           std::vector<real_t> field_values,
+           real_t time_init = 0);
+
   virtual ~VecField();
 
  public:
   void
   init(std::vector<real_t> field_points,
-       std::vector<real_t> field_values);
+       std::vector<real_t> field_values,
+       real_t time_init = 0);
+
+
+  const std::vector<real_t>&
+  get_points() {return field_points_;}
+
+  size_t
+  get_num_points() {return num_field_points_;}
+
+  void
+  push_back_values(std::vector<real_t>& field_values,
+                   real_t time = 0);
 
   template<typename InterpPolicy>
   void
   interp(const std::vector<real_t>& query_points,
          const InterpPolicy& interpolant,
-         std::vector<real_t>& query_values) const;
+         std::vector<real_t>& query_values,
+         int timestep = 0) const;
 
-  void write2file(const char* file_name);
+  template<typename InterpPolicy>
+  void
+  interp(const std::vector<real_t>& query_points,
+         const real_t query_time,
+         const InterpPolicy& interpolant,
+         std::vector<real_t>& query_values
+         ) const;
+
+  void write2file(const char* file_name, int timestep = 0);
+
+  void save(const char* file_name);
 
  private:
   std::vector<real_t> field_points_;  // vector field's space subset
-  std::vector<real_t> field_values_;  // values of the vector field's
+    size_t num_field_points_;           // number of field points
+  // values of the vector field's
+  std::vector< std::vector<real_t> > field_values_;
+  std::vector<real_t> time_;
 };  // class VecField
 
 }  // namespace tbslas

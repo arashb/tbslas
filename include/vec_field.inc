@@ -1,6 +1,6 @@
+// *************************************************************************
 // Copyright (C) 2014 by Arash Bakhtiari
 
-// *************************************************************************
 // You may not use this file except in compliance with the License.
 // You obtain a copy of the License in the LICENSE file.
 
@@ -27,11 +27,10 @@ namespace tbslas {
 
 template<typename real_t>
 inline void
-validate_field_data(std::vector<real_t>& field_points,
-                    int sdim,
+validate_field_data(size_t num_field_points,
                     std::vector<real_t>& field_values,
                     int vdim) {
-  assert((field_points.size()/sdim)  == (field_values.size()/vdim));
+  assert(num_field_points == (field_values.size()/vdim));
 }
 
 template<typename real_t, int sdim, int vdim>
@@ -39,31 +38,12 @@ VecField<real_t, sdim, vdim>::VecField() {}
 
 template<typename real_t, int sdim, int vdim>
 VecField<real_t, sdim, vdim>::VecField(std::vector<real_t> field_points,
-                                       std::vector<real_t> field_values):
-    field_points_(field_points),
-    field_values_(field_values) {
-  validate_field_data(field_points_, sdim, field_values_, vdim);
-}
-
-template<typename real_t, int sdim, int vdim>
-void
-VecField<real_t, sdim, vdim>::init(std::vector<real_t> field_points,
-                                   std::vector<real_t> field_values) {
-  field_points_ = field_points;
-  field_values_ = field_values;
-  validate_field_data(field_points_, sdim, field_values_, vdim);
-}
-
-
-
-template<typename real_t, int sdim, int vdim>
-template<typename InterpPolicy>
-void
-VecField<real_t, sdim, vdim>::interp(const std::vector<real_t>& query_points,
-                                     const InterpPolicy& interpolant,
-                                     std::vector<real_t>& query_values) const {
-  interpolant.interp(field_points_, sdim, field_values_, vdim, query_points,
-                     query_values);
+                                       std::vector<real_t> field_values,
+                                       real_t time_init):
+    field_points_(field_points)
+{
+  num_field_points_ = field_points_.size()/sdim;
+  this->push_back_values(field_values, time_init);
 }
 
 template<typename real_t, int sdim, int vdim>
@@ -71,16 +51,67 @@ VecField<real_t, sdim, vdim>::~VecField() {}
 
 template<typename real_t, int sdim, int vdim>
 void
-VecField<real_t, sdim, vdim>::write2file(const char* file_name) {
-  int pnt_cnt = field_points_.size()/sdim;
+VecField<real_t, sdim, vdim>::init(std::vector<real_t> field_points,
+                                   std::vector<real_t> field_values,
+                                   real_t time_init) {
+  field_points_ = field_points;
+  num_field_points_ = field_points_.size()/sdim;
+  field_values_.clear();
+  this->push_back_values(field_values, time_init);
+}
+
+
+template<typename real_t, int sdim, int vdim>
+void
+VecField<real_t, sdim, vdim>::push_back_values(std::vector<real_t>& field_values,
+                                               real_t time) {
+  validate_field_data(num_field_points_, field_values, vdim);
+  field_values_.push_back(field_values);
+  time_.push_back(time);
+}
+
+template<typename real_t, int sdim, int vdim>
+template<typename InterpPolicy>
+void
+VecField<real_t, sdim, vdim>::interp(const std::vector<real_t>& query_points,
+                                     const InterpPolicy& interpolant,
+                                     std::vector<real_t>& query_values,
+                                     int timestep) const {
+  assert (timestep >= 0 && timestep < field_values_.size());
+  interpolant.interp(field_points_, sdim,
+                     field_values_[timestep], vdim,
+                     query_points,
+                     query_values);
+}
+
+template<typename real_t, int sdim, int vdim>
+template<typename InterpPolicy>
+void
+VecField<real_t, sdim, vdim>::interp(const std::vector<real_t>& query_points,
+                                     const real_t query_time,
+                                     const InterpPolicy& interpolant,
+                                     std::vector<real_t>& query_values
+                                     ) const {
+  interpolant.interp(field_points_, sdim,
+                     field_values_, vdim,
+                     time_,
+                     query_points,
+                     query_time,
+                     query_values);
+}
+
+
+template<typename real_t, int sdim, int vdim>
+void
+VecField<real_t, sdim, vdim>::write2file(const char* file_name, int timestep) {
+  assert (timestep < field_values_.size());
   // FIXME: is correct only for the regular grid
-  float dN = pow(pnt_cnt, 1./(sdim));
+  float dN = pow(num_field_points_, 1./(sdim));
   // int cll_cnt = pow(dN-1, sdim);
-  int myrank = 0;
 
   // open file for writing.
   std::stringstream vtufname;
-  vtufname << file_name << std::setfill('0') << std::setw(6) << myrank << ".vts";
+  vtufname << file_name << std::setfill('0') << std::setw(6) << timestep << ".vts";
   std::ofstream vtsfile;
   vtsfile.open(vtufname.str().c_str());
   if (vtsfile.fail()) return;
@@ -113,14 +144,14 @@ VecField<real_t, sdim, vdim>::write2file(const char* file_name) {
   int32_t points_block_size = field_points_.size()*sizeof(real_t);
   data_size += sizeof(uint32_t)+ points_block_size;
   //**************************************************************************
-  vtsfile <<"      <PointData vectors=\"values\" >\n";
+  vtsfile <<"      <PointData>\n";
   vtsfile <<"        <DataArray type=\"Float" << sizeof(real_t)*8 << "\" "
           <<"Name=\"values\" "
           <<"NumberOfComponents=\"" << vdim << "\" "
           <<"format=\"appended\" "
           <<"offset=\"" << data_size << "\" />\n";
   vtsfile <<"      </PointData>\n";
-  int32_t vls_block_size = field_values_.size()*sizeof(real_t);
+  int32_t vls_block_size = field_values_[timestep].size()*sizeof(real_t);
   data_size += sizeof(uint32_t) + vls_block_size;
   //**************************************************************************
   // vtsfile <<"      <CellData>\n";
@@ -135,30 +166,39 @@ VecField<real_t, sdim, vdim>::write2file(const char* file_name) {
   // points positions
   vtsfile.write(reinterpret_cast<char*>(&points_block_size),
                 sizeof(points_block_size));
-  for (int i = 0; i < pnt_cnt; i++) {
+  for (int i = 0; i < num_field_points_; i++) {
     for(int j = 0; j < sdim; j++)
-      vtsfile.write(reinterpret_cast<char*>(&field_points_[i+j*pnt_cnt]),
+      vtsfile.write(reinterpret_cast<char*>(&field_points_[i+j*num_field_points_]),
                     sizeof(real_t));
   }
-  // vtsfile.write(reinterpret_cast<char*>(&field_points_[0]),
-  //               points_block_size);
 
   // points data
   // see the data memmory layout in vector field class
   vtsfile.write(reinterpret_cast<char*>(&vls_block_size),
                 sizeof(vls_block_size));
-  for (int i = 0; i < pnt_cnt; i++) {
-    for(int j = 0; j < vdim; j++)
-      vtsfile.write(reinterpret_cast<char*>(&field_values_[i+j*pnt_cnt]),
+  std::vector<real_t>& fvalues = field_values_[timestep];
+  for (int i = 0; i < num_field_points_; i++) {
+    for(int j = 0; j < vdim; j++) {
+      vtsfile.write(reinterpret_cast<char*>(&fvalues[i+j*num_field_points_]),
                     sizeof(real_t));
+    }
   }
-  // vtsfile.write(reinterpret_cast<char*>(&field_values_[0]),
-  //               vls_block_size);
   vtsfile <<"\n";
   vtsfile <<"  </AppendedData>\n";
   //**************************************************************************
   vtsfile <<"</VTKFile>\n";
   vtsfile.close();
+}
+
+template<typename real_t, int sdim, int vdim>
+void
+VecField<real_t, sdim, vdim>::save(const char* file_name) {
+  int num_timesteps = field_values_.size();
+  for (int i = 0 ; i < num_timesteps; i++)
+    this->write2file(file_name, i);
+
+  // save the pvd file
+  // TODO
 }
 
 }  // namespace tbslas

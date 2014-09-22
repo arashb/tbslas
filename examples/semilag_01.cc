@@ -1,30 +1,49 @@
 // Copyright (C) 2014 by Arash Bakhtiari
 
 #include <utils.h>
+#include <cubic_interp_policy.h>
 #include <vec_field.h>
-#include <traj.h>
+#include <semilag.h>
 #include <vector>
 
-typedef tbslas::VecField<double,3,3> VFieldD33;
-typedef tbslas::VecField<double,3,1> VFieldD31;
-typedef std::vector<double> VecD;
+typedef tbslas::VecField<double,3,3> VFieldD33 ;
+typedef tbslas::VecField<double,3,1> VFieldD31 ;
+typedef std::vector<double> VecD               ;
 
 int main(int argc, char *argv[]) {
-  VFieldD33 vec_field_velocity;
-  VFieldD31 vec_field_concentration;
-  size_t dN;
+  VFieldD33 vel_field;
+  VFieldD31 conc_field;
+  size_t domain_res = 16+1;
+  double dx         = 1.0/(domain_res-1);
+  double dt         = dx;
+  int tn            = 10;
+  double tf         = tn*dt;
+  int num_rk_step   = 1;
 
-  dN = 65;
-  size_t tN = dN*dN*dN;
-  VecD pnts_pos           = tbslas::gen_reg_grid_points<double>(dN);
-  VecD pnts_vls_vorticity = tbslas::vorticity_field(pnts_pos);
-  VecD pnts_vls_gaussian  = tbslas::gaussian_field(pnts_pos);
+  size_t num_points            = domain_res*domain_res*domain_res;
+  VecD points_pos              = tbslas::gen_reg_grid_points<double,3>(domain_res);
+  VecD points_values_vorticity = tbslas::vorticity_field(points_pos);
+  VecD points_values_gaussian  = tbslas::gaussian_field(points_pos);
+  tbslas::CubicInterpPolicy<double> cubic_interp_policy;
 
-  vec_field_velocity.init(pnts_pos, pnts_vls_vorticity);
-  vec_field_concentration.init(pnts_pos, pnts_vls_gaussian);
+  vel_field.init(points_pos, points_values_vorticity);
+  conc_field.init(points_pos, points_values_gaussian);
 
-  vec_field_velocity.write2file("semilag_vel_");
-  vec_field_concentration.write2file("semilag_con_");
+  for(int timestep = 1; timestep <= tn; timestep++) {
+    std::cout << "****************************************" << std::endl;
+    std::cout << "-> timestep: " << timestep
+              << " time: " << dt*timestep << std::endl;
+    tbslas::semilag_rk2(vel_field,
+                        cubic_interp_policy,
+                        timestep,
+                        dt,
+                        num_rk_step,
+                        conc_field
+                        );
+  }
+
+  vel_field.save("semilag_vel_");
+  conc_field.save("semilag_con_");
 
   return 0;
 }

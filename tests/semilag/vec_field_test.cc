@@ -13,9 +13,10 @@ class VecFieldTest : public ::testing::Test {
   virtual void SetUp() {
     size_t dN = 11;
     size_t tN = dN*dN*dN;
-    VecD points_positions = tbslas::gen_reg_grid_points<double>(dN);
+    VecD points_positions = tbslas::gen_reg_grid_points<double,3>(dN);
     VecD points_values = tbslas::vorticity_field(points_positions);
     vecfd.init(points_positions, points_values);
+    vecfd.push_back_values(points_values);
   }
 
   virtual void TearDown() {
@@ -42,4 +43,8 @@ TEST_F(VecFieldTest, Interpolate) {
   ASSERT_DOUBLE_EQ(expected_res[0], actual_res[0]);
   ASSERT_DOUBLE_EQ(expected_res[1], actual_res[1]);
   ASSERT_DOUBLE_EQ(expected_res[2], actual_res[2]);
+}
+
+TEST_F(VecFieldTest, Save) {
+  vecfd.save("vecfieldtest_save_");
 }
