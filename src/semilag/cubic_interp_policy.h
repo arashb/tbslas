@@ -11,8 +11,8 @@
 // limitations under the License.
 // *************************************************************************
 
-#ifndef INCLUDE_CUBIC_INTERP_POLICY_H_
-#define INCLUDE_CUBIC_INTERP_POLICY_H_
+#ifndef SRC_SEMILAG_CUBIC_INTERP_POLICY_H_
+#define SRC_SEMILAG_CUBIC_INTERP_POLICY_H_
 
 #include <vector>
 
@@ -57,4 +57,4 @@ class CubicInterpPolicy {
 
 #include "cubic_interp_policy.inc"
 
-#endif  // INCLUDE_CUBIC_INTERP_POLICY_H_
+#endif  // SRC_SEMILAG_CUBIC_INTERP_POLICY_H_

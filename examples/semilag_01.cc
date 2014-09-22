@@ -1,10 +1,11 @@
 // Copyright (C) 2014 by Arash Bakhtiari
 
-#include <utils.h>
-#include <cubic_interp_policy.h>
-#include <vec_field.h>
-#include <semilag.h>
 #include <vector>
+
+#include "semilag/utils.h"
+#include "semilag/cubic_interp_policy.h"
+#include "semilag/vec_field.h"
+#include "semilag/semilag.h"
 
 typedef tbslas::VecField<double,3,3> VFieldD33 ;
 typedef tbslas::VecField<double,3,1> VFieldD31 ;

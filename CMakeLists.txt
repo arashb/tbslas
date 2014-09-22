@@ -19,7 +19,9 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${tbslad_SOURCE_DIR}/lib)
 set(CMAKE_BUILD_TYPE debug)
 
 # include/lib directories
-include_directories(${tbslad_SOURCE_DIR}/include)
+include_directories(${tbslad_SOURCE_DIR}/include
+  ${tbslad_SOURCE_DIR}/src
+)
 link_directories(${tbslad_SOURCE_DIR}/lib)
 
 # add a target to generate API documentation with Doxygen

@@ -11,10 +11,10 @@
 // limitations under the License.
 // *************************************************************************
 
-#include "vec_field.h"
-#include "cubic_interp_policy.h"
-
 #include <vector>
+
+#include "semilag/vec_field.h"
+#include "semilag/cubic_interp_policy.h"
 
 namespace tbslas {
 

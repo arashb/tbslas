@@ -15,6 +15,9 @@
 #include <cstdlib>
 #include <iostream>
 
+#include "semilag/vec_field.h"
+#include "semilag/traj.h"
+
 namespace tbslas {
 
 template<typename real_t,

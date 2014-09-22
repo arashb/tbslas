@@ -1,12 +1,13 @@
 // Copyright (C) 2014 by Arash Bakhtiari
 
-#include <utils.h>
-#include <cubic_interp_policy.h>
-
-#include <gtest/gtest.h>
 #include <vector>
 #include <cstdlib>
 #include <cmath>
+
+#include <gtest/gtest.h>
+
+#include "semilag/cubic_interp_policy.h"
+#include "semilag/utils.h"
 
 class CubicInterpPolicyTest : public ::testing::Test {
  protected:

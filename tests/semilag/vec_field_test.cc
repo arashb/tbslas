@@ -1,9 +1,12 @@
 // Copyright (C) 2014 by Arash Bakhtiari
-#include <vec_field.h>
-#include <cubic_interp_policy.h>
-#include <utils.h>
-#include <gtest/gtest.h>
+
 #include <vector>
+
+#include <gtest/gtest.h>
+
+#include "semilag/vec_field.h"
+#include "semilag/cubic_interp_policy.h"
+#include "semilag/utils.h"
 
 typedef tbslas::VecField<double,3,3> VFieldD;
 typedef std::vector<double> VecD;

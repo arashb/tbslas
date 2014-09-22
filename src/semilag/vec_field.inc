@@ -11,9 +11,8 @@
 // limitations under the License.
 // *************************************************************************
 
-#include "common.h"
 #include <stdint.h>
-#include <assert.h>
+#include <cassert>
 #include <string>       // std::string
 #include <vector>
 #include <iomanip>
@@ -22,6 +21,7 @@
 #include <iostream>     // std::cout
 #include <cmath>        // pow()
 
+#include "semilag/utils.h"
 
 namespace tbslas {
 

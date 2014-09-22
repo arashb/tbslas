@@ -1,5 +1,8 @@
+// Copyright (C) 2014 by Arash Bakhtiari
+
 #include <gtest/gtest.h>
-#include <utils.h>
+
+#include "semilag/utils.h"
 
 TEST(UtilsTest, FindGridIndex) {
   std::vector<double> grid = tbslas::gen_reg_grid_points<double,1>(11);

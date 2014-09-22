@@ -1,6 +1,6 @@
+// *************************************************************************
 // Copyright (C) 2014 by Arash Bakhtiari
 
-// *************************************************************************
 // You may not use this file except in compliance with the License.
 // You obtain a copy of the License in the LICENSE file.
 //
@@ -11,8 +11,8 @@
 // limitations under the License.
 // *************************************************************************
 
-#ifndef INCLUDE_UTILS_H_
-#define INCLUDE_UTILS_H_
+#ifndef SRC_SEMILAG_UTILS_H_
+#define SRC_SEMILAG_UTILS_H_
 
 #include <cstdlib>
 #include <vector>
@@ -47,8 +47,14 @@ inline int
 find_grid_index_1d(const std::vector<real_t>& grid,
                    const real_t query);
 
+inline bool
+is_little_endian() {
+  int n = 1;
+  return (*reinterpret_cast<char*>(&n) == 1);
+}
+
 }  // namespace tbslas
 
 #include "utils.inc"
 
-#endif  // INCLUDE_UTILS_H_
+#endif  // SRC_SEMILAG_UTILS_H_

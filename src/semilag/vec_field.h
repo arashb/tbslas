@@ -1,6 +1,6 @@
+// *************************************************************************
 // Copyright (C) 2014 by Arash Bakhtiari
 
-// *************************************************************************
 // You may not use this file except in compliance with the License.
 // You obtain a copy of the License in the LICENSE file.
 
@@ -21,8 +21,8 @@
  *
  */
 
-#ifndef INCLUDE_VEC_FIELD_H_
-#define INCLUDE_VEC_FIELD_H_
+#ifndef SRC_SEMILAG_VEC_FIELD_H_
+#define SRC_SEMILAG_VEC_FIELD_H_
 
 #include <cstdlib>
 #include <vector>
@@ -77,7 +77,7 @@ class VecField {
 
  private:
   std::vector<real_t> field_points_;  // vector field's space subset
-    size_t num_field_points_;           // number of field points
+  size_t num_field_points_;           // number of field points
   // values of the vector field's
   std::vector< std::vector<real_t> > field_values_;
   std::vector<real_t> time_;
@@ -87,4 +87,4 @@ class VecField {
 
 #include "vec_field.inc"
 
-#endif  // INCLUDE_VEC_FIELD_H_
+#endif  // SRC_SEMILAG_VEC_FIELD_H_

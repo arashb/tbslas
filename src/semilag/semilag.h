@@ -11,14 +11,8 @@
 // limitations under the License.
 // *************************************************************************
 
-#ifndef INCLUDE_SEMILAG_H_
-#define INCLUDE_SEMILAG_H_
-
-#include "vec_field.h"
-#include "traj.h"
-
-#include <vector>
-#include <cstdlib>
+#ifndef SRC_SEMILAG_SEMILAG_H_
+#define SRC_SEMILAG_SEMILAG_H_
 
 namespace tbslas {
 
@@ -38,4 +32,4 @@ semilag_rk2(const VField& vel_field,
 
 #include "semilag.inc"
 
-#endif  // INCLUDE_SEMILAG_H_
+#endif  // SRC_SEMILAG_SEMILAG_H_

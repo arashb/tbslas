@@ -11,11 +11,13 @@
 // limitations under the License.
 // *************************************************************************
 
-#include <TriCubicInterpolator.h>
 #include <vector>
 #include <cmath>
 #include <cassert>
-#include "utils.h"
+
+#include <TriCubicInterpolator.h>
+
+#include "semilag/utils.h"
 
 namespace tbslas {
 

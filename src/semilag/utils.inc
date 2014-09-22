@@ -1,6 +1,6 @@
+// *************************************************************************
 // Copyright (C) 2014 by Arash Bakhtiari
 
-// *************************************************************************
 // You may not use this file except in compliance with the License.
 // You obtain a copy of the License in the LICENSE file.
 

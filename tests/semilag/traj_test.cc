@@ -1,10 +1,12 @@
 // Copyright (C) 2014 by Arash Bakhtiari
 
-#include <utils.h>
-#include <vec_field.h>
-#include <traj.h>
-#include <gtest/gtest.h>
 #include <vector>
+
+#include <gtest/gtest.h>
+
+#include "semilag/utils.h"
+#include "semilag/vec_field.h"
+#include "semilag/traj.h"
 
 typedef tbslas::VecField<double,3,3> VFieldD;
 typedef std::vector<double> VecD;
