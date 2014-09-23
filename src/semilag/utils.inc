@@ -20,7 +20,7 @@ namespace tbslas {
 
 template <typename real_t, int dim>
 std::vector<real_t>
-gen_reg_grid_points(size_t N) {
+generate_reg_grid_points(const size_t N) {
   size_t tN = std::pow(N, dim);
   real_t dx = 1.0/(N-1);
   // regular grid points positions
@@ -37,25 +37,29 @@ gen_reg_grid_points(size_t N) {
 
 template<typename real_t>
 std::vector<real_t>
-vorticity_field(std::vector<real_t>& points_pos, real_t omega) {
+generate_vorticity_field(const std::vector<real_t>& points_pos,
+                         const real_t time ,
+                         const real_t omega
+                         ) {
+  real_t time_factor = 1+sin(2*3.14159*time);
   size_t tN = points_pos.size()/3;
   std::vector<real_t> points_values(3*tN);
   for (size_t i = 0; i < tN; i++) {
-    points_values[i]      = omega*(0.5         - points_pos[i+tN]) ;
-    points_values[i+tN]   = omega*(points_pos[i] - 0.5           ) ;
-    points_values[i+2*tN] = 0                                    ;
+    points_values[i]      = omega*(0.5           - points_pos[i+tN])*time_factor;
+    points_values[i+tN]   = omega*(points_pos[i] - 0.5             )*time_factor;
+    points_values[i+2*tN] = 0;
   }
   return points_values;
 }
 
 template<typename real_t>
 std::vector<real_t>
-gaussian_field(std::vector<real_t>& points_pos,
-               real_t xc      ,
-               real_t yc      ,
-               real_t theta   ,
-               real_t sigma_x ,
-               real_t sigma_y) {
+generate_gaussian_field(const std::vector<real_t>& points_pos,
+                        const real_t xc      ,
+                        const real_t yc      ,
+                        const real_t theta   ,
+                        const real_t sigma_x ,
+                        const real_t sigma_y) {
   real_t A           = 1.0;
   real_t cos_theta   = cos(theta);
   real_t cos_2theta  = cos(2*theta);
@@ -87,15 +91,17 @@ inline int
 find_grid_index_1d(const std::vector<real_t>& grid,
                    const real_t query) {
   int num_el = grid.size();
-  assert(num_el >= 2);
+  assert(num_el > 2);
   // assume grid is sorted
   real_t init  = grid[0];
   real_t final = grid[num_el-1];
   // assume grid points are equidistant
   real_t spacing = grid[1] - grid[0];
-  assert(query  >= init && query <= final);
+  assert(query >= init);
+  assert(query <= final);
   int index = (int)std::floor((query - init) / spacing);
-  assert(index >= 0 && index < num_el);
+  assert(index >= 0);
+  assert(index < num_el);
   return index;
 }
 

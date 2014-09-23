@@ -33,27 +33,21 @@ template<typename real_t, int sdim = 3, int vdim = 3>
 class VecField {
  public:
   VecField();
-  VecField(std::vector<real_t> field_points,
-           std::vector<real_t> field_values,
-           real_t time_init = 0);
+  VecField(const std::vector<real_t>& field_points,
+           const std::vector<real_t>& field_values,
+           const real_t time_init = 0);
 
   virtual ~VecField();
 
  public:
   void
-  init(std::vector<real_t> field_points,
-       std::vector<real_t> field_values,
-       real_t time_init = 0);
+  init(const std::vector<real_t>& field_points,
+       const std::vector<real_t>& field_values,
+       const real_t time_init = 0);
 
-
-  const std::vector<real_t>&
-  get_points() {return field_points_;}
-
-  size_t
-  get_num_points() {return num_field_points_;}
 
   void
-  push_back_values(std::vector<real_t>& field_values,
+  push_back_values(const std::vector<real_t>& field_values,
                    real_t time = 0);
 
   template<typename InterpPolicy>
@@ -61,7 +55,7 @@ class VecField {
   interp(const std::vector<real_t>& query_points,
          const InterpPolicy& interpolant,
          std::vector<real_t>& query_values,
-         int timestep = 0) const;
+         const int timestep = 0) const;
 
   template<typename InterpPolicy>
   void
@@ -74,6 +68,12 @@ class VecField {
   void write2file(const char* file_name, int timestep = 0);
 
   void save(const char* file_name);
+
+  const std::vector<real_t>&
+  get_points() const {return field_points_;}
+
+  size_t
+  get_num_points() const {return num_field_points_;}
 
  private:
   std::vector<real_t> field_points_;  // vector field's space subset

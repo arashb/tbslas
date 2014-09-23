@@ -13,38 +13,45 @@ typedef std::vector<double> VecD               ;
 
 int main(int argc, char *argv[]) {
   VFieldD33 vel_field;
-  VFieldD31 conc_field;
-  size_t domain_res = 16+1;
-  double dx         = 1.0/(domain_res-1);
+  VFieldD31 con_field;
+  size_t domain_res = 16;
+  size_t num_points_dim = domain_res+1;
+  double dx         = 1.0/domain_res;
   double dt         = dx;
   int tn            = 10;
   double tf         = tn*dt;
   int num_rk_step   = 1;
 
-  size_t num_points            = domain_res*domain_res*domain_res;
-  VecD points_pos              = tbslas::gen_reg_grid_points<double,3>(domain_res);
-  VecD points_values_vorticity = tbslas::vorticity_field(points_pos);
-  VecD points_values_gaussian  = tbslas::gaussian_field(points_pos);
+  const size_t num_points            = num_points_dim*num_points_dim*num_points_dim;
+  const VecD points_pos              = tbslas::generate_reg_grid_points<double,3>(num_points_dim);
+  const VecD points_values_vorticity = tbslas::generate_vorticity_field(points_pos);
+  const VecD points_values_gaussian  = tbslas::generate_gaussian_field(points_pos);
   tbslas::CubicInterpPolicy<double> cubic_interp_policy;
 
   vel_field.init(points_pos, points_values_vorticity);
-  conc_field.init(points_pos, points_values_gaussian);
+  con_field.init(points_pos, points_values_gaussian);
+
+  for(int timestep = 1; timestep <= tn; timestep++) {
+    vel_field.push_back_values(tbslas::generate_vorticity_field(points_pos, timestep*dt),
+                               timestep*dt);
+  }
 
   for(int timestep = 1; timestep <= tn; timestep++) {
     std::cout << "****************************************" << std::endl;
     std::cout << "-> timestep: " << timestep
               << " time: " << dt*timestep << std::endl;
+
     tbslas::semilag_rk2(vel_field,
                         cubic_interp_policy,
                         timestep,
                         dt,
                         num_rk_step,
-                        conc_field
+                        con_field
                         );
   }
 
   vel_field.save("semilag_vel_");
-  conc_field.save("semilag_con_");
+  con_field.save("semilag_con_");
 
   return 0;
 }

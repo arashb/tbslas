@@ -35,17 +35,17 @@ semilag_rk2(const VField& vel_field,
   real_t tfinal = tinit - dt;  // backward in time
   const std::vector<real_t> points_pos = conc_field.get_points();
   const size_t num_points = conc_field.get_num_points();
-  std::vector<real_t> departure_pos(points_pos.size());
+  std::vector<real_t> departure_points_pos(points_pos.size());
 
   std::cout << "-> semi-Lagrangian" << std::endl;
   // computing the departure points
   std::cout << "--> computing the backward trajectory" << std::endl;
   traj_rk2(vel_field, points_pos, tinit, tfinal, num_rk_step, interp_policy,
-           departure_pos);
+           departure_points_pos);
   std::cout << "--> interplating at the departure points" << std::endl;
   // interpolating the concectration values at the departure points
   std::vector<real_t> departure_points_values(num_points);
-  conc_field.interp(departure_pos,
+  conc_field.interp(departure_points_pos,
                     interp_policy,
                     departure_points_values,
                     timestep-1);             // using previeous time step values

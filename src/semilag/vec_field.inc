@@ -27,9 +27,9 @@ namespace tbslas {
 
 template<typename real_t>
 inline void
-validate_field_data(size_t num_field_points,
-                    std::vector<real_t>& field_values,
-                    int vdim) {
+validate_field_data(const size_t num_field_points,
+                    const std::vector<real_t>& field_values,
+                    const int vdim) {
   assert(num_field_points == (field_values.size()/vdim));
 }
 
@@ -37,9 +37,9 @@ template<typename real_t, int sdim, int vdim>
 VecField<real_t, sdim, vdim>::VecField() {}
 
 template<typename real_t, int sdim, int vdim>
-VecField<real_t, sdim, vdim>::VecField(std::vector<real_t> field_points,
-                                       std::vector<real_t> field_values,
-                                       real_t time_init):
+VecField<real_t, sdim, vdim>::VecField(const std::vector<real_t>& field_points,
+                                       const std::vector<real_t>& field_values,
+                                       const real_t time_init):
     field_points_(field_points)
 {
   num_field_points_ = field_points_.size()/sdim;
@@ -51,9 +51,9 @@ VecField<real_t, sdim, vdim>::~VecField() {}
 
 template<typename real_t, int sdim, int vdim>
 void
-VecField<real_t, sdim, vdim>::init(std::vector<real_t> field_points,
-                                   std::vector<real_t> field_values,
-                                   real_t time_init) {
+VecField<real_t, sdim, vdim>::init(const std::vector<real_t>& field_points,
+                                   const std::vector<real_t>& field_values,
+                                   const real_t time_init) {
   field_points_ = field_points;
   num_field_points_ = field_points_.size()/sdim;
   field_values_.clear();
@@ -63,7 +63,7 @@ VecField<real_t, sdim, vdim>::init(std::vector<real_t> field_points,
 
 template<typename real_t, int sdim, int vdim>
 void
-VecField<real_t, sdim, vdim>::push_back_values(std::vector<real_t>& field_values,
+VecField<real_t, sdim, vdim>::push_back_values(const std::vector<real_t>& field_values,
                                                real_t time) {
   validate_field_data(num_field_points_, field_values, vdim);
   field_values_.push_back(field_values);
@@ -76,7 +76,7 @@ void
 VecField<real_t, sdim, vdim>::interp(const std::vector<real_t>& query_points,
                                      const InterpPolicy& interpolant,
                                      std::vector<real_t>& query_values,
-                                     int timestep) const {
+                                     const int timestep) const {
   assert (timestep >= 0 && timestep < field_values_.size());
   interpolant.interp(field_points_, sdim,
                      field_values_[timestep], vdim,

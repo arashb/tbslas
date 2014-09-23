@@ -26,6 +26,7 @@ template<typename real_t,
 void
 integrate_rk2(const VecField<real_t, sdim, vdim>& field,
               const std::vector<real_t>& xinit,
+              const real_t tinit,
               const real_t dt,
               const InterpPolicy& interp_policy,
               std::vector<real_t>& xsol);
