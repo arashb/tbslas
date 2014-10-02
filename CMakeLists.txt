@@ -17,11 +17,15 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${tbslad_SOURCE_DIR}/bin)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${tbslad_SOURCE_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${tbslad_SOURCE_DIR}/lib)
 set(CMAKE_BUILD_TYPE debug)
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu++11")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++11")
 
 # include/lib directories
 include_directories(${tbslad_SOURCE_DIR}/include
   ${tbslad_SOURCE_DIR}/src
-)
+  $ENV{C_INCLUDE_PATH}
+  $ENV{CPLUS_INCLUDE_PATH}
+  )
 link_directories(${tbslad_SOURCE_DIR}/lib)
 
 # add a target to generate API documentation with Doxygen

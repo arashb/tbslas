@@ -1,6 +1,7 @@
 // Copyright (C) 2014 by Arash Bakhtiari
 
 #include <vector>
+#include <cmath>
 
 #include "semilag/utils.h"
 #include "semilag/cubic_interp_policy.h"
@@ -14,18 +15,19 @@ typedef std::vector<double> VecD               ;
 int main(int argc, char *argv[]) {
   VFieldD33 vel_field;
   VFieldD31 con_field;
-  size_t domain_res = 16;
+  size_t domain_res     = 16;
   size_t num_points_dim = domain_res+1;
-  double dx         = 1.0/domain_res;
-  double dt         = dx;
-  int tn            = 10;
-  double tf         = tn*dt;
-  int num_rk_step   = 1;
+  double dx             = 1.0/domain_res;
+  double dt             = dx;
+  int tn                = 10;
+  double tf             = tn*dt;
+  int num_rk_step       = 1;
 
-  const size_t num_points            = num_points_dim*num_points_dim*num_points_dim;
+  const size_t num_points            = (size_t)std::pow(num_points_dim, 3);
   const VecD points_pos              = tbslas::generate_reg_grid_points<double,3>(num_points_dim);
   const VecD points_values_vorticity = tbslas::generate_vorticity_field(points_pos);
   const VecD points_values_gaussian  = tbslas::generate_gaussian_field(points_pos);
+
   tbslas::CubicInterpPolicy<double> cubic_interp_policy;
 
   vel_field.init(points_pos, points_values_vorticity);
@@ -50,8 +52,8 @@ int main(int argc, char *argv[]) {
                         );
   }
 
-  vel_field.save("semilag_vel_");
-  con_field.save("semilag_con_");
+  // vel_field.save("semilag_01_vel_");
+  // con_field.save("semilag_01_con_");
 
   return 0;
 }
