@@ -1,20 +1,28 @@
 #include <mpi.h>
-#include <pvfmm_common.hpp>
-#include <cstdlib>
-#include <iostream>
 #include <omp.h>
 #include <stdio.h>
+#include <vector>
+#include <cstdlib>
+#include <iostream>
 
+#include <pvfmm_common.hpp>
 #include <mpi_tree.hpp>
 #include <cheb_node.hpp>
 #include <utils.hpp>
 
+
+// semilag type definitions
+// typedef tbslas::VecField<double,3,3> VFieldD33 ;
+// typedef tbslas::VecField<double,3,1> VFieldD31 ;
+// typedef std::vector<double> VecD               ;
+
+// octree type definitions
 const int DATA_DOF=3;
 
 template <class Real_t>
-void fn(const Real_t* coord, int n, Real_t* out){ //Output potential
+void fn(const Real_t* coord, int n, Real_t* out) { //Output potential
   Real_t L=125;
-  for(int i=0;i<n;i++){
+  for (int i=0;i<n;i++) {
     const Real_t* c=&coord[i*COORD_DIM];
     {
       Real_t r_2=(c[0]-0.5)*(c[0]-0.5)+(c[1]-0.5)*(c[1]-0.5)+(c[2]-0.5)*(c[2]-0.5);
@@ -25,8 +33,23 @@ void fn(const Real_t* coord, int n, Real_t* out){ //Output potential
   }
 }
 
+// template <typename real_t>
+// void semilag_solver(const real_t* coord,
+//                     int n,
+//                     real_t* values) {
+//   std::cout << "--> Using semilag solver" << std::endl;
+//   VFieldD33 vel_field;
+//   VFieldD31 con_field;
+// }
+
 template <class Real_t>
-void tree_test(size_t N, size_t M, int cheb_deg, int depth, bool adap, Real_t tol, MPI_Comm comm){
+void semilag_construct_tree(size_t N,
+                            size_t M,
+                            int cheb_deg,
+                            int depth,
+                            bool adap,
+                            Real_t tol,
+                            MPI_Comm comm) {
   typedef pvfmm::Cheb_Node<Real_t> Node_t;
   typedef pvfmm::MPI_Tree<Node_t> Tree_t;
 
@@ -61,11 +84,11 @@ void tree_test(size_t N, size_t M, int cheb_deg, int depth, bool adap, Real_t to
   CheckChebOutput<Tree_t>(&tree, (typename TestFn<Real_t>::Fn_t) &fn<Real_t>, DATA_DOF, "Input");
 
   //Check Tree.
-  #ifndef NDEBUG
+#ifndef NDEBUG
   pvfmm::Profile::Tic("CheckTree",&comm,true,1);
   tree.CheckTree();
   pvfmm::Profile::Toc();
-  #endif
+#endif
 }
 
 int main(int argc, char **argv){
@@ -83,10 +106,9 @@ int main(int argc, char **argv){
   bool  adap=              (commandline_option(argc, argv, "-adap",    NULL, false, "-adap                : Adaptive tree refinement."          )!=NULL);
   commandline_option_end(argc, argv);
 
-  tree_test<double>(N, M, q, d, adap, tol, comm);
+  semilag_construct_tree<double>(N, M, q, d, adap, tol, comm);
 
   // Shut down MPI
   MPI_Finalize();
   return 0;
 }
-

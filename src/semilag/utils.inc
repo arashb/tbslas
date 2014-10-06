@@ -18,6 +18,20 @@
 
 namespace tbslas {
 
+template <typename real_t, int sdim>
+void
+get_reg_grid_points(const size_t N,
+                    real_t* out) {
+  size_t tN = std::pow(N, sdim);
+  real_t dx = 1.0/(N-1);
+  // regular grid points positions
+  for (size_t i = 0; i < tN; i++)
+    for ( int idim = 0; idim < sdim; idim++) {
+      size_t denom_shift = (size_t)std::pow(N, idim);
+      out[i*sdim+idim] = (((real_t)((i / denom_shift) % N))*dx);
+    }
+}
+
 template <typename real_t, int dim>
 std::vector<real_t>
 generate_reg_grid_points(const size_t N) {
@@ -33,6 +47,19 @@ generate_reg_grid_points(const size_t N) {
       reg_grid_points_pos[i+index_shift] = (((real_t)((i / denom_shift) % N))*dx);
   }
   return reg_grid_points_pos;
+}
+
+template<typename real_t, int sdim>
+void
+get_vorticity_field(const real_t* points_pos,
+                    int num_points,
+                    real_t* points_values) {
+  real_t omega = 1;
+  for (int i = 0; i < num_points; i++) {
+    points_values[i*sdim+0] = omega*(0.5                  - points_pos[i*sdim+1]);
+    points_values[i*sdim+1] = omega*(points_pos[i*sdim+0] - 0.5          );
+    points_values[i*sdim+2] = 0;
+  }
 }
 
 template<typename real_t>
@@ -51,6 +78,39 @@ generate_vorticity_field(const std::vector<real_t>& points_pos,
   }
   return points_values;
 }
+
+template<typename real_t, int sdim>
+void
+get_gaussian_field(const real_t* points_pos,
+                   int num_points,
+                   real_t* out) {
+  const real_t xc      = 0.6;
+  const real_t yc      = 0.6;
+  const real_t theta   = 0.0;
+  const real_t sigma_x = 0.06;
+  const real_t sigma_y = 0.06;
+  const real_t A       = 1.0;
+  real_t cos_theta   = cos(theta);
+  real_t cos_2theta  = cos(2*theta);
+  real_t cos_theta_2 = cos_theta * cos_theta;
+  real_t sin_theta   = sin(theta);
+  real_t sin_2theta  = sin(2*theta);
+  real_t sin_theta_2 = sin_theta * sin_theta;
+  real_t sigma_x_2   = sigma_x*sigma_x;
+  real_t sigma_y_2   = sigma_y*sigma_y;
+
+  real_t a = cos_theta_2*0.5/sigma_x_2 + sin_theta_2*0.5/sigma_y_2;
+  real_t b = -sin_2theta*0.5/sigma_x_2 + sin_2theta*0.5/sigma_y_2;
+  real_t c = sin_theta_2*0.5/sigma_x_2 + cos_theta_2*0.5/sigma_y_2;
+
+  for (int i = 0; i < num_points; i++) {
+    out[i]  = A*exp(-(a * (points_pos[i*sdim]-xc)   * (points_pos[i*sdim]-xc)   +
+                      b * (points_pos[i*sdim]-xc)   * (points_pos[i*sdim+1]-yc) +
+                      c * (points_pos[i*sdim+1]-yc) * (points_pos[i*sdim+1]-yc)
+                      )
+                    );
+  }
+};
 
 template<typename real_t>
 std::vector<real_t>

@@ -14,7 +14,21 @@
 #ifndef SRC_SEMILAG_SEMILAG_H_
 #define SRC_SEMILAG_SEMILAG_H_
 
+#include <vector>
+
+#include "semilag/common.h"
+
 namespace tbslas {
+
+template<typename real_t, typename FieldFunctor>
+void
+semilag_rk2(const FieldFunctor vel_evaluator,
+            const FieldFunctor con_evaluator,
+            const std::vector<real_t>& points_pos,
+            const int timestep,
+            const real_t dt,
+            const int num_rk_step,
+            std::vector<real_t>& points_vals);
 
 template<typename real_t,
          typename InterpPolicy,
@@ -27,6 +41,8 @@ semilag_rk2(const VField& vel_field,
             const real_t dt,
             const int num_rk_step,
             CField& conc_field);
+
+
 
 }  // namespace tbslas
 

@@ -18,41 +18,86 @@
 
 namespace tbslas {
 
+template<typename real_t, typename FieldFunctor>
+void
+integrate_rk2(const FieldFunctor field_fn,
+              const std::vector<real_t>& xinit,
+              const real_t tinit,
+              const real_t dt,
+              std::vector<real_t>& xsol) {
+  int num_points = xinit.size()/3;
+  std::vector<real_t> xtmp(xinit.size());
+  std::vector<real_t> vtmp(xinit.size());
+
+  // FIXME: currently only time independent
+  field_fn(xinit.data(), num_points, vtmp.data());
+  for (int i = 0; i < xinit.size(); i++)
+    xtmp[i] = xinit[i] + 0.5*dt*vtmp[i];
+
+  // FIXME: currently only time independent
+  field_fn(xtmp.data(), num_points, vtmp.data());
+  for (int i = 0; i < xinit.size(); i++)
+    xsol[i] = xinit[i] + dt*vtmp[i];
+}
+
+template<typename real_t, typename FieldFunctor>
+void
+traj_rk2(const FieldFunctor field_fn,
+         const std::vector<real_t>& xinit,
+         const real_t tinit,
+         const real_t tfinal,
+         const int num_rk_step,
+         std::vector<real_t>& xsol) {
+  // FIXME: currently only time independent
+  real_t tau = (tfinal - tinit)/num_rk_step;
+
+  for (int i = 0; i < xinit.size(); i++)
+    xsol[i] = xinit[i];
+
+  real_t current_time = tinit;
+  // n-step RK2
+  for (int taustep = 0; taustep < num_rk_step; taustep++) {
+    std::cout << xsol[0] << " " << xsol[1] << " " << xsol[2] << std::endl;
+    integrate_rk2(field_fn, xsol, current_time, tau, xsol);
+    current_time = current_time + tau;
+  }
+}
+
 template<typename real_t, typename InterpPolicy, int sdim, int vdim>
 void
 integrate_rk2(const VecField<real_t, sdim, vdim>& field,
-              const std::vector<real_t>& init_pos,
+              const std::vector<real_t>& xinit,
               const real_t init_time,
               const real_t dt,
               const InterpPolicy& interp_policy,
               std::vector<real_t>& xsol) {
-  std::vector<real_t> xtmp(init_pos.size());
-  std::vector<real_t> vtmp(init_pos.size());
+  std::vector<real_t> xtmp(xinit.size());
+  std::vector<real_t> vtmp(xinit.size());
 
-  field.interp(init_pos, init_time, interp_policy, vtmp);
-  for (int i = 0; i < init_pos.size(); i++)
-    xtmp[i] = init_pos[i] + 0.5*dt*vtmp[i];
+  field.interp(xinit, init_time, interp_policy, vtmp);
+  for (int i = 0; i < xinit.size(); i++)
+    xtmp[i] = xinit[i] + 0.5*dt*vtmp[i];
 
   field.interp(xtmp, init_time+0.5*dt, interp_policy, vtmp);
-  for (int i = 0; i < init_pos.size(); i++)
-    xsol[i] = init_pos[i] + dt*vtmp[i];
+  for (int i = 0; i < xinit.size(); i++)
+    xsol[i] = xinit[i] + dt*vtmp[i];
 }
 
 template<typename real_t, typename InterpPolicy, int sdim, int vdim>
 void
 traj_rk2(const VecField<real_t, sdim, vdim>& field,
-         const std::vector<real_t>& init_pos,
-         const real_t init_time,
-         const real_t final_time,
+         const std::vector<real_t>& xinit,
+         const real_t tinit,
+         const real_t tfinal,
          const int num_rk_step,
          const InterpPolicy& interp_policy,
          std::vector<real_t>& xsol) {
-  real_t tau = (final_time - init_time)/num_rk_step;
+  real_t tau = (tfinal - tinit)/num_rk_step;
 
-  for (int i = 0; i < init_pos.size(); i++)
-      xsol[i] = init_pos[i];
+  for (int i = 0; i < xinit.size(); i++)
+    xsol[i] = xinit[i];
 
-  real_t current_time = init_time;
+  real_t current_time = tinit;
   // n-step RK2
   for (int taustep = 0; taustep < num_rk_step; taustep++) {
     // std::cout << xsol[0] << " " << xsol[1] << " " << xsol[2] << std::endl;

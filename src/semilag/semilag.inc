@@ -20,6 +20,27 @@
 
 namespace tbslas {
 
+template<typename real_t, typename FieldFunctor>
+void
+semilag_rk2(const FieldFunctor vel_evaluator,
+            const FieldFunctor con_evaluator,
+            const std::vector<real_t>& points_pos,
+            const int timestep,
+            const real_t dt,
+            const int num_rk_step,
+            std::vector<real_t>& points_vals) {
+  real_t tinit  = timestep*dt;
+  real_t tfinal = tinit - dt;  // backward in time
+  std::vector<real_t> departure_points_pos(points_pos.size());
+
+  traj_rk2(vel_evaluator,
+           points_pos,
+           tinit,
+           tfinal,
+           num_rk_step,
+           departure_points_pos);
+}
+
 template<typename real_t,
          typename InterpPolicy,
          typename VField,
@@ -33,15 +54,18 @@ semilag_rk2(const VField& vel_field,
             CField& conc_field) {
   real_t tinit  = timestep*dt;
   real_t tfinal = tinit - dt;  // backward in time
+
   const std::vector<real_t> points_pos = conc_field.get_points();
   const size_t num_points = conc_field.get_num_points();
   std::vector<real_t> departure_points_pos(points_pos.size());
 
   std::cout << "-> semi-Lagrangian" << std::endl;
+
   // computing the departure points
   std::cout << "--> computing the backward trajectory" << std::endl;
   traj_rk2(vel_field, points_pos, tinit, tfinal, num_rk_step, interp_policy,
            departure_points_pos);
+
   std::cout << "--> interplating at the departure points" << std::endl;
   // interpolating the concectration values at the departure points
   std::vector<real_t> departure_points_values(num_points);
@@ -49,7 +73,7 @@ semilag_rk2(const VField& vel_field,
                     interp_policy,
                     departure_points_values,
                     timestep-1);             // using previeous time step values
-                                             // to interpolate
+  // to interpolate
   conc_field.push_back_values(departure_points_values, dt*timestep);
 }
 

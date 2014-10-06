@@ -1,8 +1,8 @@
 -include $(PVFMM_DIR)/MakeVariables
 
-ifndef CXXFLAGS_PVFMM
--include ../MakeVariables
-endif
+# ifndef CXXFLAGS_PVFMM
+# -include ../MakeVariables
+# endif
 
 ifndef CXXFLAGS_PVFMM
 $(error Cannot find file: MakeVariables)
@@ -17,7 +17,7 @@ OBJDIR = ./obj
 INCDIR = ./include
 
 TARGET_BIN = \
-       $(BINDIR)/cheb_tree
+       $(BINDIR)/semilag_tree
 
 all : $(TARGET_BIN)
 
