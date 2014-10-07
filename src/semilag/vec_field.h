@@ -65,9 +65,9 @@ class VecField {
          std::vector<real_t>& query_values
          ) const;
 
-  void write2file(const char* file_name, int timestep = 0);
+  void write2file(const char* file_name, int timestep = 0, int xyz_mem_layout = 1);
 
-  void save(const char* file_name);
+  void save(const char* file_name, int xyz_mem_layout = 1);
 
   const std::vector<real_t>&
   get_points() const {return field_points_;}

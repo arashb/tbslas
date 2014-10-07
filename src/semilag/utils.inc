@@ -32,51 +32,18 @@ get_reg_grid_points(const size_t N,
     }
 }
 
-template <typename real_t, int dim>
-std::vector<real_t>
-generate_reg_grid_points(const size_t N) {
-  size_t tN = std::pow(N, dim);
-  real_t dx = 1.0/(N-1);
-  // regular grid points positions
-  std::vector<real_t> reg_grid_points_pos(tN*dim);
-  for ( int idim = 0; idim < dim; idim++) {
-    // idim's cooridnate
-    int index_shift = idim*tN;
-    size_t denom_shift = (size_t)std::pow(N, idim);
-    for (size_t i = 0; i < tN; i++)
-      reg_grid_points_pos[i+index_shift] = (((real_t)((i / denom_shift) % N))*dx);
-  }
-  return reg_grid_points_pos;
-}
-
 template<typename real_t, int sdim>
 void
 get_vorticity_field(const real_t* points_pos,
                     int num_points,
                     real_t* points_values) {
   real_t omega = 1;
+  real_t time_factor = 1;//+sin(2*3.14159*time);
   for (int i = 0; i < num_points; i++) {
-    points_values[i*sdim+0] = omega*(0.5                  - points_pos[i*sdim+1]);
-    points_values[i*sdim+1] = omega*(points_pos[i*sdim+0] - 0.5          );
-    points_values[i*sdim+2] = 0;
+    points_values[i*3+0] = omega*(0.5 - points_pos[i*sdim+1])*time_factor;
+    points_values[i*3+1] = omega*(points_pos[i*sdim+0] - 0.5)*time_factor;
+    points_values[i*3+2] = 0;
   }
-}
-
-template<typename real_t>
-std::vector<real_t>
-generate_vorticity_field(const std::vector<real_t>& points_pos,
-                         const real_t time ,
-                         const real_t omega
-                         ) {
-  real_t time_factor = 1+sin(2*3.14159*time);
-  size_t tN = points_pos.size()/3;
-  std::vector<real_t> points_values(3*tN);
-  for (size_t i = 0; i < tN; i++) {
-    points_values[i]      = omega*(0.5           - points_pos[i+tN])*time_factor;
-    points_values[i+tN]   = omega*(points_pos[i] - 0.5             )*time_factor;
-    points_values[i+2*tN] = 0;
-  }
-  return points_values;
 }
 
 template<typename real_t, int sdim>
@@ -85,7 +52,7 @@ get_gaussian_field(const real_t* points_pos,
                    int num_points,
                    real_t* out) {
   const real_t xc      = 0.6;
-  const real_t yc      = 0.6;
+  const real_t yc      = 0.5;
   const real_t theta   = 0.0;
   const real_t sigma_x = 0.06;
   const real_t sigma_y = 0.06;
@@ -111,6 +78,41 @@ get_gaussian_field(const real_t* points_pos,
                     );
   }
 };
+
+template <typename real_t, int dim>
+std::vector<real_t>
+generate_reg_grid_points(const size_t N) {
+  size_t tN = std::pow(N, dim);
+  real_t dx = 1.0/(N-1);
+  // regular grid points positions
+  std::vector<real_t> reg_grid_points_pos(tN*dim);
+  for ( int idim = 0; idim < dim; idim++) {
+    // idim's cooridnate
+    int index_shift = idim*tN;
+    size_t denom_shift = (size_t)std::pow(N, idim);
+    for (size_t i = 0; i < tN; i++)
+      reg_grid_points_pos[i+index_shift] = (((real_t)((i / denom_shift) % N))*dx);
+  }
+  return reg_grid_points_pos;
+}
+
+template<typename real_t>
+std::vector<real_t>
+generate_vorticity_field(const std::vector<real_t>& points_pos,
+                         const real_t time ,
+                         const real_t omega
+                         ) {
+  real_t time_factor = 1+sin(2*3.14159*time);
+  size_t tN = points_pos.size()/3;
+  std::vector<real_t> points_values(3*tN);
+  for (size_t i = 0; i < tN; i++) {
+    points_values[i]      = omega*(0.5           - points_pos[i+tN])*time_factor;
+    points_values[i+tN]   = omega*(points_pos[i] - 0.5             )*time_factor;
+    points_values[i+2*tN] = 0;
+  }
+  return points_values;
+}
+
 
 template<typename real_t>
 std::vector<real_t>

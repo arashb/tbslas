@@ -8,13 +8,14 @@
 #include "semilag/vec_field.h"
 #include "semilag/semilag.h"
 
-typedef tbslas::VecField<double,3,3> VFieldD33 ;
-typedef tbslas::VecField<double,3,1> VFieldD31 ;
-typedef std::vector<double> VecD               ;
+typedef tbslas::VecField<double,3,3> VFieldD33;
+typedef tbslas::VecField<double,3,1> VFieldD31;
+typedef std::vector<double> VecD;
 
 int main(int argc, char *argv[]) {
   VFieldD33 vel_field;
   VFieldD31 con_field;
+
   size_t domain_res     = 16;
   size_t num_points_dim = domain_res+1;
   double dx             = 1.0/domain_res;
@@ -34,7 +35,9 @@ int main(int argc, char *argv[]) {
   con_field.init(points_pos, points_values_gaussian);
 
   for(int timestep = 1; timestep <= tn; timestep++) {
-    vel_field.push_back_values(tbslas::generate_vorticity_field(points_pos, timestep*dt),
+    // vel_field.push_back_values(tbslas::generate_vorticity_field(points_pos, timestep*dt),
+    //                            timestep*dt);
+    vel_field.push_back_values(tbslas::generate_vorticity_field(points_pos),
                                timestep*dt);
   }
 
@@ -48,12 +51,12 @@ int main(int argc, char *argv[]) {
                         timestep,
                         dt,
                         num_rk_step,
-                        con_field
-                        );
+                        con_field);
   }
 
-  vel_field.save("semilag_01_vel_");
-  con_field.save("semilag_01_con_");
+  int xyz_mem_layout = 0;
+  vel_field.save("semilag_01_vel_", xyz_mem_layout);
+  con_field.save("semilag_01_con_", xyz_mem_layout);
 
   return 0;
 }

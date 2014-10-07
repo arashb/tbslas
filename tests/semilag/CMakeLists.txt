@@ -5,6 +5,7 @@ set(test_IDs
   traj_test
   utils_test
   cubic_interp_policy_test
+  semilag_test
   )
 set(test_LIBS  gtest gtest_main tricubic)
 

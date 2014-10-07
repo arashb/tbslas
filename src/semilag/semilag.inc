@@ -20,25 +20,36 @@
 
 namespace tbslas {
 
-template<typename real_t, typename FieldFunctor>
+template<typename real_t,
+         typename VFieldFunctor,
+         typename CFieldFunctor>
 void
-semilag_rk2(const FieldFunctor vel_evaluator,
-            const FieldFunctor con_evaluator,
+semilag_rk2(const VFieldFunctor vel_evaluator,
+            const CFieldFunctor con_evaluator,
             const std::vector<real_t>& points_pos,
+            const int sdim,
             const int timestep,
             const real_t dt,
             const int num_rk_step,
             std::vector<real_t>& points_vals) {
+  const size_t num_points = points_pos.size()/sdim;
   real_t tinit  = timestep*dt;
   real_t tfinal = tinit - dt;  // backward in time
+
   std::vector<real_t> departure_points_pos(points_pos.size());
 
+  std::cout << "-> semi-Lagrangian" << std::endl;
+  // computing the departure points
+  std::cout << "--> computing the backward trajectory" << std::endl;
   traj_rk2(vel_evaluator,
            points_pos,
            tinit,
            tfinal,
            num_rk_step,
            departure_points_pos);
+
+  std::cout << "--> computing values at the departure points" << std::endl;
+  con_evaluator(departure_points_pos.data(), num_points,  points_vals.data());
 }
 
 template<typename real_t,

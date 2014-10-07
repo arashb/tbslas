@@ -27,9 +27,11 @@ template <typename real_t, int dim>
 void
 get_reg_grid_points(const size_t N, real_t* out);
 
-template <typename real_t, int dim>
-std::vector<real_t>
-generate_reg_grid_points(const size_t N);
+template<typename real_t, int sdim>
+void
+get_gaussian_field(const real_t* pnts_pos,
+                   int num_points,
+                   real_t* out);
 
 template<typename real_t, int sdim>
 void
@@ -37,17 +39,15 @@ get_vorticity_field(const real_t* points_pos,
                     int num_points,
                     real_t* out);
 
+template <typename real_t, int dim>
+std::vector<real_t>
+generate_reg_grid_points(const size_t N);
+
 template<typename real_t>
 std::vector<real_t>
 generate_vorticity_field(const std::vector<real_t>& pnts_pos,
                          const real_t time  = 0,
                          const real_t omega = 1);
-
-template<typename real_t>
-void
-get_gaussian_field(const real_t* pnts_pos,
-                   int num_points,
-                   real_t* out);
 
 template<typename real_t>
 std::vector<real_t>

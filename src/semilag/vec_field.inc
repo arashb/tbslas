@@ -103,7 +103,8 @@ VecField<real_t, sdim, vdim>::interp(const std::vector<real_t>& query_points,
 
 template<typename real_t, int sdim, int vdim>
 void
-VecField<real_t, sdim, vdim>::write2file(const char* file_name, int timestep) {
+VecField<real_t, sdim, vdim>::write2file(const char* file_name, int timestep,
+                                         int xyz_mem_layout) {
   assert (timestep < field_values_.size());
   // FIXME: is correct only for the regular grid
   float dN = pow(num_field_points_, 1./(sdim));
@@ -166,23 +167,34 @@ VecField<real_t, sdim, vdim>::write2file(const char* file_name, int timestep) {
   // points positions
   vtsfile.write(reinterpret_cast<char*>(&points_block_size),
                 sizeof(points_block_size));
-  for (int i = 0; i < num_field_points_; i++) {
-    for(int j = 0; j < sdim; j++)
-      vtsfile.write(reinterpret_cast<char*>(&field_points_[i+j*num_field_points_]),
-                    sizeof(real_t));
-  }
+
+  if(xyz_mem_layout)
+    vtsfile.write(reinterpret_cast<char*>(field_points_.data()),
+                  points_block_size);
+  else
+    for (int i = 0; i < num_field_points_; i++) {
+      for(int j = 0; j < sdim; j++)
+        vtsfile.write(reinterpret_cast<char*>(&field_points_[i+j*num_field_points_]),
+                      sizeof(real_t));
+    }
 
   // points data
   // see the data memmory layout in vector field class
   vtsfile.write(reinterpret_cast<char*>(&vls_block_size),
                 sizeof(vls_block_size));
   std::vector<real_t>& fvalues = field_values_[timestep];
-  for (int i = 0; i < num_field_points_; i++) {
-    for(int j = 0; j < vdim; j++) {
-      vtsfile.write(reinterpret_cast<char*>(&fvalues[i+j*num_field_points_]),
-                    sizeof(real_t));
+
+  if(xyz_mem_layout)
+    vtsfile.write(reinterpret_cast<char*>(fvalues.data()),
+                  vls_block_size);
+  else
+    for (int i = 0; i < num_field_points_; i++) {
+      for(int j = 0; j < vdim; j++) {
+        vtsfile.write(reinterpret_cast<char*>(&fvalues[i+j*num_field_points_]),
+                      sizeof(real_t));
+      }
     }
-  }
+
   vtsfile <<"\n";
   vtsfile <<"  </AppendedData>\n";
   //**************************************************************************
@@ -192,10 +204,10 @@ VecField<real_t, sdim, vdim>::write2file(const char* file_name, int timestep) {
 
 template<typename real_t, int sdim, int vdim>
 void
-VecField<real_t, sdim, vdim>::save(const char* file_name) {
+VecField<real_t, sdim, vdim>::save(const char* file_name, int xyz_mem_layout) {
   int num_timesteps = field_values_.size();
   for (int i = 0 ; i < num_timesteps; i++)
-    this->write2file(file_name, i);
+    this->write2file(file_name, i, xyz_mem_layout);
 
   // save the pvd file
   // TODO

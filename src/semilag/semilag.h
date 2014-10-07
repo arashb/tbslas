@@ -20,11 +20,14 @@
 
 namespace tbslas {
 
-template<typename real_t, typename FieldFunctor>
+template<typename real_t,
+         typename VFieldFunctor,
+         typename CFieldFunctor>
 void
-semilag_rk2(const FieldFunctor vel_evaluator,
-            const FieldFunctor con_evaluator,
+semilag_rk2(const VFieldFunctor vel_evaluator,
+            const CFieldFunctor con_evaluator,
             const std::vector<real_t>& points_pos,
+            const int sdim,
             const int timestep,
             const real_t dt,
             const int num_rk_step,
@@ -41,8 +44,6 @@ semilag_rk2(const VField& vel_field,
             const real_t dt,
             const int num_rk_step,
             CField& conc_field);
-
-
 
 }  // namespace tbslas
 

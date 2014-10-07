@@ -42,7 +42,7 @@ class TrajTest : public ::testing::Test {
   int tn;
 };
 
-TEST_F(TrajTest, RK2ConstVorticityField) {
+TEST_F(TrajTest, RK2SteadyVorticityField) {
   std::vector<double> xinit;
   xinit.push_back(0.75);
   xinit.push_back(0.5);
@@ -52,6 +52,7 @@ TEST_F(TrajTest, RK2ConstVorticityField) {
   std::vector<double> xsol(xinit.size());
 
   traj_rk2(vecfd, xinit, 0.0, tf, tn, cubic_interp_policy, xsol);
+
   // std::cout << xsol[0] << " " << xsol[1] << " " << xsol[2] << std::endl;
   ASSERT_NEAR(xinit[0], xsol[0], 0.001);
   ASSERT_NEAR(xinit[1], xsol[1], 0.001);
@@ -59,7 +60,7 @@ TEST_F(TrajTest, RK2ConstVorticityField) {
 }
 
 
-TEST_F(TrajTest, RK2ConstVorticityFunction) {
+TEST_F(TrajTest, RK2SteadyVorticityFunctor) {
   std::vector<double> xinit;
   xinit.push_back(0.75);
   xinit.push_back(0.5);

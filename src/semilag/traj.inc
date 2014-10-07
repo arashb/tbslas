@@ -57,7 +57,7 @@ traj_rk2(const FieldFunctor field_fn,
   real_t current_time = tinit;
   // n-step RK2
   for (int taustep = 0; taustep < num_rk_step; taustep++) {
-    std::cout << xsol[0] << " " << xsol[1] << " " << xsol[2] << std::endl;
+    // std::cout << xsol[0] << " " << xsol[1] << " " << xsol[2] << std::endl;
     integrate_rk2(field_fn, xsol, current_time, tau, xsol);
     current_time = current_time + tau;
   }
