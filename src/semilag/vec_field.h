@@ -27,7 +27,7 @@
 #include <cstdlib>
 #include <vector>
 
-namespace tbslas {
+namespace slas {
 
 template<typename real_t, int sdim = 3, int vdim = 3>
 class VecField {
@@ -83,7 +83,7 @@ class VecField {
   std::vector<real_t> time_;
 };  // class VecField
 
-}  // namespace tbslas
+}  // namespace slas
 
 #include "vec_field.inc"
 

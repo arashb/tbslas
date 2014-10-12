@@ -8,8 +8,9 @@
 #include "semilag/utils.h"
 #include "semilag/vec_field.h"
 #include "semilag/traj.h"
+#include "semilag/cubic_interp_policy.h"
 
-typedef tbslas::VecField<double,3,3> VFieldD;
+typedef slas::VecField<double,3,3> VFieldD;
 typedef std::vector<double> VecD;
 
 #define PI 3.14159
@@ -24,8 +25,8 @@ class TrajTest : public ::testing::Test {
     tn = tf/dt;
     size_t tN = dN*dN*dN;
 
-    VecD pnts_pos = tbslas::generate_reg_grid_points<double,3>(dN);
-    VecD pnts_vls = tbslas::generate_vorticity_field(pnts_pos);
+    VecD pnts_pos = slas::generate_reg_grid_points<double,3>(dN);
+    VecD pnts_vls = slas::generate_vorticity_field(pnts_pos);
     vecfd.init(pnts_pos, pnts_vls);
 
     // initialization of constant velocity field
@@ -48,7 +49,7 @@ TEST_F(TrajTest, RK2SteadyVorticityField) {
   xinit.push_back(0.5);
   xinit.push_back(0.5);
 
-  tbslas::CubicInterpPolicy<double> cubic_interp_policy;
+  slas::CubicInterpPolicy<double> cubic_interp_policy;
   std::vector<double> xsol(xinit.size());
 
   traj_rk2(vecfd, xinit, 0.0, tf, tn, cubic_interp_policy, xsol);
@@ -68,12 +69,12 @@ TEST_F(TrajTest, RK2SteadyVorticityFunctor) {
 
   std::vector<double> xsol(xinit.size());
 
-  tbslas::traj_rk2(tbslas::get_vorticity_field<double,3>,
-                   xinit,
-                   0.0,
-                   tf,
-                   tn,
-                   xsol);
+  slas::traj_rk2(slas::get_vorticity_field<double,3>,
+                 xinit,
+                 0.0,
+                 tf,
+                 tn,
+                 xsol);
 
   // FIXME: somehow the asserts do not work precisely
   ASSERT_NEAR(xinit[0], xsol[0], 0.001);

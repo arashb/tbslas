@@ -16,7 +16,7 @@
 #include <cmath>
 #include <cassert>
 
-namespace tbslas {
+namespace slas {
 
 template <typename real_t, int sdim>
 void
@@ -167,4 +167,4 @@ find_grid_index_1d(const std::vector<real_t>& grid,
   return index;
 }
 
-}  // namespace tbslas
+}  // namespace slas

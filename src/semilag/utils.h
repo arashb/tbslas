@@ -21,7 +21,7 @@
 #include <cassert>
 #include <cmath>
 
-namespace tbslas {
+namespace slas {
 
 template <typename real_t, int dim>
 void
@@ -69,7 +69,7 @@ is_little_endian() {
   return (*reinterpret_cast<char*>(&n) == 1);
 }
 
-}  // namespace tbslas
+}  // namespace slas
 
 #include "utils.inc"
 

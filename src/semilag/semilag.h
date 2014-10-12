@@ -18,14 +18,14 @@
 
 #include "semilag/common.h"
 
-namespace tbslas {
+namespace slas {
 
 template<typename real_t,
          typename VFieldFunctor,
          typename CFieldFunctor>
 void
 semilag_rk2(const VFieldFunctor vel_evaluator,
-            const CFieldFunctor con_evaluator,
+            CFieldFunctor con_evaluator,
             const std::vector<real_t>& points_pos,
             const int sdim,
             const int timestep,
@@ -45,7 +45,7 @@ semilag_rk2(const VField& vel_field,
             const int num_rk_step,
             CField& conc_field);
 
-}  // namespace tbslas
+}  // namespace slas
 
 #include "semilag.inc"
 

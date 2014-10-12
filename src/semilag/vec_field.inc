@@ -23,7 +23,7 @@
 
 #include "semilag/utils.h"
 
-namespace tbslas {
+namespace slas {
 
 template<typename real_t>
 inline void
@@ -213,4 +213,4 @@ VecField<real_t, sdim, vdim>::save(const char* file_name, int xyz_mem_layout) {
   // TODO
 }
 
-}  // namespace tbslas
+}  // namespace slas

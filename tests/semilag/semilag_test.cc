@@ -9,8 +9,8 @@
 #include "semilag/vec_field.h"
 #include "semilag/semilag.h"
 
-typedef tbslas::VecField<double,3,3> VFieldD33;
-typedef tbslas::VecField<double,3,1> VFieldD31;
+typedef slas::VecField<double,3,3> VFieldD33;
+typedef slas::VecField<double,3,1> VFieldD31;
 typedef std::vector<double> VecD              ;
 
 #define PI 3.14159
@@ -48,16 +48,16 @@ TEST_F(SemilagTest, SteadyVorticityWithFunctor) {
 
   // init position of grid points
   VecD points_pos(num_points_size);
-  tbslas::get_reg_grid_points<double,3>(num_points_dim, points_pos.data());
+  slas::get_reg_grid_points<double,3>(num_points_dim, points_pos.data());
 
   // init velocity values
   VecD points_val_vorticity(num_points_size);
-  tbslas::get_vorticity_field<double,3>(points_pos.data(), num_points,
-                                        points_val_vorticity.data());
+  slas::get_vorticity_field<double,3>(points_pos.data(), num_points,
+                                      points_val_vorticity.data());
 
   VecD points_val_gaussian(num_points);
-  tbslas::get_gaussian_field<double,3>(points_pos.data(), num_points,
-                                       points_val_gaussian.data());
+  slas::get_gaussian_field<double,3>(points_pos.data(), num_points,
+                                     points_val_gaussian.data());
 
   VFieldD33 vel_field;
   VFieldD31 con_field;
@@ -66,10 +66,10 @@ TEST_F(SemilagTest, SteadyVorticityWithFunctor) {
   con_field.init(points_pos, points_val_gaussian);
 
   for(int timestep = 1; timestep <= tn; timestep++) {
-      tbslas::get_vorticity_field<double,3>(points_pos.data(),
-                                            num_points,
-                                            points_val_vorticity.data()
-                                            );
+    slas::get_vorticity_field<double,3>(points_pos.data(),
+                                        num_points,
+                                        points_val_vorticity.data()
+                                        );
     vel_field.push_back_values(points_val_vorticity,
                                timestep*dt);
   }
@@ -79,15 +79,15 @@ TEST_F(SemilagTest, SteadyVorticityWithFunctor) {
     std::cout << "-> timestep: " << timestep
               << " time: " << dt*timestep << std::endl;
 
-    tbslas::semilag_rk2(tbslas::get_vorticity_field<double,3>,
-                        tbslas::get_gaussian_field<double,3>,
-                        points_pos,
-                        sdim,
-                        timestep,
-                        dt,
-                        num_rk_step,
-                        points_val
-                        );
+    slas::semilag_rk2(slas::get_vorticity_field<double,3>,
+                      slas::get_gaussian_field<double,3>,
+                      points_pos,
+                      sdim,
+                      timestep,
+                      dt,
+                      num_rk_step,
+                      points_val
+                      );
 
     // vel_field.push_back_values(points_val_vorticity, dt*timestep);
     con_field.push_back_values(points_val, dt*timestep);
@@ -103,4 +103,8 @@ TEST_F(SemilagTest, SteadyVorticityWithFunctor) {
   //   std::cout << "expected: " << expected_val[i] << " computed: " << points_val[1] << std::endl;
   //   ASSERT_NEAR(expected_val[i], points_val[i], 0.001);
   // }
+}
+
+TEST_F(SemilagTest, SteadyVorticityWithVecField) {
+
 }
