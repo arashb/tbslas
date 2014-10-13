@@ -20,8 +20,6 @@
 typedef pvfmm::Cheb_Node<double> Node_t;
 typedef pvfmm::MPI_Tree<Node_t> Tree_t;
 
-const int DATA_DOF=1;
-
 template<typename real_t>
 std::vector<int>
 isOutside(Node_t* n,
@@ -90,7 +88,7 @@ class FieldFunctor {
       x.push_back(points_pos[i*COORD_DIM+0]);
       y.push_back(points_pos[i*COORD_DIM+1]);
       z.push_back(points_pos[i*COORD_DIM+2]);
-      node_->ReadVal(x, y, z, &out[i*DATA_DOF]);
+      node_->ReadVal(x, y, z, &out[i*node_->DataDOF()]);
     }
   }
 
@@ -98,7 +96,7 @@ class FieldFunctor {
   Node_t* node_;
 };
 
-template <class real_t>
+template <typename real_t, typename InputFunction>
 void semilag_construct_tree(const size_t N,
                             const size_t M,
                             const int cheb_deg,
@@ -106,25 +104,25 @@ void semilag_construct_tree(const size_t N,
                             const bool adap,
                             const real_t tol,
                             const MPI_Comm& comm,
+                            const InputFunction input_fn,
+                            const int data_dof,
                             Tree_t& tree) {
-
   //Various parameters.
   typename Node_t::NodeData tree_data;
-  tree_data.dim=COORD_DIM;
-  tree_data.max_depth=depth;
-  tree_data.cheb_deg=cheb_deg;
+  tree_data.dim       = COORD_DIM;
+  tree_data.max_depth = depth;
+  tree_data.cheb_deg  = cheb_deg;
 
   //Set input function pointer
-  //tree_data.input_fn=fn<real_t>;
-  tree_data.input_fn=slas::get_gaussian_field<real_t,3>;
-  tree_data.data_dof=DATA_DOF;
-  tree_data.tol=tol;
+  tree_data.input_fn  = input_fn;
+  tree_data.data_dof  = data_dof;
+  tree_data.tol       = tol;
 
   //Set source coordinates.
   std::vector<real_t> pt_coord;
   pt_coord=point_distrib<real_t>(UnifGrid,N,comm);
-  tree_data.max_pts=M; // Points per octant.
-  tree_data.pt_coord=pt_coord;
+  tree_data.max_pts  = M; // Points per octant.
+  tree_data.pt_coord = pt_coord;
 
   //initialize with input data.
   tree.Initialize(&tree_data);
@@ -134,57 +132,59 @@ void semilag_construct_tree(const size_t N,
 }
 
 template <typename real_t>
-void semilag_advect_tree(Tree_t& tree, const int cheb_deg, Tree_t& tree_next) {
+void semilag_advect_tree(Tree_t& tvel_curr, Tree_t& tree_curr, Tree_t& tree_next) {
   int sdim        = 3;
   int timestep    = 1;
   real_t dt       = 0.5;
   int num_rk_step = 1;
 
-  Node_t* n = tree.PostorderFirst();
+  Node_t* n_curr = tree_curr.PostorderFirst();
   Node_t* n_next = tree_next.PostorderFirst();
-  while (n != NULL) {
-    if (n->IsLeaf() && !n->IsGhost()) {
-      // compute chebychev points positions on the fly
-      std::vector<real_t> points_pos = pvfmm::cheb_nodes<real_t>(cheb_deg, sdim);
+  int data_dof   = n_curr->DataDOF();
+  int cheb_deg   = n_curr->ChebDeg();
 
-      int depth          = n->Depth();
-      real_t length      = static_cast<real_t>(std::pow(0.5, depth));
-      real_t* node_coord = n->Coord();
+  // compute chebychev points positions on the fly
+  std::vector<real_t> cheb_pos = pvfmm::cheb_nodes<real_t>(cheb_deg, sdim);
+  int num_points               = cheb_pos.size()/COORD_DIM;
+
+  while (n_curr != NULL) {
+    if (n_curr->IsLeaf() && !n_curr->IsGhost()) {
+      real_t length      = static_cast<real_t>(std::pow(0.5, n_curr->Depth()));
+      real_t* node_coord = n_curr->Coord();
 
       printf("NODE: [%f, %f, %f]\n",
              node_coord[0],
              node_coord[1],
              node_coord[2]);
-      // TODO: figure aut a way to optimize this part
+      // TODO: figure out a way to optimize this part.
+      std::vector<real_t> points_pos(cheb_pos.size());
       // scale the cheb points
-      int num_points = points_pos.size()/COORD_DIM;
       for (int i = 0; i < num_points; i++) {
-        points_pos[i*COORD_DIM+0] = node_coord[0] + length * points_pos[i*COORD_DIM+0];
-        points_pos[i*COORD_DIM+1] = node_coord[1] + length * points_pos[i*COORD_DIM+1];
-        points_pos[i*COORD_DIM+2] = node_coord[2] + length * points_pos[i*COORD_DIM+2];
+        points_pos[i*COORD_DIM+0] = node_coord[0] + length * cheb_pos[i*COORD_DIM+0];
+        points_pos[i*COORD_DIM+1] = node_coord[1] + length * cheb_pos[i*COORD_DIM+1];
+        points_pos[i*COORD_DIM+2] = node_coord[2] + length * cheb_pos[i*COORD_DIM+2];
       }
 
       std::vector<real_t> points_val(num_points);
-      FieldFunctor<real_t> con_field(tree.RootNode());
+      FieldFunctor<real_t> con_field(tree_curr.RootNode());
+      FieldFunctor<real_t> vel_field(tvel_curr.RootNode());
 
-      //field(points_pos.data(), num_points, points_val.data());
-      slas::semilag_rk2(slas::get_vorticity_field<double,3>,
+      slas::semilag_rk2(vel_field,
                         con_field,
                         points_pos,
                         sdim,
                         timestep,
                         dt,
                         num_rk_step,
-                        points_val
-                        );
+                        points_val);
 
       pvfmm::cheb_approx<real_t, real_t>(points_val.data(),
                                          cheb_deg,
-                                         DATA_DOF,
+                                         data_dof,
                                          &(n_next->ChebData()[0])
                                          );
     }
-    n = tree.PostorderNxt(n);
+    n_curr = tree_curr.PostorderNxt(n_curr);
     n_next = tree_next.PostorderNxt(n_next);
   }
 }
@@ -208,18 +208,36 @@ int main (int argc, char **argv) {
   commandline_option_end(argc, argv);
 
   {
-    Tree_t tree_current(comm);
-    tbslas::semilag_construct_tree<double>(N, M, q, d, adap, tol, comm, tree_current);
-    Tree_t tree_next(comm);
-    tbslas::semilag_construct_tree<double>(N, M, q, d, adap, tol, comm, tree_next);
+    Tree_t tvel_curr(comm);
+    tbslas::semilag_construct_tree<double>(N, M, q, d, adap, tol, comm,
+                                           slas::get_vorticity_field<double,3>,
+                                           3,
+                                           tvel_curr);
+    tvel_curr.Write2File("result/output_vel_00_", 4);
+
+    Tree_t tconc_curr(comm);
+    tbslas::semilag_construct_tree<double>(N, M, q, d, adap, tol, comm,
+                                           slas::get_gaussian_field<double,3>,
+                                           1,
+                                           tconc_curr);
+    // clone a tree
+    Tree_t tconc_next(comm);
+    // TODO: clone the next tree from the current tree (NOT FROM ANALYTICAL FUNCTION)
+    // Tree_t tconc_next(tconc_curr);
+    tbslas::semilag_construct_tree<double>(N, M, q, d, adap, tol, comm,
+                                           slas::get_gaussian_field<double,3>,
+                                           1,
+                                           tconc_next);
+
     //Find error in Chebyshev approximation.
     // CheckChebOutput<Tree_t>(&tree,
     //                         (typename TestFn<double>::Fn_t) &slas::get_gaussian_field<double,3>,
     //                         DATA_DOF,
     //                         "Input");
-    tree_current.Write2File("result/output_00_",4);
-    tbslas::semilag_advect_tree<double>(tree_current, q, tree_next);
-    tree_next.Write2File("result/output_01_",4);
+    tconc_curr.Write2File("result/output_00_",4);
+
+    tbslas::semilag_advect_tree<double>(tvel_curr, tconc_curr, tconc_next);
+    tconc_next.Write2File("result/output_01_",4);
   }
 
   // Shut down MPI

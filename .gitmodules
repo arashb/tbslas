@@ -1,0 +1,3 @@
+[submodule "ext/pvfmm"]
+	path = ext/pvfmm
+	url = git@github.com:dmalhotra/pvfmm.git

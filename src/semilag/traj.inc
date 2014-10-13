@@ -20,7 +20,7 @@ namespace slas {
 
 template<typename real_t, typename FieldFunctor>
 void
-integrate_rk2(const FieldFunctor field_fn,
+integrate_rk2(FieldFunctor field_fn,
               const std::vector<real_t>& xinit,
               const real_t tinit,
               const real_t dt,
@@ -42,7 +42,7 @@ integrate_rk2(const FieldFunctor field_fn,
 
 template<typename real_t, typename FieldFunctor>
 void
-traj_rk2(const FieldFunctor field_fn,
+traj_rk2(FieldFunctor field_fn,
          const std::vector<real_t>& xinit,
          const real_t tinit,
          const real_t tfinal,
