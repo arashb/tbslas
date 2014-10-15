@@ -16,10 +16,18 @@
 
 #include <tree/tree_common.h>
 #include <tree/node_field_functor.h>
-#include <tree/semilag_advect_tree.h>
+#include <tree/advect_tree_semilag.h>
 #include <tree/tree_utils.h>
 
 #include <semilag/utils.h>
+
+template<typename real_t>
+void swap_trees_pointers(tbslas::Tree_t<real_t>** ta,
+                         tbslas::Tree_t<real_t>** tb) {
+  tbslas::Tree_t<real_t>* tmp = *ta;
+  *ta = *tb;
+  *tb = tmp;
+}
 
 int main (int argc, char **argv) {
   MPI_Init(&argc, &argv);
@@ -37,36 +45,56 @@ int main (int argc, char **argv) {
   commandline_option_end(argc, argv);
 
   {
+    // INIT THE TREES
     tbslas::Tree_t<double> tvel_curr(comm);
-    tbslas::semilag_construct_tree<double>(N, M, q, d, adap, tol, comm,
-                                           slas::get_vorticity_field<double,3>,
-                                           3,
-                                           tvel_curr);
-    tvel_curr.Write2File("result/output_vel_00_", 4);
+    tbslas::construct_tree<double>(N, M, q, d, adap, tol, comm,
+                                   tbslas::get_vorticity_field<double,3>,
+                                   3,
+                                   tvel_curr);
+    // tvel_curr.Write2File("result/output_vel_00_", 4);
 
-    tbslas::Tree_t<double> tconc_curr(comm);
-    tbslas::semilag_construct_tree<double>(N, M, q, d, adap, tol, comm,
-                                           slas::get_gaussian_field<double,3>,
-                                           1,
-                                           tconc_curr);
+        // void ConstructLET(BoundaryType bndry=FreeSpace);
+    tvel_curr.ConstructLET(pvfmm::FreeSpace);
+
+    // tbslas::Tree_t<double> tconc_curr(comm);
+    tbslas::Tree_t<double>* tconc_curr = new tbslas::Tree_t<double>(comm);
+    tbslas::construct_tree<double>(N, M, q, d, adap, tol, comm,
+                                   tbslas::get_gaussian_field<double,3>,
+                                   1,
+                                   *tconc_curr);
+    char out_name_buffer[50];
+    snprintf(out_name_buffer, sizeof(out_name_buffer), "result/output_%d_", 0);
+    tconc_curr->Write2File(out_name_buffer, q);
+
     // clone a tree
-    tbslas::Tree_t<double> tconc_next(comm);
+    // tbslas::Tree_t<double> tconc_next(comm);
+    tbslas::Tree_t<double>* tconc_next = new tbslas::Tree_t<double>(comm);
     // TODO: clone the next tree from the current tree (NOT FROM ANALYTICAL FUNCTION)
     // Tree_t tconc_next(tconc_curr);
-    tbslas::semilag_construct_tree<double>(N, M, q, d, adap, tol, comm,
-                                           slas::get_gaussian_field<double,3>,
-                                           1,
-                                           tconc_next);
+    tbslas::construct_tree<double>(N, M, q, d, adap, tol, comm,
+                                   tbslas::get_gaussian_field<double,3>,
+                                   1,
+                                   *tconc_next);
 
-    tconc_curr.Write2File("result/output_00_",4);
+    // simulation info
+    int tstep       = 1;
+    double dt       = 0.5;
+    int num_rk_step = 1;
+    int tn          = 3;
 
-    tbslas::semilag_advect_tree<double>(tvel_curr, tconc_curr, tconc_next);
-    tconc_next.Write2File("result/output_01_",4);
-    //Find error in Chebyshev approximation.
-    // CheckChebOutput<Tree_t>(&tree,
-    //                         (typename TestFn<double>::Fn_t) &slas::get_gaussian_field<double,3>,
-    //                         DATA_DOF,
-    //                         "Input");
+    // TIME STEPPING
+    for (int tstep = 1; tstep < tn+1; tstep++) {
+      tconc_curr->ConstructLET(pvfmm::FreeSpace);
+      tbslas::advect_tree_semilag<double>(tvel_curr, *tconc_curr, *tconc_next,
+                                          tstep, dt, num_rk_step);
+
+      snprintf(out_name_buffer, sizeof(out_name_buffer), "result/output_%d_", tstep);
+      tconc_next->Write2File(out_name_buffer,q);
+
+      swap_trees_pointers(&tconc_curr, &tconc_next);
+    }
+
+
   }
 
   // Shut down MPI

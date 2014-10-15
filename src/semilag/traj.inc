@@ -16,7 +16,7 @@
 #include "semilag/vec_field.h"
 //#include "semilag/cubic_interp_policy.h"
 
-namespace slas {
+namespace tbslas {
 
 template<typename real_t, typename FieldFunctor>
 void
@@ -106,4 +106,4 @@ traj_rk2(const VecField<real_t, sdim, vdim>& field,
   }
 }
 
-}  // namespace slas
+}  // namespace tbslas

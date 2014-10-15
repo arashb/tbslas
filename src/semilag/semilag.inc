@@ -18,7 +18,7 @@
 #include "semilag/vec_field.h"
 #include "semilag/traj.h"
 
-namespace slas {
+namespace tbslas {
 
 template<typename real_t,
          typename VFieldFunctor,
@@ -88,4 +88,4 @@ semilag_rk2(const VField& vel_field,
   conc_field.push_back_values(departure_points_values, dt*timestep);
 }
 
-}  // namespace slas
+}  // namespace tbslas

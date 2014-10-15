@@ -19,7 +19,7 @@
 
 #include "semilag/utils.h"
 
-namespace slas {
+namespace tbslas {
 
 template<typename real_t>
 CubicInterpPolicy<real_t>::CubicInterpPolicy() {
@@ -153,4 +153,4 @@ CubicInterpPolicy<real_t>::cubic_interp_2d(real_t p[4][4],
 }
 
 
-}  // namespace slas
+}  // namespace tbslas

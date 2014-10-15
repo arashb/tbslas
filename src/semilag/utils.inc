@@ -16,7 +16,7 @@
 #include <cmath>
 #include <cassert>
 
-namespace slas {
+namespace tbslas {
 
 template <typename real_t, int sdim>
 void
@@ -113,7 +113,6 @@ generate_vorticity_field(const std::vector<real_t>& points_pos,
   return points_values;
 }
 
-
 template<typename real_t>
 std::vector<real_t>
 generate_gaussian_field(const std::vector<real_t>& points_pos,
@@ -167,4 +166,4 @@ find_grid_index_1d(const std::vector<real_t>& grid,
   return index;
 }
 
-}  // namespace slas
+}  // namespace tbslas

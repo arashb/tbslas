@@ -20,16 +20,16 @@
 namespace tbslas {
 
 template <typename real_t, typename InputFunction>
-void semilag_construct_tree(const size_t N,
-                            const size_t M,
-                            const int cheb_deg,
-                            const int depth,
-                            const bool adap,
-                            const real_t tol,
-                            const MPI_Comm& comm,
-                            const InputFunction input_fn,
-                            const int data_dof,
-                            Tree_t<real_t>& tree) {
+void construct_tree(const size_t N,
+                    const size_t M,
+                    const int cheb_deg,
+                    const int depth,
+                    const bool adap,
+                    const real_t tol,
+                    const MPI_Comm& comm,
+                    const InputFunction input_fn,
+                    const int data_dof,
+                    Tree_t<real_t>& tree) {
   //Various parameters.
   typename Node_t<real_t>::NodeData tree_data;
   tree_data.dim       = COORD_DIM;

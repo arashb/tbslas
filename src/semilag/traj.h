@@ -19,7 +19,7 @@
 #include "semilag/vec_field.h"
 #include "semilag/common.h"
 
-namespace slas {
+namespace tbslas {
 
 //**********************************************************************
 // INTEFACE FUNCTIONS USING FUNCTORS
@@ -67,7 +67,7 @@ traj_rk2(const VecField<real_t, sdim, vdim>& field,
          const InterpPolicy& interp_policy,
          std::vector<real_t>& xsol);
 
-}  // namespace slas
+}  // namespace tbslas
 
 #include "traj.inc"
 

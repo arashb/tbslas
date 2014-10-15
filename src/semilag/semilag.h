@@ -18,7 +18,7 @@
 
 #include "semilag/common.h"
 
-namespace slas {
+namespace tbslas {
 
 template<typename real_t,
          typename VFieldFunctor,
@@ -45,7 +45,7 @@ semilag_rk2(const VField& vel_field,
             const int num_rk_step,
             CField& conc_field);
 
-}  // namespace slas
+}  // namespace tbslas
 
 #include "semilag.inc"
 

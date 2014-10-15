@@ -16,7 +16,7 @@
 
 #include <vector>
 
-namespace slas {
+namespace tbslas {
 
 template<typename real_t>
 class CubicInterpPolicy {
@@ -53,7 +53,7 @@ class CubicInterpPolicy {
 
 };  // class CubicInterpPolicy
 
-}  // namespace slas
+}  // namespace tbslas
 
 #include "cubic_interp_policy.inc"
 
