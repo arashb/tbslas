@@ -52,8 +52,6 @@ int main (int argc, char **argv) {
                                    3,
                                    tvel_curr);
     // tvel_curr.Write2File("result/output_vel_00_", 4);
-
-        // void ConstructLET(BoundaryType bndry=FreeSpace);
     tvel_curr.ConstructLET(pvfmm::FreeSpace);
 
     // tbslas::Tree_t<double> tconc_curr(comm);
@@ -63,8 +61,8 @@ int main (int argc, char **argv) {
                                    1,
                                    *tconc_curr);
     char out_name_buffer[50];
-    snprintf(out_name_buffer, sizeof(out_name_buffer), "result/output_%d_", 0);
-    tconc_curr->Write2File(out_name_buffer, q);
+    // snprintf(out_name_buffer, sizeof(out_name_buffer), "result/output_%d_", 0);
+    // tconc_curr->Write2File(out_name_buffer, q);
 
     // clone a tree
     // tbslas::Tree_t<double> tconc_next(comm);
@@ -85,11 +83,15 @@ int main (int argc, char **argv) {
     // TIME STEPPING
     for (int tstep = 1; tstep < tn+1; tstep++) {
       tconc_curr->ConstructLET(pvfmm::FreeSpace);
-      tbslas::advect_tree_semilag<double>(tvel_curr, *tconc_curr, *tconc_next,
-                                          tstep, dt, num_rk_step);
+      tbslas::advect_tree_semilag<double>(tvel_curr,
+                                          *tconc_curr,
+                                          *tconc_next,
+                                          tstep,
+                                          dt,
+                                          num_rk_step);
 
-      snprintf(out_name_buffer, sizeof(out_name_buffer), "result/output_%d_", tstep);
-      tconc_next->Write2File(out_name_buffer,q);
+      // snprintf(out_name_buffer, sizeof(out_name_buffer), "result/output_%d_", tstep);
+      // tconc_next->Write2File(out_name_buffer,q);
 
       swap_trees_pointers(&tconc_curr, &tconc_next);
     }

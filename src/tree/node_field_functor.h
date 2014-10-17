@@ -35,17 +35,6 @@ class NodeFieldFunctor {
   void operator () (const real_t* points_pos,
                     int num_points,
                     real_t* out) {
-    // TODO: remove this part
-    // std::vector<real_t> x_c,y_c,z_c;
-    // for (int i = 0; i < num_points; i++) {
-    //   x_c.push_back(points_pos[i*COORD_DIM+0]);
-    //   y_c.push_back(points_pos[i*COORD_DIM+1]);
-    //   z_c.push_back(points_pos[i*COORD_DIM+2]);
-    // }
-    // std::vector<int> outsiders = isOutside(node_, x_c, y_c, z_c);
-    // assert(outsiders.empty());
-
-    // TODO: optimize! you do not need to get the values of each point separately
     for (int i = 0; i < num_points; i++) {
       std::vector<real_t> x,y,z;
       x.push_back(points_pos[i*COORD_DIM+0]);

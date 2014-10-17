@@ -8,8 +8,8 @@
 #include "semilag/vec_field.h"
 #include "semilag/semilag.h"
 
-typedef slas::VecField<double,3,3> VFieldD33;
-typedef slas::VecField<double,3,1> VFieldD31;
+typedef tbslas::VecField<double,3,3> VFieldD33;
+typedef tbslas::VecField<double,3,1> VFieldD31;
 typedef std::vector<double> VecD;
 
 int main(int argc, char *argv[]) {
@@ -25,19 +25,19 @@ int main(int argc, char *argv[]) {
   int num_rk_step       = 1;
 
   const size_t num_points            = (size_t)std::pow(num_points_dim, 3);
-  const VecD points_pos              = slas::generate_reg_grid_points<double,3>(num_points_dim);
-  const VecD points_values_vorticity = slas::generate_vorticity_field(points_pos);
-  const VecD points_values_gaussian  = slas::generate_gaussian_field(points_pos);
+  const VecD points_pos              = tbslas::generate_reg_grid_points<double,3>(num_points_dim);
+  const VecD points_values_vorticity = tbslas::generate_vorticity_field(points_pos);
+  const VecD points_values_gaussian  = tbslas::generate_gaussian_field(points_pos);
 
-  slas::CubicInterpPolicy<double> cubic_interp_policy;
+  tbslas::CubicInterpPolicy<double> cubic_interp_policy;
 
   vel_field.init(points_pos, points_values_vorticity);
   con_field.init(points_pos, points_values_gaussian);
 
   for(int timestep = 1; timestep <= tn; timestep++) {
-    // vel_field.push_back_values(slas::generate_vorticity_field(points_pos, timestep*dt),
+    // vel_field.push_back_values(tbslas::generate_vorticity_field(points_pos, timestep*dt),
     //                            timestep*dt);
-    vel_field.push_back_values(slas::generate_vorticity_field(points_pos),
+    vel_field.push_back_values(tbslas::generate_vorticity_field(points_pos),
                                timestep*dt);
   }
 
@@ -46,7 +46,7 @@ int main(int argc, char *argv[]) {
     std::cout << "-> timestep: " << timestep
               << " time: " << dt*timestep << std::endl;
 
-    slas::semilag_rk2(vel_field,
+    tbslas::semilag_rk2(vel_field,
                       cubic_interp_policy,
                       timestep,
                       dt,

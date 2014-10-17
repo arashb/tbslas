@@ -27,7 +27,6 @@ void advect_tree_semilag(Tree_t<real_t>& tvel_curr,
                          int timestep,
                          real_t dt,
                          int num_rk_step = 1) {
-
   Node_t<real_t>* n_curr = tree_curr.PostorderFirst();
   Node_t<real_t>* n_next = tree_next.PostorderFirst();
   int data_dof = n_curr->DataDOF();
@@ -38,7 +37,6 @@ void advect_tree_semilag(Tree_t<real_t>& tvel_curr,
   std::vector<real_t> cheb_pos = pvfmm::cheb_nodes<real_t>(cheb_deg, sdim);
   int num_points               = cheb_pos.size()/sdim;
 
-
   while (n_curr != NULL) {
     if(!n_curr->IsGhost() && n_curr->IsLeaf()) break;
     n_curr = tree_curr.PostorderNxt(n_curr);
@@ -47,7 +45,6 @@ void advect_tree_semilag(Tree_t<real_t>& tvel_curr,
     if(!n_next->IsGhost() && n_next->IsLeaf()) break;
     n_next = tree_next.PostorderNxt(n_next);
   }
-
 
   while (n_curr != NULL && n_next != NULL) {
     if (n_curr->IsLeaf() && !n_curr->IsGhost()) {
