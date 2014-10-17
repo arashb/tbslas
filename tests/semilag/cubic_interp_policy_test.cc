@@ -18,7 +18,7 @@ class CubicInterpPolicyTest : public ::testing::Test {
     dx = 1.0/(N-1);
     dt = dx;
 
-    grid_points = slas::generate_reg_grid_points<double,sdim>(N);
+    grid_points = tbslas::generate_reg_grid_points<double,sdim>(N);
     std::vector<double> tmp_val(vdim*num_points);
     // creating the time line and values
     for ( int i = 0; i <= num_time_steps; i++) {
@@ -44,7 +44,7 @@ class CubicInterpPolicyTest : public ::testing::Test {
   int num_time_steps;
   std::vector<double> grid_points, time;
   std::vector< std::vector<double> > grid_values;
-  slas::CubicInterpPolicy<double> interp_policy;
+  tbslas::CubicInterpPolicy<double> interp_policy;
 };
 
 TEST_F(CubicInterpPolicyTest, InterpTimeIndependent) {

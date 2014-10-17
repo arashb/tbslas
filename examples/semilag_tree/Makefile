@@ -1,8 +1,5 @@
+PVFMM_DIR=./../../ext/pvfmm
 -include $(PVFMM_DIR)/MakeVariables
-
-# ifndef CXXFLAGS_PVFMM
-# -include ../MakeVariables
-# endif
 
 ifndef CXXFLAGS_PVFMM
 $(error Cannot find file: MakeVariables)

@@ -8,7 +8,7 @@
 #include "semilag/cubic_interp_policy.h"
 #include "semilag/utils.h"
 
-typedef slas::VecField<double,3,3> VFieldD;
+typedef tbslas::VecField<double,3,3> VFieldD;
 typedef std::vector<double> VecD;
 
 class VecFieldTest : public ::testing::Test {
@@ -16,8 +16,8 @@ class VecFieldTest : public ::testing::Test {
   virtual void SetUp() {
     size_t dN = 11;
     size_t tN = dN*dN*dN;
-    VecD points_positions = slas::generate_reg_grid_points<double,3>(dN);
-    VecD points_values    = slas::generate_vorticity_field(points_positions);
+    VecD points_positions = tbslas::generate_reg_grid_points<double,3>(dN);
+    VecD points_values    = tbslas::generate_vorticity_field(points_positions);
     vecfd.init(points_positions, points_values);
     vecfd.push_back_values(points_values);
   }
@@ -37,9 +37,9 @@ TEST_F(VecFieldTest, Interpolate) {
   query_points.push_back(0.75);
   query_points.push_back(0.75);
   query_points.push_back(0.50);
-  VecD expected_res = slas::generate_vorticity_field(query_points);
+  VecD expected_res = tbslas::generate_vorticity_field(query_points);
 
-  slas::CubicInterpPolicy<double> cubic_interp_policy;
+  tbslas::CubicInterpPolicy<double> cubic_interp_policy;
   VecD actual_res(query_points.size());
   vecfd.interp(query_points, cubic_interp_policy, actual_res);
 
