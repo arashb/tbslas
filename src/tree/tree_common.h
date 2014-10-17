@@ -15,6 +15,9 @@
 
 #include <pvfmm_common.hpp>
 #include <mpi_tree.hpp>
+#include <fmm_cheb.hpp>
+#include <fmm_node.hpp>
+#include <fmm_tree.hpp>
 #include <cheb_node.hpp>
 
 namespace tbslas {
@@ -25,6 +28,20 @@ using Node_t = pvfmm::Cheb_Node<real_t>;
 
 template <typename real_t>
 using Tree_t = pvfmm::MPI_Tree< Node_t<real_t> >;
+
+template<typename real_t>
+using FMMNode_t = pvfmm::FMM_Node< Node_t<real_t> >;
+
+template<typename real_t>
+using FMM_Mat_t = pvfmm::FMM_Cheb< FMMNode_t<real_t> >;
+
+template<typename real_t>
+using FMM_Tree_t = pvfmm::FMM_Tree< FMM_Mat_t<real_t> >;
+
+template<typename real_t>
+void dummy_fn(const real_t* points_pos,
+              int num_points,
+              real_t* values) {};
 
 }  // namespace tbslas
 

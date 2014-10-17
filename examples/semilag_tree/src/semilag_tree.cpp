@@ -61,24 +61,24 @@ int main (int argc, char **argv) {
                                    1,
                                    *tconc_curr);
     char out_name_buffer[50];
-    // snprintf(out_name_buffer, sizeof(out_name_buffer), "result/output_%d_", 0);
-    // tconc_curr->Write2File(out_name_buffer, q);
+    snprintf(out_name_buffer, sizeof(out_name_buffer), "result/output_%d_", 0);
+    tconc_curr->Write2File(out_name_buffer, q);
 
     // clone a tree
     // tbslas::Tree_t<double> tconc_next(comm);
     tbslas::Tree_t<double>* tconc_next = new tbslas::Tree_t<double>(comm);
-    // TODO: clone the next tree from the current tree (NOT FROM ANALYTICAL FUNCTION)
+    tbslas::clone_tree(*tconc_curr, *tconc_next);
     // Tree_t tconc_next(tconc_curr);
-    tbslas::construct_tree<double>(N, M, q, d, adap, tol, comm,
-                                   tbslas::get_gaussian_field<double,3>,
-                                   1,
-                                   *tconc_next);
+    // tbslas::construct_tree<double>(N, M, q, d, adap, tol, comm,
+    //                                tbslas::get_gaussian_field<double,3>,
+    //                                1,
+    //                                *tconc_next);
 
     // simulation info
     int tstep       = 1;
     double dt       = 0.5;
     int num_rk_step = 1;
-    int tn          = 3;
+    int tn          = 1;
 
     // TIME STEPPING
     for (int tstep = 1; tstep < tn+1; tstep++) {
@@ -90,13 +90,11 @@ int main (int argc, char **argv) {
                                           dt,
                                           num_rk_step);
 
-      // snprintf(out_name_buffer, sizeof(out_name_buffer), "result/output_%d_", tstep);
-      // tconc_next->Write2File(out_name_buffer,q);
+      snprintf(out_name_buffer, sizeof(out_name_buffer), "result/output_%d_", tstep);
+      tconc_next->Write2File(out_name_buffer,q);
 
       swap_trees_pointers(&tconc_curr, &tconc_next);
     }
-
-
   }
 
   // Shut down MPI

@@ -19,6 +19,47 @@
 
 namespace tbslas {
 
+template<typename real_t>
+void clone_tree(tbslas::Tree_t<real_t>& tree_in,
+                tbslas::Tree_t<real_t>& tree_out ) {
+  typename Node_t<real_t>::NodeData tree_data;
+  tree_data.dim       = tree_in.Dim();
+  tree_data.max_depth = MAX_DEPTH;
+  tree_data.cheb_deg  = tree_in.RootNode()->ChebDeg();
+
+  //Set input function pointer
+  tree_data.input_fn = tbslas::dummy_fn<real_t>;
+  tree_data.data_dof = tree_in.RootNode()->DataDOF();
+  tree_data.tol      = 1;
+
+  //Set source coordinates.
+  std::vector<real_t> pt_coord;
+  tbslas::Node_t<real_t>* node =
+      static_cast< tbslas::Node_t<real_t>* >(tree_in.PreorderFirst());
+
+  while(node!=NULL){
+    if(node->IsLeaf() && !node->IsGhost()){
+      real_t* c=node->Coord();
+      real_t s=pow(0.5,node->Depth()+1);
+      pt_coord.push_back(c[0]+s);
+      pt_coord.push_back(c[1]+s);
+      pt_coord.push_back(c[2]+s);
+    }
+    node = static_cast<tbslas::Node_t<real_t>*>(tree_in.PreorderNxt(node));
+  }
+  //Set source coordinates.
+  tree_data.max_pts = 1; // Points per octant.
+  tree_data.pt_coord=pt_coord;
+  //Create Tree and initialize with input data.
+  tree_out.Initialize(&tree_data);
+
+  //2:1 Balancing
+  tree_in.Balance21(pvfmm::FreeSpace);
+
+  //Redistribute nodes.
+  tree_in.RedistNodes();
+}
+
 template <typename real_t, typename InputFunction>
 void construct_tree(const size_t N,
                     const size_t M,
@@ -51,7 +92,7 @@ void construct_tree(const size_t N,
   tree.Initialize(&tree_data);
   tree.RefineTree();
   tree.Balance21(pvfmm::FreeSpace);
-  //tree.RedistNodes();
+  tree.RedistNodes();
 }
 
 template<typename real_t>
