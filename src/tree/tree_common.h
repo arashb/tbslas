@@ -13,6 +13,8 @@
 #ifndef SRC_TREE_TREE_COMMON_H_
 #define SRC_TREE_TREE_COMMON_H_
 
+#include <vector>
+
 #include <pvfmm_common.hpp>
 #include <mpi_tree.hpp>
 #include <fmm_cheb.hpp>
@@ -41,8 +43,22 @@ using FMM_Tree_t = pvfmm::FMM_Tree< FMM_Mat_t<real_t> >;
 template<typename real_t>
 void dummy_fn(const real_t* points_pos,
               int num_points,
-              real_t* values) {};
+              real_t* values) {
+}
+
+enum DistribType{
+  UnifGrid,
+  RandUnif,
+  RandGaus,
+  RandElps,
+  RandSphr
+};
+
+template <class Real_t>
+std::vector<Real_t> point_distrib(DistribType, size_t N, MPI_Comm comm);
 
 }  // namespace tbslas
+
+#include "tree_common.inc"
 
 #endif  // SRC_TREE_TREE_COMMON_H_

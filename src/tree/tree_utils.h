@@ -84,7 +84,7 @@ void construct_tree(const size_t N,
 
   //Set source coordinates.
   std::vector<real_t> pt_coord;
-  pt_coord=point_distrib<real_t>(UnifGrid,N,comm);
+  pt_coord= tbslas::point_distrib<real_t>(UnifGrid,N,comm);
   tree_data.max_pts  = M; // Points per octant.
   tree_data.pt_coord = pt_coord;
 

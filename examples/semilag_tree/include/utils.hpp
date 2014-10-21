@@ -31,9 +31,6 @@ enum DistribType{
   RandSphr
 };
 
-template <class Real_t>
-std::vector<Real_t> point_distrib(DistribType, size_t N, MPI_Comm comm);
-
 void commandline_option_start(int argc, char** argv, const char* help_text=NULL);
 
 const char* commandline_option(int argc, char** argv, const char* opt, const char* def_val, bool required, const char* err_msg);
