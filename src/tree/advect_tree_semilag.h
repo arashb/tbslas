@@ -17,6 +17,7 @@
 
 #include "semilag/semilag.h"
 #include "tree/tree_common.h"
+#include "tree/node_field_functor.h"
 
 namespace tbslas {
 

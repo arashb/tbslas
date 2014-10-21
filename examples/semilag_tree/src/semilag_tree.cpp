@@ -15,7 +15,6 @@
 #include <cheb_utils.hpp>
 
 #include <tree/tree_common.h>
-#include <tree/node_field_functor.h>
 #include <tree/advect_tree_semilag.h>
 #include <tree/tree_utils.h>
 
