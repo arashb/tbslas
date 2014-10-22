@@ -79,6 +79,54 @@ get_gaussian_field(const real_t* points_pos,
   }
 };
 
+template<typename real_t, int sdim>
+void
+get_gaussian_field_1d(const real_t* points_pos,
+                      int num_points,
+                      real_t* out) {
+  const real_t a = 1.0;
+  const real_t b = 0.0;
+  const real_t c = 0.1;
+  const real_t d = 0.0;
+
+  for (int i = 0; i < num_points; i++) {
+    out[i] = a*exp(-((points_pos[i*sdim] - b)*(points_pos[i*sdim] - b) )/(2*c*c)) + d;
+  }
+};
+
+template<typename real_t, int sdim>
+void
+get_gaussian_field_3d(const real_t* points_pos,
+                      int num_points,
+                      real_t* out) {
+  const real_t zc      = 0.6;
+  const real_t yc      = 0.5;
+  const real_t theta   = 0.0;
+  const real_t sigma_x = 0.06;
+  const real_t sigma_y = 0.06;
+  const real_t A       = 1.0;
+  real_t cos_theta   = cos(theta);
+  real_t cos_2theta  = cos(2*theta);
+  real_t cos_theta_2 = cos_theta * cos_theta;
+  real_t sin_theta   = sin(theta);
+  real_t sin_2theta  = sin(2*theta);
+  real_t sin_theta_2 = sin_theta * sin_theta;
+  real_t sigma_x_2   = sigma_x*sigma_x;
+  real_t sigma_y_2   = sigma_y*sigma_y;
+
+  real_t a = cos_theta_2*0.5/sigma_x_2 + sin_theta_2*0.5/sigma_y_2;
+  real_t b = -sin_2theta*0.5/sigma_x_2 + sin_2theta*0.5/sigma_y_2;
+  real_t c = sin_theta_2*0.5/sigma_x_2 + cos_theta_2*0.5/sigma_y_2;
+
+  for (int i = 0; i < num_points; i++) {
+    out[i]  = A*exp(-(a * (points_pos[i*sdim+2]-zc)   * (points_pos[i*sdim+2]-zc)   +
+                      b * (points_pos[i*sdim+2]-zc)   * (points_pos[i*sdim+1]-yc) +
+                      c * (points_pos[i*sdim+1]-yc) * (points_pos[i*sdim+1]-yc)
+                      )
+                    );
+  }
+};
+
 template <typename real_t, int dim>
 std::vector<real_t>
 generate_reg_grid_points(const size_t N) {

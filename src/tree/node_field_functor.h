@@ -20,13 +20,12 @@
 
 namespace tbslas {
 
-template<typename real_t>
+template<typename real_t,
+         class NodeType>
 class NodeFieldFunctor {
 
-  typedef pvfmm::Cheb_Node<real_t> Node_t;
-
  public:
-  explicit NodeFieldFunctor(Node_t* node): node_(node) {
+  explicit NodeFieldFunctor(NodeType* node): node_(node) {
   }
 
   virtual ~NodeFieldFunctor() {
@@ -45,7 +44,7 @@ class NodeFieldFunctor {
   }
 
  private:
-  Node_t* node_;
+  NodeType* node_;
 };
 
 }      // namespace tbslas

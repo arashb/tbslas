@@ -20,14 +20,6 @@
 
 #include <semilag/utils.h>
 
-template<typename real_t>
-void swap_trees_pointers(tbslas::Tree_t<real_t>** ta,
-                         tbslas::Tree_t<real_t>** tb) {
-  tbslas::Tree_t<real_t>* tmp = *ta;
-  *ta = *tb;
-  *tb = tmp;
-}
-
 int main (int argc, char **argv) {
   MPI_Init(&argc, &argv);
   MPI_Comm comm=MPI_COMM_WORLD;
@@ -66,12 +58,9 @@ int main (int argc, char **argv) {
     // clone a tree
     // tbslas::Tree_t<double> tconc_next(comm);
     tbslas::Tree_t<double>* tconc_next = new tbslas::Tree_t<double>(comm);
-    tbslas::clone_tree(*tconc_curr, *tconc_next);
-    // Tree_t tconc_next(tconc_curr);
-    // tbslas::construct_tree<double>(N, M, q, d, adap, tol, comm,
-    //                                tbslas::get_gaussian_field<double,3>,
-    //                                1,
-    //                                *tconc_next);
+    tbslas::clone_tree<double,
+                       tbslas::Node_t<double>,
+                       tbslas::Tree_t<double> >(*tconc_curr, *tconc_next);
 
     // simulation info
     int tstep       = 1;
@@ -82,17 +71,19 @@ int main (int argc, char **argv) {
     // TIME STEPPING
     for (int tstep = 1; tstep < tn+1; tstep++) {
       tconc_curr->ConstructLET(pvfmm::FreeSpace);
-      tbslas::advect_tree_semilag<double>(tvel_curr,
-                                          *tconc_curr,
-                                          *tconc_next,
-                                          tstep,
-                                          dt,
-                                          num_rk_step);
+      tbslas::advect_tree_semilag<double,
+                                  tbslas::Node_t<double>,
+                                  tbslas::Tree_t<double> >(tvel_curr,
+                                                           *tconc_curr,
+                                                           *tconc_next,
+                                                           tstep,
+                                                           dt,
+                                                           num_rk_step);
 
       snprintf(out_name_buffer, sizeof(out_name_buffer), "result/output_%d_", tstep);
       tconc_next->Write2File(out_name_buffer,q);
 
-      swap_trees_pointers(&tconc_curr, &tconc_next);
+      tbslas::swap_trees_pointers(&tconc_curr, &tconc_next);
     }
   }
 

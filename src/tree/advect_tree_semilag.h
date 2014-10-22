@@ -21,15 +21,17 @@
 
 namespace tbslas {
 
-template <typename real_t>
-void advect_tree_semilag(Tree_t<real_t>& tvel_curr,
-                         Tree_t<real_t>& tree_curr,
-                         Tree_t<real_t>& tree_next,
+template <typename real_t,
+          class NodeType,
+          class TreeType>
+void advect_tree_semilag(TreeType& tvel_curr,
+                         TreeType& tree_curr,
+                         TreeType& tree_next,
                          int timestep,
                          real_t dt,
                          int num_rk_step = 1) {
-  Node_t<real_t>* n_curr = tree_curr.PostorderFirst();
-  Node_t<real_t>* n_next = tree_next.PostorderFirst();
+  NodeType* n_curr = tree_curr.PostorderFirst();
+  NodeType* n_next = tree_next.PostorderFirst();
   int data_dof = n_curr->DataDOF();
   int cheb_deg = n_curr->ChebDeg();
   int sdim     = tree_curr.Dim();
@@ -67,8 +69,8 @@ void advect_tree_semilag(Tree_t<real_t>& tvel_curr,
       }
 
       std::vector<real_t> points_val(num_points);
-      tbslas::semilag_rk2(tbslas::NodeFieldFunctor<real_t>(tvel_curr.RootNode()),
-                          tbslas::NodeFieldFunctor<real_t>(tree_curr.RootNode()),
+      tbslas::semilag_rk2(tbslas::NodeFieldFunctor<real_t, NodeType>(tvel_curr.RootNode()),
+                          tbslas::NodeFieldFunctor<real_t, NodeType>(tree_curr.RootNode()),
                           points_pos,
                           sdim,
                           timestep,

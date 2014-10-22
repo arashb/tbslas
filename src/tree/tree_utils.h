@@ -19,10 +19,12 @@
 
 namespace tbslas {
 
-template<typename real_t>
-void clone_tree(tbslas::Tree_t<real_t>& tree_in,
-                tbslas::Tree_t<real_t>& tree_out ) {
-  typename Node_t<real_t>::NodeData tree_data;
+template<typename real_t,
+         class NodeType,
+         class TreeType>
+void clone_tree(TreeType& tree_in,
+                TreeType& tree_out ) {
+  typename NodeType::NodeData tree_data;
   tree_data.dim       = tree_in.Dim();
   tree_data.max_depth = MAX_DEPTH;
   tree_data.cheb_deg  = tree_in.RootNode()->ChebDeg();
@@ -34,8 +36,8 @@ void clone_tree(tbslas::Tree_t<real_t>& tree_in,
 
   //Set source coordinates.
   std::vector<real_t> pt_coord;
-  tbslas::Node_t<real_t>* node =
-      static_cast< tbslas::Node_t<real_t>* >(tree_in.PreorderFirst());
+  NodeType* node =
+      static_cast< NodeType* >(tree_in.PreorderFirst());
 
   while(node!=NULL){
     if(node->IsLeaf() && !node->IsGhost()){
@@ -45,7 +47,7 @@ void clone_tree(tbslas::Tree_t<real_t>& tree_in,
       pt_coord.push_back(c[1]+s);
       pt_coord.push_back(c[2]+s);
     }
-    node = static_cast<tbslas::Node_t<real_t>*>(tree_in.PreorderNxt(node));
+    node = static_cast<NodeType*>(tree_in.PreorderNxt(node));
   }
   //Set source coordinates.
   tree_data.max_pts = 1; // Points per octant.
@@ -95,11 +97,14 @@ void construct_tree(const size_t N,
   tree.RedistNodes();
 }
 
-template<typename real_t, typename InputFunction>
+template<typename real_t,
+         class NodeType,
+         class TreeType,
+         typename InputFunction>
 void
-init_tree(Tree_t<real_t>& tree,
-          const InputFunction input_fn) {
-  Node_t<real_t>* n_curr = tree.PostorderFirst();
+init_tree(TreeType& tree,
+          InputFunction input_fn) {
+  NodeType* n_curr = tree.PostorderFirst();
   int data_dof = n_curr->DataDOF();
   int cheb_deg = n_curr->ChebDeg();
   int sdim     = tree.Dim();
@@ -118,11 +123,6 @@ init_tree(Tree_t<real_t>& tree,
       real_t length      = static_cast<real_t>(std::pow(0.5, n_curr->Depth()));
       real_t* node_coord = n_curr->Coord();
 
-      // printf("NODE: [%f, %f, %f]\n",
-      //        node_coord[0],
-      //        node_coord[1],
-      //        node_coord[2]);
-
       // TODO: figure out a way to optimize this part.
       std::vector<real_t> points_pos(cheb_pos.size());
       // scale the cheb points
@@ -134,14 +134,6 @@ init_tree(Tree_t<real_t>& tree,
 
       std::vector<real_t> points_val(num_points*data_dof);
       input_fn(points_pos.data(), num_points, points_val.data());
-      // tbslas::semilag_rk2(tbslas::NodeFieldFunctor<real_t>(tvel_curr.RootNode()),
-      //                     tbslas::NodeFieldFunctor<real_t>(tree_curr.RootNode()),
-      //                     points_pos,
-      //                     sdim,
-      //                     timestep,
-      //                     dt,
-      //                     num_rk_step,
-      //                     points_val);
 
       pvfmm::cheb_approx<real_t, real_t>(points_val.data(),
                                          cheb_deg,
@@ -151,6 +143,14 @@ init_tree(Tree_t<real_t>& tree,
     }
     n_curr = tree.PostorderNxt(n_curr);
   }
+}
+
+template<class TreeType>
+void swap_trees_pointers(TreeType** ta,
+                         TreeType** tb) {
+  TreeType* tmp = *ta;
+  *ta = *tb;
+  *tb = tmp;
 }
 
 template<typename real_t>
