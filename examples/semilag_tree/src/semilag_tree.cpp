@@ -42,31 +42,37 @@ int main (int argc, char **argv) {
                                    tbslas::get_vorticity_field<double,3>,
                                    3,
                                    tvel_curr);
-    // tvel_curr.Write2File("result/output_vel_00_", 4);
     tvel_curr.ConstructLET(pvfmm::FreeSpace);
+    tvel_curr.Write2File("result/output_vel_00_", 4);
 
-    // tbslas::Tree_t<double> tconc_curr(comm);
     tbslas::Tree_t<double>* tconc_curr = new tbslas::Tree_t<double>(comm);
     tbslas::construct_tree<double>(N, M, q, d, adap, tol, comm,
                                    tbslas::get_gaussian_field<double,3>,
                                    1,
                                    *tconc_curr);
+    // tbslas::clone_tree<double,
+    //                    tbslas::Node_t<double>,
+    //                    tbslas::Tree_t<double> > (tvel_curr, *tconc_curr, 1);
+    // tbslas::init_tree<double,
+    //                   tbslas::Node_t<double>,
+    //                   tbslas::Tree_t<double> > (*tconc_curr,
+    //                                             tbslas::get_gaussian_field<double,3>,
+    //                                             1);
     char out_name_buffer[50];
     snprintf(out_name_buffer, sizeof(out_name_buffer), "result/output_%d_", 0);
     tconc_curr->Write2File(out_name_buffer, q);
 
     // clone a tree
-    // tbslas::Tree_t<double> tconc_next(comm);
     tbslas::Tree_t<double>* tconc_next = new tbslas::Tree_t<double>(comm);
     tbslas::clone_tree<double,
                        tbslas::Node_t<double>,
-                       tbslas::Tree_t<double> >(*tconc_curr, *tconc_next);
+                       tbslas::Tree_t<double> >(*tconc_curr, *tconc_next, 1);
 
     // simulation info
     int tstep       = 1;
     double dt       = 0.5;
     int num_rk_step = 1;
-    int tn          = 1;
+    int tn          = 10;
 
     // TIME STEPPING
     for (int tstep = 1; tstep < tn+1; tstep++) {

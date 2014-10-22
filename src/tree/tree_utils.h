@@ -23,7 +23,8 @@ template<typename real_t,
          class NodeType,
          class TreeType>
 void clone_tree(TreeType& tree_in,
-                TreeType& tree_out ) {
+                TreeType& tree_out,
+                int data_dof) {
   typename NodeType::NodeData tree_data;
   tree_data.dim       = tree_in.Dim();
   tree_data.max_depth = MAX_DEPTH;
@@ -31,7 +32,7 @@ void clone_tree(TreeType& tree_in,
 
   //Set input function pointer
   tree_data.input_fn = tbslas::dummy_fn<real_t>;
-  tree_data.data_dof = tree_in.RootNode()->DataDOF();
+  tree_data.data_dof = data_dof;
   tree_data.tol      = 1;
 
   //Set source coordinates.
@@ -103,9 +104,9 @@ template<typename real_t,
          typename InputFunction>
 void
 init_tree(TreeType& tree,
-          InputFunction input_fn) {
+          InputFunction input_fn,
+          int data_dof) {
   NodeType* n_curr = tree.PostorderFirst();
-  int data_dof = n_curr->DataDOF();
   int cheb_deg = n_curr->ChebDeg();
   int sdim     = tree.Dim();
 

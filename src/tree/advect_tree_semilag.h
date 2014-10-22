@@ -68,7 +68,7 @@ void advect_tree_semilag(TreeType& tvel_curr,
         points_pos[i*sdim+2] = node_coord[2] + length * cheb_pos[i*sdim+2];
       }
 
-      std::vector<real_t> points_val(num_points);
+      std::vector<real_t> points_val(num_points*data_dof);
       tbslas::semilag_rk2(tbslas::NodeFieldFunctor<real_t, NodeType>(tvel_curr.RootNode()),
                           tbslas::NodeFieldFunctor<real_t, NodeType>(tree_curr.RootNode()),
                           points_pos,
