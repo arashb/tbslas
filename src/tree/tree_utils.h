@@ -95,6 +95,64 @@ void construct_tree(const size_t N,
   tree.RedistNodes();
 }
 
+template<typename real_t, typename InputFunction>
+void
+init_tree(Tree_t<real_t>& tree,
+          const InputFunction input_fn) {
+  Node_t<real_t>* n_curr = tree.PostorderFirst();
+  int data_dof = n_curr->DataDOF();
+  int cheb_deg = n_curr->ChebDeg();
+  int sdim     = tree.Dim();
+
+  // compute chebychev points positions on the fly
+  std::vector<real_t> cheb_pos = pvfmm::cheb_nodes<real_t>(cheb_deg, sdim);
+  int num_points               = cheb_pos.size()/sdim;
+
+  while (n_curr != NULL) {
+    if(!n_curr->IsGhost() && n_curr->IsLeaf()) break;
+    n_curr = tree.PostorderNxt(n_curr);
+  }
+
+  while (n_curr != NULL) {
+    if (n_curr->IsLeaf() && !n_curr->IsGhost()) {
+      real_t length      = static_cast<real_t>(std::pow(0.5, n_curr->Depth()));
+      real_t* node_coord = n_curr->Coord();
+
+      // printf("NODE: [%f, %f, %f]\n",
+      //        node_coord[0],
+      //        node_coord[1],
+      //        node_coord[2]);
+
+      // TODO: figure out a way to optimize this part.
+      std::vector<real_t> points_pos(cheb_pos.size());
+      // scale the cheb points
+      for (int i = 0; i < num_points; i++) {
+        points_pos[i*sdim+0] = node_coord[0] + length * cheb_pos[i*sdim+0];
+        points_pos[i*sdim+1] = node_coord[1] + length * cheb_pos[i*sdim+1];
+        points_pos[i*sdim+2] = node_coord[2] + length * cheb_pos[i*sdim+2];
+      }
+
+      std::vector<real_t> points_val(num_points*data_dof);
+      input_fn(points_pos.data(), num_points, points_val.data());
+      // tbslas::semilag_rk2(tbslas::NodeFieldFunctor<real_t>(tvel_curr.RootNode()),
+      //                     tbslas::NodeFieldFunctor<real_t>(tree_curr.RootNode()),
+      //                     points_pos,
+      //                     sdim,
+      //                     timestep,
+      //                     dt,
+      //                     num_rk_step,
+      //                     points_val);
+
+      pvfmm::cheb_approx<real_t, real_t>(points_val.data(),
+                                         cheb_deg,
+                                         data_dof,
+                                         &(n_curr->ChebData()[0])
+                                         );
+    }
+    n_curr = tree.PostorderNxt(n_curr);
+  }
+}
+
 template<typename real_t>
 std::vector<int>
 isOutside(Node_t<real_t>* n,
