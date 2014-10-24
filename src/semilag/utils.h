@@ -51,6 +51,12 @@ get_vorticity_field(const real_t* points_pos,
                     int num_points,
                     real_t* out);
 
+template<typename real_t, int sdim>
+void
+get_vel_field_hom(const real_t* points_pos,
+                  int num_points,
+                  real_t* points_values);
+
 template <typename real_t, int dim>
 std::vector<real_t>
 generate_reg_grid_points(const size_t N);

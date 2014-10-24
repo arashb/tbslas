@@ -48,6 +48,20 @@ get_vorticity_field(const real_t* points_pos,
 
 template<typename real_t, int sdim>
 void
+get_vel_field_hom(const real_t* points_pos,
+                  int num_points,
+                  real_t* points_values) {
+  real_t omega = 0.1;
+  real_t time_factor = 1;//+sin(2*3.14159*time);
+  for (int i = 0; i < num_points; i++) {
+    points_values[i*3+0] = -omega*time_factor;
+    points_values[i*3+1] = 0;
+    points_values[i*3+2] = 0;
+  }
+}
+
+template<typename real_t, int sdim>
+void
 get_gaussian_field(const real_t* points_pos,
                    int num_points,
                    real_t* out) {
@@ -85,12 +99,15 @@ get_gaussian_field_1d(const real_t* points_pos,
                       int num_points,
                       real_t* out) {
   const real_t a = 1.0;
-  const real_t b = 0.0;
+  const real_t b = 0.9;
   const real_t c = 0.1;
   const real_t d = 0.0;
 
+  real_t tmp;
   for (int i = 0; i < num_points; i++) {
-    out[i] = a*exp(-((points_pos[i*sdim] - b)*(points_pos[i*sdim] - b) )/(2*c*c)) + d;
+    out[i] = a*exp(-((points_pos[i*sdim+0] - b)*(points_pos[i*sdim+0] - b) )/(2*c*c)) + d;
+    if((points_pos[i*sdim+0] - b < 0))
+      out[i] = 0;
   }
 };
 
