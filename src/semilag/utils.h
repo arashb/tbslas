@@ -35,6 +35,12 @@ get_gaussian_field(const real_t* pnts_pos,
 
 template<typename real_t, int sdim>
 void
+get_gaussian_field_yext(const real_t* points_pos,
+			int num_points,
+			real_t* out);
+
+template<typename real_t, int sdim>
+void
 get_gaussian_field_1d(const real_t* points_pos,
                       int num_points,
                       real_t* out);
