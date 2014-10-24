@@ -38,9 +38,8 @@ semilag_rk2(VFieldFunctor vel_evaluator,
 
   std::vector<real_t> departure_points_pos(points_pos.size());
 
-  std::cout << "-> semi-Lagrangian" << std::endl;
   // computing the departure points
-  std::cout << "--> computing the backward trajectory" << std::endl;
+  std::cout << "--> SEMILAG: computing the backward trajectory" << std::endl;
   traj_rk2(vel_evaluator,
            points_pos,
            tinit,
@@ -48,7 +47,7 @@ semilag_rk2(VFieldFunctor vel_evaluator,
            num_rk_step,
            departure_points_pos);
 
-  std::cout << "--> computing values at the departure points" << std::endl;
+  std::cout << "--> SEMILAG: computing values at the departure points" << std::endl;
   con_evaluator(departure_points_pos.data(), num_points,  points_vals.data());
 }
 

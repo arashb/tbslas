@@ -43,7 +43,7 @@ int main (int argc, char **argv) {
                                    3,
                                    tvel_curr);
     tvel_curr.ConstructLET(pvfmm::FreeSpace);
-    tvel_curr.Write2File("result/output_vel_00_", 4);
+    tvel_curr.Write2File("result/output_vel_00_", q);
 
     tbslas::Tree_t<double>* tconc_curr = new tbslas::Tree_t<double>(comm);
     tbslas::construct_tree<double>(N, M, q, d, adap, tol, comm,
@@ -72,10 +72,13 @@ int main (int argc, char **argv) {
     int tstep       = 1;
     double dt       = 0.5;
     int num_rk_step = 1;
-    int tn          = 10;
+    int tn          = 1;
 
     // TIME STEPPING
     for (int tstep = 1; tstep < tn+1; tstep++) {
+      printf("====================\n");
+      printf("TIME STEP: %d\n", tstep);
+
       tconc_curr->ConstructLET(pvfmm::FreeSpace);
       tbslas::advect_tree_semilag<double,
                                   tbslas::Node_t<double>,

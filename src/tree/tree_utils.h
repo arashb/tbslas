@@ -57,10 +57,10 @@ void clone_tree(TreeType& tree_in,
   tree_out.Initialize(&tree_data);
 
   //2:1 Balancing
-  tree_in.Balance21(pvfmm::FreeSpace);
+  tree_out.Balance21(pvfmm::FreeSpace);
 
   //Redistribute nodes.
-  tree_in.RedistNodes();
+  tree_out.RedistNodes();
 }
 
 template <typename real_t, typename InputFunction>

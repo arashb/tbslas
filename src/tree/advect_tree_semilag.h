@@ -54,7 +54,7 @@ void advect_tree_semilag(TreeType& tvel_curr,
       real_t length      = static_cast<real_t>(std::pow(0.5, n_curr->Depth()));
       real_t* node_coord = n_curr->Coord();
 
-      printf("NODE: [%f, %f, %f]\n",
+      printf("ADVECTING NODE: [%f, %f, %f]\n",
              node_coord[0],
              node_coord[1],
              node_coord[2]);
