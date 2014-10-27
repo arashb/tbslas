@@ -1,5 +1,5 @@
 project(tricubic CXX C)
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 2.6)
 
 set(tricubic_SRCS
   TriCubicInterpolator.cc

@@ -20,6 +20,9 @@
 
 #include <semilag/utils.h>
 
+typedef pvfmm::Cheb_Node<double> Node_t;
+typedef pvfmm::MPI_Tree<Node_t> Tree_t;
+
 int main (int argc, char **argv) {
   MPI_Init(&argc, &argv);
   MPI_Comm comm=MPI_COMM_WORLD;
@@ -37,19 +40,19 @@ int main (int argc, char **argv) {
 
   {
     // INIT THE TREES
-    tbslas::Tree_t<double> tvel_curr(comm);
-    tbslas::construct_tree<double>(N, M, q, d, adap, tol, comm,
-                                   tbslas::get_vorticity_field<double,3>,
-                                   3,
-                                   tvel_curr);
+    Tree_t tvel_curr(comm);
+    tbslas::construct_tree<double, Node_t, Tree_t>(N, M, q, d, adap, tol, comm,
+                                                   tbslas::get_vorticity_field<double,3>,
+                                                   3,
+                                                   tvel_curr);
     tvel_curr.ConstructLET(pvfmm::FreeSpace);
     tvel_curr.Write2File("result/output_vel_00_", q);
 
-    tbslas::Tree_t<double>* tconc_curr = new tbslas::Tree_t<double>(comm);
-    tbslas::construct_tree<double>(N, M, q, d, adap, tol, comm,
-                                   tbslas::get_gaussian_field<double,3>,
-                                   1,
-                                   *tconc_curr);
+    Tree_t* tconc_curr = new Tree_t(comm);
+    tbslas::construct_tree<double, Node_t, Tree_t >(N, M, q, d, adap, tol, comm,
+                                                    tbslas::get_gaussian_field<double,3>,
+                                                    1,
+                                                    *tconc_curr);
     // tbslas::clone_tree<double,
     //                    tbslas::Node_t<double>,
     //                    tbslas::Tree_t<double> > (tvel_curr, *tconc_curr, 1);
@@ -63,10 +66,8 @@ int main (int argc, char **argv) {
     tconc_curr->Write2File(out_name_buffer, q);
 
     // clone a tree
-    tbslas::Tree_t<double>* tconc_next = new tbslas::Tree_t<double>(comm);
-    tbslas::clone_tree<double,
-                       tbslas::Node_t<double>,
-                       tbslas::Tree_t<double> >(*tconc_curr, *tconc_next, 1);
+    Tree_t* tconc_next = new Tree_t(comm);
+    tbslas::clone_tree<double, Node_t, Tree_t>(*tconc_curr, *tconc_next, 1);
 
     // simulation info
     int tstep       = 1;
@@ -80,19 +81,17 @@ int main (int argc, char **argv) {
       printf("TIME STEP: %d\n", tstep);
 
       tconc_curr->ConstructLET(pvfmm::FreeSpace);
-      tbslas::advect_tree_semilag<double,
-                                  tbslas::Node_t<double>,
-                                  tbslas::Tree_t<double> >(tvel_curr,
-                                                           *tconc_curr,
-                                                           *tconc_next,
-                                                           tstep,
-                                                           dt,
-                                                           num_rk_step);
+      tbslas::advect_tree_semilag<double, Node_t, Tree_t>(tvel_curr,
+                                                          *tconc_curr,
+                                                          *tconc_next,
+                                                          tstep,
+                                                          dt,
+                                                          num_rk_step);
 
       snprintf(out_name_buffer, sizeof(out_name_buffer), "result/output_%d_", tstep);
       tconc_next->Write2File(out_name_buffer,q);
 
-      tbslas::swap_trees_pointers(&tconc_curr, &tconc_next);
+      tbslas::swap_pointers(&tconc_curr, &tconc_next);
     }
   }
 

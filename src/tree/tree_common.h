@@ -25,20 +25,20 @@
 namespace tbslas {
 
 // only compiles with c++11 flag
-template <typename real_t>
-using Node_t = pvfmm::Cheb_Node<real_t>;
+// template <typename real_t>
+// using Node_t = pvfmm::Cheb_Node<real_t>;
 
-template <typename real_t>
-using Tree_t = pvfmm::MPI_Tree< Node_t<real_t> >;
+// template <typename real_t>
+// using Tree_t = pvfmm::MPI_Tree< Node_t<real_t> >;
 
-template<typename real_t>
-using FMMNode_t = pvfmm::FMM_Node< Node_t<real_t> >;
+// template<typename real_t>
+// using FMMNode_t = pvfmm::FMM_Node< Node_t<real_t> >;
 
-template<typename real_t>
-using FMM_Mat_t = pvfmm::FMM_Cheb< FMMNode_t<real_t> >;
+// template<typename real_t>
+// using FMM_Mat_t = pvfmm::FMM_Cheb< FMMNode_t<real_t> >;
 
-template<typename real_t>
-using FMM_Tree_t = pvfmm::FMM_Tree< FMM_Mat_t<real_t> >;
+// template<typename real_t>
+// using FMM_Tree_t = pvfmm::FMM_Tree< FMM_Mat_t<real_t> >;
 
 template<typename real_t>
 void dummy_fn(const real_t* points_pos,
