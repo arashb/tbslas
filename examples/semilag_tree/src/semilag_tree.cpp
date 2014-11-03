@@ -14,6 +14,8 @@
 #include <vector.hpp>
 #include <cheb_utils.hpp>
 
+#include <io_utils.h>
+
 #include <tree/tree_common.h>
 #include <tree/advect_tree_semilag.h>
 #include <tree/tree_utils.h>
@@ -46,7 +48,11 @@ int main (int argc, char **argv) {
                                                    3,
                                                    tvel_curr);
     tvel_curr.ConstructLET(pvfmm::FreeSpace);
-    tvel_curr.Write2File("result/output_vel_00_", q);
+    char out_name_buffer[300];
+
+    snprintf(out_name_buffer, sizeof(out_name_buffer),
+             "%s/sltree_vel_%d_", tbslas::get_result_dir().c_str(), 0);
+    tvel_curr.Write2File(out_name_buffer, q);
 
     Tree_t* tconc_curr = new Tree_t(comm);
     tbslas::construct_tree<double, Node_t, Tree_t >(N, M, q, d, adap, tol, comm,
@@ -61,8 +67,9 @@ int main (int argc, char **argv) {
     //                   tbslas::Tree_t<double> > (*tconc_curr,
     //                                             tbslas::get_gaussian_field<double,3>,
     //                                             1);
-    char out_name_buffer[50];
-    snprintf(out_name_buffer, sizeof(out_name_buffer), "result/output_%d_", 0);
+
+    snprintf(out_name_buffer, sizeof(out_name_buffer),
+             "%s/sltree_val_%d_", tbslas::get_result_dir().c_str(), 0);
     tconc_curr->Write2File(out_name_buffer, q);
 
     // clone a tree
@@ -88,7 +95,8 @@ int main (int argc, char **argv) {
                                                           dt,
                                                           num_rk_step);
 
-      snprintf(out_name_buffer, sizeof(out_name_buffer), "result/output_%d_", tstep);
+      snprintf(out_name_buffer, sizeof(out_name_buffer),
+               "%s/sltree_val_%d_", tbslas::get_result_dir().c_str(), tstep);
       tconc_next->Write2File(out_name_buffer,q);
 
       tbslas::swap_pointers(&tconc_curr, &tconc_next);
