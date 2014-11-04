@@ -7,7 +7,7 @@ set(test_IDs
   cubic_interp_policy_test
   semilag_test
   )
-set(test_LIBS  gtest gtest_main tricubic)
+set(test_LIBS  gtest gtest_main tricubic ${MPI_LIBRARIES})
 
 foreach(test_id ${test_IDs})
   add_executable(${test_id} ${test_id}.cc)

@@ -1,4 +1,5 @@
 // Copyright (C) 2014 by Arash Bakhtiari
+#include <mpi.h>
 #include <vector>
 #include <cmath>
 

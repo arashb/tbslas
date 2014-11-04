@@ -96,8 +96,8 @@ get_gaussian_field(const real_t* points_pos,
 template<typename real_t, int sdim>
 void
 get_gaussian_field_yext(const real_t* points_pos,
-			int num_points,
-			real_t* out) {
+            int num_points,
+            real_t* out) {
   const real_t xc      = 0.8;
   const real_t yc      = 0.5;
   const real_t theta   = 0.0;

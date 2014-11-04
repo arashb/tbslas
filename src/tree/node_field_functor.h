@@ -18,6 +18,8 @@
 #include <pvfmm_common.hpp>
 #include <cheb_node.hpp>
 
+#include "profile.h"
+
 namespace tbslas {
 
 
@@ -123,6 +125,7 @@ class NodeFieldFunctor {
   void operator () (const real_t* points_pos,
                     int num_points,
                     real_t* out) {
+    Profile<double>::Tic("node_eval",true,5);
     // for (int i = 0; i < num_points; i++) {
     //   std::vector<real_t> x,y,z;
     //   x.push_back(points_pos[i*COORD_DIM+0]);
@@ -136,6 +139,7 @@ class NodeFieldFunctor {
     //       typename Tree_t::Real_t* value) {
 
     eval(node_, num_points, const_cast<real_t*>(points_pos), out);
+    Profile<double>::Toc();
   }
 
  private:

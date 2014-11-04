@@ -18,7 +18,7 @@ const std::string get_current_datetime() {
 const std::string get_result_dir() {
   char res_dir_buffer[200];
   snprintf(res_dir_buffer, sizeof(res_dir_buffer),
-           "%s/%s/", getenv("WORK"), getenv("TBSLAS_RES_DIR_NAME"));
+           "%s/", getenv("TBSLAS_RESULT_DIR"));
 
   return res_dir_buffer;
 }

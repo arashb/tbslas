@@ -15,6 +15,7 @@
 #include <cheb_utils.hpp>
 
 #include <io_utils.h>
+#include <profile.h>
 
 #include <tree/tree_common.h>
 #include <tree/advect_tree_semilag.h>
@@ -41,6 +42,8 @@ int main (int argc, char **argv) {
   commandline_option_end(argc, argv);
 
   {
+    tbslas::Profile<double>::Enable(true, &comm);
+
     // INIT THE TREES
     Tree_t tvel_curr(comm);
     tbslas::construct_tree<double, Node_t, Tree_t>(N, M, q, d, adap, tol, comm,
@@ -84,8 +87,8 @@ int main (int argc, char **argv) {
 
     // TIME STEPPING
     for (int tstep = 1; tstep < tn+1; tstep++) {
-      printf("====================\n");
-      printf("TIME STEP: %d\n", tstep);
+      // printf("====================\n");
+      // printf("TIME STEP: %d\n", tstep);
 
       tconc_curr->ConstructLET(pvfmm::FreeSpace);
       tbslas::advect_tree_semilag<double, Node_t, Tree_t>(tvel_curr,
@@ -101,6 +104,8 @@ int main (int argc, char **argv) {
 
       tbslas::swap_pointers(&tconc_curr, &tconc_next);
     }
+    //Output Profiling results.
+    tbslas::Profile<double>::print(&comm);
   }
 
   // Shut down MPI

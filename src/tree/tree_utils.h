@@ -15,6 +15,7 @@
 
 #include <vector>
 
+#include "profile.h"
 #include "tree/tree_common.h"
 
 namespace tbslas {
@@ -25,6 +26,7 @@ template<typename real_t,
 void clone_tree(TreeType& tree_in,
                 TreeType& tree_out,
                 int data_dof) {
+  Profile<double>::Tic("clone_tree",false,5);
   typename NodeType::NodeData tree_data;
   tree_data.dim       = tree_in.Dim();
   tree_data.max_depth = MAX_DEPTH;
@@ -61,6 +63,7 @@ void clone_tree(TreeType& tree_in,
 
   //Redistribute nodes.
   tree_out.RedistNodes();
+  Profile<double>::Toc();
 }
 
 template <typename real_t,
@@ -77,6 +80,7 @@ void construct_tree(const size_t N,
                     const InputFunction input_fn,
                     const int data_dof,
                     TreeType& tree) {
+  Profile<double>::Tic("construct_tree",false,5);
   //Various parameters.
   typename NodeType::NodeData tree_data;
   tree_data.dim       = COORD_DIM;
@@ -99,6 +103,7 @@ void construct_tree(const size_t N,
   tree.RefineTree();
   tree.Balance21(pvfmm::FreeSpace);
   tree.RedistNodes();
+  Profile<double>::Toc();
 }
 
 template<typename real_t,
@@ -109,6 +114,7 @@ void
 init_tree(TreeType& tree,
           InputFunction input_fn,
           int data_dof) {
+  Profile<double>::Tic("init_tree",false,5);
   NodeType* n_curr = tree.PostorderFirst();
   int cheb_deg = n_curr->ChebDeg();
   int sdim     = tree.Dim();
@@ -147,6 +153,7 @@ init_tree(TreeType& tree,
     }
     n_curr = tree.PostorderNxt(n_curr);
   }
+  Profile<double>::Toc();
 }
 
 template<typename PointerType>
