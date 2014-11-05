@@ -55,14 +55,22 @@ void clone_tree(TreeType& tree_in,
   //Set source coordinates.
   tree_data.max_pts = 1; // Points per octant.
   tree_data.pt_coord=pt_coord;
+
   //Create Tree and initialize with input data.
+  Profile<double>::Tic("Initialize",false,5);
   tree_out.Initialize(&tree_data);
+  Profile<double>::Toc();
 
   //2:1 Balancing
+  Profile<double>::Tic("Balance21",false,5);
   tree_out.Balance21(pvfmm::FreeSpace);
+  Profile<double>::Toc();
 
   //Redistribute nodes.
+  Profile<double>::Tic("RedistNodes",false,5);
   tree_out.RedistNodes();
+  Profile<double>::Toc();
+
   Profile<double>::Toc();
 }
 
@@ -94,14 +102,24 @@ void construct_tree(const size_t N,
 
   //Set source coordinates.
   std::vector<real_t> pt_coord;
-  pt_coord= tbslas::point_distrib<real_t>(UnifGrid,N,comm);
+  pt_coord           = tbslas::point_distrib<real_t>(UnifGrid,N,comm);
   tree_data.max_pts  = M; // Points per octant.
   tree_data.pt_coord = pt_coord;
 
   //initialize with input data.
+  Profile<double>::Tic("Initialize",false,5);
   tree.Initialize(&tree_data);
+  Profile<double>::Toc();
+
+  Profile<double>::Tic("Initialize",false,5);
   tree.RefineTree();
+  Profile<double>::Toc();
+
+  Profile<double>::Tic("Balance21",false,5);
   tree.Balance21(pvfmm::FreeSpace);
+  Profile<double>::Toc();
+
+  Profile<double>::Tic("RedistNodes",false,5);
   tree.RedistNodes();
   Profile<double>::Toc();
 }
@@ -116,8 +134,8 @@ init_tree(TreeType& tree,
           int data_dof) {
   Profile<double>::Tic("init_tree",false,5);
   NodeType* n_curr = tree.PostorderFirst();
-  int cheb_deg = n_curr->ChebDeg();
-  int sdim     = tree.Dim();
+  int cheb_deg     = n_curr->ChebDeg();
+  int sdim         = tree.Dim();
 
   // compute chebychev points positions on the fly
   std::vector<real_t> cheb_pos = pvfmm::cheb_nodes<real_t>(cheb_deg, sdim);
@@ -163,43 +181,6 @@ void swap_pointers(PointerType** ta,
   *ta = *tb;
   *tb = tmp;
 }
-
-// template<typename real_t>
-// std::vector<int>
-// isOutside(Node_t<real_t>* n,
-//           const std::vector<real_t> x,
-//           const std::vector<real_t> y,
-//           const std::vector<real_t> z) {
-//   assert((x.size() == y.size()) && (y.size() == z.size()));
-
-//   real_t* node_coord = n->Coord();
-//   int depth          = n->Depth();
-//   real_t length      = static_cast<real_t>(std::pow(0.5, depth));
-
-//   real_t xmin = node_coord[0];
-//   real_t xmax = xmin + length;
-//   real_t ymin = node_coord[1];
-//   real_t ymax = ymin + length;
-//   real_t zmin = node_coord[2];
-//   real_t zmax = zmin + length;
-
-//   std::vector<int> out_index_list;
-//   for (int i = 0; i < x.size(); i++) {
-//     if ( x[i] < xmin || x[i] > xmax) {
-//       out_index_list.push_back(i);
-//       continue;
-//     }
-//     if ( y[i] < ymin || y[i] > ymax) {
-//       out_index_list.push_back(i);
-//       continue;
-//     }
-//     if ( z[i] < zmin || z[i] > zmax) {
-//       out_index_list.push_back(i);
-//       continue;
-//     }
-//   }
-//   return out_index_list;
-// }
 
 }
 #endif // SRC_TREE_TREE_UTILS_H_
