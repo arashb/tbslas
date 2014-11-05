@@ -2,7 +2,7 @@
 
 #include <gtest/gtest.h>
 
-#include "semilag/utils.h"
+#include "utils/common.h"
 
 TEST(UtilsTest, FindGridIndex) {
   std::vector<double> grid = tbslas::generate_reg_grid_points<double,1>(11);

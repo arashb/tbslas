@@ -21,7 +21,7 @@
 #include <iostream>     // std::cout
 #include <cmath>        // pow()
 
-#include "semilag/utils.h"
+#include "utils/common.h"
 
 namespace tbslas {
 

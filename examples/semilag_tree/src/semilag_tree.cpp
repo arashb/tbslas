@@ -14,14 +14,11 @@
 #include <vector.hpp>
 #include <cheb_utils.hpp>
 
-#include <io_utils.h>
-#include <profile.h>
+#include <utils/common.h>
+#include <utils/profile.h>
 
-#include <tree/tree_common.h>
 #include <tree/advect_tree_semilag.h>
 #include <tree/tree_utils.h>
-
-#include <semilag/utils.h>
 
 typedef pvfmm::Cheb_Node<double> Node_t;
 typedef pvfmm::MPI_Tree<Node_t> Tree_t;

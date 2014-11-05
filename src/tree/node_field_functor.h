@@ -18,10 +18,9 @@
 #include <pvfmm_common.hpp>
 #include <cheb_node.hpp>
 
-#include "profile.h"
+#include "utils/profile.h"
 
 namespace tbslas {
-
 
 template <class Tree_t>
 void eval(Tree_t* tree,
@@ -68,7 +67,9 @@ void eval(Tree_t* tree,
     part_indx[nodes.size()]=trg_mid.Dim();
     #pragma omp parallel for
     for (size_t j=0;j<nodes.size();j++) {
-      part_indx[j]=std::lower_bound(&trg_mid[0], &trg_mid[0]+trg_mid.Dim(), nodes[j]->GetMortonId())-&trg_mid[0];
+      part_indx[j]=std::lower_bound(&trg_mid[0],
+                                    &trg_mid[0]+trg_mid.Dim(),
+                                    nodes[j]->GetMortonId()) - &trg_mid[0];
     }
 
     size_t omp_p=omp_get_max_threads();
@@ -133,11 +134,6 @@ class NodeFieldFunctor {
     //   z.push_back(points_pos[i*COORD_DIM+2]);
     //   node_->ReadVal(x, y, z, &out[i*node_->DataDOF()]);
     // }
-    // Tree_t* tree,
-    //       size_t N,
-    //       typename Tree_t::Real_t* trg_coord_,
-    //       typename Tree_t::Real_t* value) {
-
     eval(node_, num_points, const_cast<real_t*>(points_pos), out);
     Profile<double>::Toc();
   }

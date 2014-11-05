@@ -1,13 +1,16 @@
 // Copyright (C) 2014 by Arash Bakhtiari
 
+// C++ HEADERS
 #include <vector>
 #include <cstdlib>
 #include <cmath>
 
+// EXTERNAL HEADERS
 #include <gtest/gtest.h>
 
+// LOCAL HEADERS
 #include "semilag/cubic_interp_policy.h"
-#include "semilag/utils.h"
+#include "utils/common.h"
 
 class CubicInterpPolicyTest : public ::testing::Test {
  protected:

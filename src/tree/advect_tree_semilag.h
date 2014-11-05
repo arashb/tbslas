@@ -16,9 +16,9 @@
 #include <vector>
 
 #include "semilag/semilag.h"
-#include "tree/tree_common.h"
 #include "tree/node_field_functor.h"
-#include "profile.h"
+#include "utils/common.h"
+#include "utils/profile.h"
 
 namespace tbslas {
 
@@ -55,11 +55,6 @@ void advect_tree_semilag(TreeType& tvel_curr,
     if (n_curr->IsLeaf() && !n_curr->IsGhost()) {
       real_t length      = static_cast<real_t>(std::pow(0.5, n_curr->Depth()));
       real_t* node_coord = n_curr->Coord();
-
-      // printf("ADVECTING NODE: [%f, %f, %f]\n",
-      //        node_coord[0],
-      //        node_coord[1],
-      //        node_coord[2]);
 
       // TODO: figure out a way to optimize this part.
       std::vector<real_t> points_pos(cheb_pos.size());

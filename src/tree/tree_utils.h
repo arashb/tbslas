@@ -15,8 +15,8 @@
 
 #include <vector>
 
-#include "profile.h"
-#include "tree/tree_common.h"
+#include "utils/profile.h"
+#include "utils/common.h"
 
 namespace tbslas {
 
@@ -174,13 +174,5 @@ init_tree(TreeType& tree,
   Profile<double>::Toc();
 }
 
-template<typename PointerType>
-void swap_pointers(PointerType** ta,
-                   PointerType** tb) {
-  PointerType* tmp = *ta;
-  *ta = *tb;
-  *tb = tmp;
-}
-
-}
+}  // namespace tbslas
 #endif // SRC_TREE_TREE_UTILS_H_

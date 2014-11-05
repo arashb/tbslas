@@ -11,13 +11,16 @@
 // limitations under the License.
 // *************************************************************************
 
+// C++ HEADERS
 #include <vector>
 #include <cmath>
 #include <cassert>
 
+// EXTERNAL HEADERS
 #include <TriCubicInterpolator.h>
 
-#include "semilag/utils.h"
+// LOCAL HEADERS
+#include "utils/common.h"
 
 namespace tbslas {
 
