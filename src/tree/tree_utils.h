@@ -122,6 +122,8 @@ void construct_tree(const size_t N,
   Profile<double>::Tic("RedistNodes",false,5);
   tree.RedistNodes();
   Profile<double>::Toc();
+
+  Profile<double>::Toc();
 }
 
 template<typename real_t,
