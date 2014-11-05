@@ -1,3 +1,0 @@
-[submodule "examples/stokes"]
-	path = examples/stokes
-	url = git@github.com:arashb/stokes.git

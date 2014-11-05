@@ -16,8 +16,6 @@
 
 #include <vector>
 
-#include "semilag/common.h"
-
 namespace tbslas {
 
 template<typename real_t,

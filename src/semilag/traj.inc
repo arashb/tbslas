@@ -14,7 +14,7 @@
 #include <vector>
 
 #include "semilag/vec_field.h"
-#include "profile.h"
+#include "utils/profile.h"
 
 namespace tbslas {
 

@@ -5,7 +5,7 @@
 
 #include <gtest/gtest.h>
 
-#include "semilag/utils.h"
+#include "utils/common.h"
 #include "semilag/cubic_interp_policy.h"
 #include "semilag/vec_field.h"
 #include "semilag/semilag.h"

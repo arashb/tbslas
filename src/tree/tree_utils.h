@@ -15,8 +15,8 @@
 
 #include <vector>
 
-#include "profile.h"
-#include "tree/tree_common.h"
+#include "utils/profile.h"
+#include "utils/common.h"
 
 namespace tbslas {
 
@@ -156,50 +156,5 @@ init_tree(TreeType& tree,
   Profile<double>::Toc();
 }
 
-template<typename PointerType>
-void swap_pointers(PointerType** ta,
-                   PointerType** tb) {
-  PointerType* tmp = *ta;
-  *ta = *tb;
-  *tb = tmp;
-}
-
-// template<typename real_t>
-// std::vector<int>
-// isOutside(Node_t<real_t>* n,
-//           const std::vector<real_t> x,
-//           const std::vector<real_t> y,
-//           const std::vector<real_t> z) {
-//   assert((x.size() == y.size()) && (y.size() == z.size()));
-
-//   real_t* node_coord = n->Coord();
-//   int depth          = n->Depth();
-//   real_t length      = static_cast<real_t>(std::pow(0.5, depth));
-
-//   real_t xmin = node_coord[0];
-//   real_t xmax = xmin + length;
-//   real_t ymin = node_coord[1];
-//   real_t ymax = ymin + length;
-//   real_t zmin = node_coord[2];
-//   real_t zmax = zmin + length;
-
-//   std::vector<int> out_index_list;
-//   for (int i = 0; i < x.size(); i++) {
-//     if ( x[i] < xmin || x[i] > xmax) {
-//       out_index_list.push_back(i);
-//       continue;
-//     }
-//     if ( y[i] < ymin || y[i] > ymax) {
-//       out_index_list.push_back(i);
-//       continue;
-//     }
-//     if ( z[i] < zmin || z[i] > zmax) {
-//       out_index_list.push_back(i);
-//       continue;
-//     }
-//   }
-//   return out_index_list;
-// }
-
-}
-#endif // SRC_TREE_TREE_UTILS_H_
+}  // namespace tbslas
+#endif  // SRC_TREE_TREE_UTILS_H_
