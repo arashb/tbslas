@@ -202,6 +202,7 @@ get_gaussian_field_yext(const real_t* points_pos,
   const real_t sigma_x = 0.06;
   const real_t sigma_y = 0.4;
   const real_t A       = 1.0;
+  const real_t bmargin = 0.1;
   real_t cos_theta   = cos(theta);
   real_t cos_2theta  = cos(2*theta);
   real_t cos_theta_2 = cos_theta * cos_theta;
@@ -216,11 +217,15 @@ get_gaussian_field_yext(const real_t* points_pos,
   real_t c = sin_theta_2*0.5/sigma_x_2 + cos_theta_2*0.5/sigma_y_2;
 
   for (int i = 0; i < num_points; i++) {
-    out[i]  = A*exp(-(a * (points_pos[i*sdim]-xc)   * (points_pos[i*sdim]-xc)   +
-                      b * (points_pos[i*sdim]-xc)   * (points_pos[i*sdim+1]-yc) +
-                      c * (points_pos[i*sdim+1]-yc) * (points_pos[i*sdim+1]-yc)
-                      )
-                    );
+    if (points_pos[i*sdim+2] > bmargin && points_pos[i*sdim+2] < (1-bmargin) &&
+        points_pos[i*sdim+1] > bmargin && points_pos[i*sdim+1] < (1-bmargin)) {
+      out[i]  = A*exp(-(a * (points_pos[i*sdim]-xc)   * (points_pos[i*sdim]-xc)   +
+                        b * (points_pos[i*sdim]-xc)   * (points_pos[i*sdim+1]-yc) +
+                        c * (points_pos[i*sdim+1]-yc) * (points_pos[i*sdim+1]-yc)
+                        ));
+    } else {
+      out[i] = 0;
+    }
   }
 };
 
@@ -247,30 +252,19 @@ void
 get_gaussian_field_3d(const real_t* points_pos,
                       int num_points,
                       real_t* out) {
-  const real_t zc      = 0.6;
+  const real_t xc      = 0.8;
   const real_t yc      = 0.5;
-  const real_t theta   = 0.0;
-  const real_t sigma_x = 0.06;
-  const real_t sigma_y = 0.06;
+  const real_t zc      = 0.5;
   const real_t A       = 1.0;
-  real_t cos_theta   = cos(theta);
-  real_t cos_2theta  = cos(2*theta);
-  real_t cos_theta_2 = cos_theta * cos_theta;
-  real_t sin_theta   = sin(theta);
-  real_t sin_2theta  = sin(2*theta);
-  real_t sin_theta_2 = sin_theta * sin_theta;
-  real_t sigma_x_2   = sigma_x*sigma_x;
-  real_t sigma_y_2   = sigma_y*sigma_y;
-
-  real_t a = cos_theta_2*0.5/sigma_x_2 + sin_theta_2*0.5/sigma_y_2;
-  real_t b = -sin_2theta*0.5/sigma_x_2 + sin_2theta*0.5/sigma_y_2;
-  real_t c = sin_theta_2*0.5/sigma_x_2 + cos_theta_2*0.5/sigma_y_2;
+  const real_t sigma_x = 0.06;
+  const real_t sigma_y = 0.35;
+  const real_t sigma_z = 0.35;
 
   for (int i = 0; i < num_points; i++) {
-    out[i]  = A*exp(-(a * (points_pos[i*sdim+2]-zc)   * (points_pos[i*sdim+2]-zc)   +
-                      b * (points_pos[i*sdim+2]-zc)   * (points_pos[i*sdim+1]-yc) +
-                      c * (points_pos[i*sdim+1]-yc) * (points_pos[i*sdim+1]-yc)
-                      )
+    out[i]  = A*exp(-(((points_pos[i*sdim+0]-xc) * (points_pos[i*sdim+0]-xc))/(2*sigma_x*sigma_x) +
+                      ((points_pos[i*sdim+1]-yc) * (points_pos[i*sdim+1]-yc))/(2*sigma_y*sigma_y) +
+                      ((points_pos[i*sdim+2]-zc) * (points_pos[i*sdim+2]-zc))/(2*sigma_z*sigma_z)
+                     )
                     );
   }
 };

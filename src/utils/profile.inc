@@ -22,7 +22,7 @@ namespace tbslas{
 
 template<typename T>
 void Profile<T>::Add_FLOP(long long inc){
-#if __PROFILE__ >= 0
+#if __TBSLAS_PROFILE__ >= 0
   if(!enable_state) return;
 #pragma omp critical (FLOP)
   FLOP+=inc;
@@ -31,7 +31,7 @@ void Profile<T>::Add_FLOP(long long inc){
 
 template<typename T>
 void Profile<T>::Add_MEM(long long inc){
-#if __PROFILE__ >= 0
+#if __TBSLAS_PROFILE__ >= 0
   if(!enable_state) return;
 #pragma omp critical (MEM)
   {
@@ -44,11 +44,11 @@ void Profile<T>::Add_MEM(long long inc){
 
 template<typename T>
 void Profile<T>::Tic(const char* name_, const MPI_Comm* comm_,bool sync_, int verbose){
-#if __PROFILE__ >= 0
+#if __TBSLAS_PROFILE__ >= 0
   //sync_=true;
   if(!enable_state) return;
-  if(verbose<=__PROFILE__ && verb_level.size()==enable_depth){
-    if(comm_!=NULL && sync_) MPI_Barrier(*comm_);
+  if(verbose<=__TBSLAS_PROFILE__ && verb_level.size()==enable_depth){
+    // if(comm_!=NULL && sync_) MPI_Barrier(*comm_);
 #ifdef __VERBOSE__
     int rank=0;
     if(comm_!=NULL) MPI_Comm_rank(*comm_,&rank);
@@ -78,10 +78,10 @@ void Profile<T>::Tic(const char* name_, const MPI_Comm* comm_,bool sync_, int ve
 
 template<typename T>
 void Profile<T>::Toc(){
-#if __PROFILE__ >= 0
+#if __TBSLAS_PROFILE__ >= 0
   if(!enable_state) return;
   ASSERT_WITH_MSG(!verb_level.empty(),"Unbalanced extra Toc()");
-  if(verb_level.top()<=__PROFILE__ && verb_level.size()==enable_depth){
+  if(verb_level.top()<=__TBSLAS_PROFILE__ && verb_level.size()==enable_depth){
     ASSERT_WITH_MSG(!name.empty() && !comm.empty() && !sync.empty() && !max_mem.empty(),"Unbalanced extra Toc()");
     std::string name_=name.top();
     MPI_Comm* comm_=comm.top();
@@ -97,9 +97,9 @@ void Profile<T>::Toc(){
     m_log.push_back(MEM);
     max_m_log.push_back(max_mem.back());
 
-#ifndef NDEBUG
-    if(comm_!=NULL && sync_) MPI_Barrier(*comm_);
-#endif
+// #ifndef NDEBUG
+//     if(comm_!=NULL && sync_) MPI_Barrier(*comm_);
+// #endif
     name.pop();
     comm.pop();
     sync.pop();
@@ -121,7 +121,7 @@ void Profile<T>::Toc(){
 
 template<typename T>
 void Profile<T>::print(const MPI_Comm* comm_){
-#if __PROFILE__ >= 0
+#if __TBSLAS_PROFILE__ >= 0
   ASSERT_WITH_MSG(name.empty(),"Missing balancing Toc()");
 
   int np, rank;
@@ -137,6 +137,7 @@ void Profile<T>::print(const MPI_Comm* comm_){
   std::stack<long long> mm;
   int width=10;
   size_t level=0;
+
   if(!rank && e_log.size()>0){
     std::cout<<"\n"<<std::setw(width*3-2*level)<<" ";
     std::cout<<"  "<<std::setw(width)<<"t_min";

@@ -176,5 +176,52 @@ init_tree(TreeType& tree,
   Profile<double>::Toc();
 }
 
+template<typename real_t,
+         typename NodeType,
+         typename TreeType>
+double
+max_tree_value(TreeType& tree) {
+  NodeType* n_curr = tree.PostorderFirst();
+  int cheb_deg     = n_curr->ChebDeg();
+  int sdim         = tree.Dim();
+  int data_dof     = n_curr->DataDOF();
+  double lcl_max_v = 0;
+  double glb_max_v = 0;
+
+  // compute chebychev points positions on the fly
+  std::vector<real_t> pos_x = pvfmm::cheb_nodes<real_t>(cheb_deg, 1);
+  std::vector<real_t> pos_y = pos_x;
+  std::vector<real_t> pos_z = pos_x;
+
+  int size_1d = pos_x.size();
+  int num_points = static_cast<int>(std::pow(size_1d,3));
+
+  while (n_curr != NULL) {
+    if(!n_curr->IsGhost() && n_curr->IsLeaf()) break;
+    n_curr = tree.PostorderNxt(n_curr);
+  }
+
+  while (n_curr != NULL) {
+    if (n_curr->IsLeaf() && !n_curr->IsGhost()) {
+      real_t length      = static_cast<real_t>(std::pow(0.5, n_curr->Depth()));
+      real_t* node_coord = n_curr->Coord();
+
+      // scale the cheb points
+      for (int i = 0; i < size_1d; i++) {
+        pos_x[i] = node_coord[0] + length * pos_x[i];
+        pos_y[i] = node_coord[1] + length * pos_y[i];
+        pos_z[i] = node_coord[2] + length * pos_z[i];
+      }
+
+      std::vector<real_t> points_val(num_points*data_dof);
+      n_curr->ReadVal(pos_x, pos_y, pos_z, points_val.data());
+      // TODO: compute the norm for multi-dim
+      lcl_max_v = *std::max_element(points_val.begin(), points_val.end());
+    }
+    n_curr = tree.PostorderNxt(n_curr);
+  }
+  MPI_Allreduce(&lcl_max_v, &glb_max_v, 1, MPI_DOUBLE, MPI_MAX, *(tree.Comm()));
+  return glb_max_v;
+}
 }  // namespace tbslas
 #endif // SRC_TREE_TREE_UTILS_H_

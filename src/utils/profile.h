@@ -13,10 +13,8 @@
 #include <vector>
 #include <stack>
 
-//#include <pvfmm_common.hpp>
-
-#ifndef __PROFILE__
-#define __PROFILE__ -1
+#ifndef __TBSLAS_PROFILE__
+#define __TBSLAS_PROFILE__ -1
 #endif
 
 namespace tbslas {
