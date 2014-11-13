@@ -111,7 +111,7 @@ void construct_tree(const size_t N,
   tree.Initialize(&tree_data);
   Profile<double>::Toc();
 
-  Profile<double>::Tic("Initialize",false,5);
+  Profile<double>::Tic("RefineTree",false,5);
   tree.RefineTree();
   Profile<double>::Toc();
 
@@ -176,17 +176,26 @@ init_tree(TreeType& tree,
   Profile<double>::Toc();
 }
 
+// in case of the multi-dimensional values
+// maximum value of all dimensions together will be returend
+// and not the maximum norm value.
 template<typename real_t,
          typename NodeType,
          typename TreeType>
-double
-max_tree_value(TreeType& tree) {
+void
+max_tree_values(TreeType& tree,
+                double& max_value,
+                int& max_depth) {
   NodeType* n_curr = tree.PostorderFirst();
   int cheb_deg     = n_curr->ChebDeg();
   int sdim         = tree.Dim();
   int data_dof     = n_curr->DataDOF();
-  double lcl_max_v = 0;
-  double glb_max_v = 0;
+
+  double node_max_value = 0;
+  int nod_max_depth = 0;
+
+  double lcl_max_values[] = {0,0};
+  double glb_max_values[] = {0,0};
 
   // compute chebychev points positions on the fly
   std::vector<real_t> pos_x = pvfmm::cheb_nodes<real_t>(cheb_deg, 1);
@@ -205,23 +214,40 @@ max_tree_value(TreeType& tree) {
     if (n_curr->IsLeaf() && !n_curr->IsGhost()) {
       real_t length      = static_cast<real_t>(std::pow(0.5, n_curr->Depth()));
       real_t* node_coord = n_curr->Coord();
+      std::vector<real_t> lcl_pos_x(size_1d);
+      std::vector<real_t> lcl_pos_y(size_1d);
+      std::vector<real_t> lcl_pos_z(size_1d);
 
       // scale the cheb points
       for (int i = 0; i < size_1d; i++) {
-        pos_x[i] = node_coord[0] + length * pos_x[i];
-        pos_y[i] = node_coord[1] + length * pos_y[i];
-        pos_z[i] = node_coord[2] + length * pos_z[i];
+        lcl_pos_x[i] = node_coord[0] + length * pos_x[i];
+        lcl_pos_y[i] = node_coord[1] + length * pos_y[i];
+        lcl_pos_z[i] = node_coord[2] + length * pos_z[i];
       }
 
+      // node maximum value
       std::vector<real_t> points_val(num_points*data_dof);
-      n_curr->ReadVal(pos_x, pos_y, pos_z, points_val.data());
-      // TODO: compute the norm for multi-dim
-      lcl_max_v = *std::max_element(points_val.begin(), points_val.end());
+      n_curr->ReadVal(lcl_pos_x,
+                      lcl_pos_y,
+                      lcl_pos_z,
+                      points_val.data());
+
+      node_max_value = *std::max_element(points_val.begin(), points_val.end());
+      if (node_max_value > lcl_max_values[0])
+        lcl_max_values[0] = node_max_value;
+
+      // node maximum depth
+      nod_max_depth = n_curr->Depth();
+      if (nod_max_depth > lcl_max_values[1])
+        lcl_max_values[1] = nod_max_depth;
     }
     n_curr = tree.PostorderNxt(n_curr);
   }
-  MPI_Allreduce(&lcl_max_v, &glb_max_v, 1, MPI_DOUBLE, MPI_MAX, *(tree.Comm()));
-  return glb_max_v;
+  MPI_Allreduce(&lcl_max_values, &glb_max_values, 2,
+                MPI_DOUBLE, MPI_MAX, *(tree.Comm()));
+
+  max_value = lcl_max_values[0];
+  max_depth = static_cast<int>(lcl_max_values[1]);
 }
 }  // namespace tbslas
-#endif // SRC_TREE_TREE_UTILS_H_
+#endif  // SRC_TREE_TREE_UTILS_H_

@@ -15,8 +15,9 @@
 #include <cheb_utils.hpp>
 
 #include <utils/common.h>
+// Enable profiling
+#define __TBSLAS_PROFILE__ 5
 #include <utils/profile.h>
-
 #include <tree/advect_tree_semilag.h>
 #include <tree/tree_utils.h>
 
@@ -39,6 +40,9 @@ int main (int argc, char **argv) {
   commandline_option_end(argc, argv);
 
   {
+    int myrank;
+    MPI_Comm_rank(comm, &myrank);
+
     tbslas::Profile<double>::Enable(true, &comm);
 
     // INIT THE TREES
@@ -54,11 +58,17 @@ int main (int argc, char **argv) {
              "%s/sltree_vel_%d_", tbslas::get_result_dir().c_str(), 0);
     tvel_curr.Write2File(out_name_buffer, q);
 
-    Tree_t* tconc_curr = new Tree_t(comm);
-    tbslas::construct_tree<double, Node_t, Tree_t >(N, M, q, d, adap, tol, comm,
-                                                    tbslas::get_gaussian_field<double,3>,
-                                                    1,
-                                                    *tconc_curr);
+    double vel_max_value;
+    int vel_max_depth;
+    tbslas::max_tree_values<double, Node_t, Tree_t>
+        (tvel_curr, vel_max_value, vel_max_depth);
+
+    if (!myrank)
+      printf("%d: VEL MAX VALUE: %f VEL MAX DEPTH:%d\n",
+             myrank,
+             vel_max_value,
+             vel_max_depth);
+
     // tbslas::clone_tree<double,
     //                    tbslas::Node_t<double>,
     //                    tbslas::Tree_t<double> > (tvel_curr, *tconc_curr, 1);
@@ -67,26 +77,46 @@ int main (int argc, char **argv) {
     //                   tbslas::Tree_t<double> > (*tconc_curr,
     //                                             tbslas::get_gaussian_field<double,3>,
     //                                             1);
+    Tree_t* tconc_curr = new Tree_t(comm);
+    tbslas::construct_tree<double, Node_t, Tree_t >(N, M, q, d, adap, tol, comm,
+                                                    tbslas::get_gaussian_field<double,3>,
+                                                    1,
+                                                    *tconc_curr);
 
     snprintf(out_name_buffer, sizeof(out_name_buffer),
              "%s/sltree_val_%d_", tbslas::get_result_dir().c_str(), 0);
     tconc_curr->Write2File(out_name_buffer, q);
 
+    double conc_max_value;
+    int conc_max_depth;
+    tbslas::max_tree_values<double, Node_t, Tree_t>
+        (*tconc_curr, conc_max_value, conc_max_depth);
+
+    if (!myrank)
+      printf("%d:CON MAX VALUE: %f CON MAX DEPTH:%d\n",
+             myrank,
+             conc_max_value,
+             conc_max_depth);
+
     // clone a tree
     Tree_t* tconc_next = new Tree_t(comm);
     tbslas::clone_tree<double, Node_t, Tree_t>(*tconc_curr, *tconc_next, 1);
 
-    // simulation info
-    int tstep       = 1;
-    double dt       = 0.5;
+    // simulation parameters
+    double cfl = 1;
+    double dx_min = pow(0.5, conc_max_depth);
+    double dt = (cfl * dx_min)/vel_max_value;
+    // double dt = 0.5;
     int num_rk_step = 1;
     int tn          = 1;
 
     // TIME STEPPING
     for (int tstep = 1; tstep < tn+1; tstep++) {
-      // printf("====================\n");
-      // printf("TIME STEP: %d\n", tstep);
-
+      if(!myrank) {
+        printf("============================\n");
+        printf("dt: %f tstep: %d\n", dt, tstep);
+        printf("============================\n");
+      }
       tconc_curr->ConstructLET(pvfmm::FreeSpace);
       tbslas::advect_tree_semilag<double, Node_t, Tree_t>(tvel_curr,
                                                           *tconc_curr,
