@@ -47,10 +47,10 @@ int main (int argc, char **argv) {
 
     // INIT THE TREES
     Tree_t tvel_curr(comm);
-    tbslas::construct_tree<double, Node_t, Tree_t>(N, M, q, d, adap, tol, comm,
-                                                   tbslas::get_vorticity_field<double,3>,
-                                                   3,
-                                                   tvel_curr);
+    tbslas::construct_tree<Tree_t>(N, M, q, d, adap, tol, comm,
+                                   tbslas::get_vorticity_field<double,3>,
+                                   3,
+                                   tvel_curr);
     tvel_curr.ConstructLET(pvfmm::FreeSpace);
     char out_name_buffer[300];
 
@@ -60,7 +60,7 @@ int main (int argc, char **argv) {
 
     double vel_max_value;
     int vel_max_depth;
-    tbslas::max_tree_values<double, Node_t, Tree_t>
+    tbslas::max_tree_values<Tree_t>
         (tvel_curr, vel_max_value, vel_max_depth);
 
     if (!myrank)
@@ -78,18 +78,20 @@ int main (int argc, char **argv) {
     //                                             tbslas::get_gaussian_field<double,3>,
     //                                             1);
     Tree_t* tconc_curr = new Tree_t(comm);
-    tbslas::construct_tree<double, Node_t, Tree_t >(N, M, q, d, adap, tol, comm,
-                                                    tbslas::get_gaussian_field<double,3>,
-                                                    1,
-                                                    *tconc_curr);
+    tbslas::construct_tree<Tree_t>(N, M, q, d, adap, tol, comm,
+                                   tbslas::get_gaussian_field<double,3>,
+                                   1,
+                                   *tconc_curr);
 
     snprintf(out_name_buffer, sizeof(out_name_buffer),
              "%s/sltree_val_%d_", tbslas::get_result_dir().c_str(), 0);
     tconc_curr->Write2File(out_name_buffer, q);
 
+    tbslas::save_tree(*tconc_curr, "test");
+
     double conc_max_value;
     int conc_max_depth;
-    tbslas::max_tree_values<double, Node_t, Tree_t>
+    tbslas::max_tree_values<Tree_t>
         (*tconc_curr, conc_max_value, conc_max_depth);
 
     if (!myrank)
@@ -100,7 +102,7 @@ int main (int argc, char **argv) {
 
     // clone a tree
     Tree_t* tconc_next = new Tree_t(comm);
-    tbslas::clone_tree<double, Node_t, Tree_t>(*tconc_curr, *tconc_next, 1);
+    tbslas::clone_tree<Tree_t>(*tconc_curr, *tconc_next, 1);
 
     // simulation parameters
     double cfl = 1;
