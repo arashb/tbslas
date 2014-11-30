@@ -250,8 +250,8 @@ max_tree_values(TreeType& tree,
   MPI_Allreduce(&lcl_max_values, &glb_max_values, 2,
                 MPI_DOUBLE, MPI_MAX, *(tree.Comm()));
 
-  max_value = lcl_max_values[0];
-  max_depth = static_cast<int>(lcl_max_values[1]);
+  max_value = glb_max_values[0];
+  max_depth = static_cast<int>(glb_max_values[1]);
 }
 
 template<typename TreeType>
