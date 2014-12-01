@@ -70,14 +70,6 @@ int main (int argc, char **argv) {
              vel_max_value,
              vel_max_depth);
 
-    // tbslas::clone_tree<double,
-    //                    tbslas::Node_t<double>,
-    //                    tbslas::Tree_t<double> > (tvel_curr, *tconc_curr, 1);
-    // tbslas::init_tree<double,
-    //                   tbslas::Node_t<double>,
-    //                   tbslas::Tree_t<double> > (*tconc_curr,
-    //                                             tbslas::get_gaussian_field<double,3>,
-    //                                             1);
     Tree_t* tconc_curr = new Tree_t(comm);
     tbslas::construct_tree<Tree_t>(N, M, q, d, adap, tol, comm,
                                    tbslas::get_gaussian_field<double,3>,
@@ -115,9 +107,9 @@ int main (int argc, char **argv) {
     }
 
     // simulation parameters
-    double cfl = 1;
-    double dx_min = pow(0.5, conc_max_depth);
-    double dt = (cfl * dx_min)/vel_max_value;
+    double cfl      = 1;
+    double dx_min   = pow(0.5, conc_max_depth);
+    double dt       = (cfl * dx_min)/vel_max_value;
     int num_rk_step = 1;
 
     // TIME STEPPING
@@ -127,7 +119,10 @@ int main (int argc, char **argv) {
         printf("dt: %f tstep: %d\n", dt, tstep);
         printf("============================\n");
       }
+      tbslas::Profile<double>::Tic("ConstructLET",false,5);
       tconc_curr->ConstructLET(pvfmm::FreeSpace);
+      tbslas::Profile<double>::Toc();
+
       tbslas::advect_tree_semilag<Tree_t>(tvel_curr,
                                           *tconc_curr,
                                           *tconc_next,
@@ -136,19 +131,26 @@ int main (int argc, char **argv) {
                                           num_rk_step);
 
       // refine the tree according to the computed values
-      tbslas::Profile<double>::Tic("RefineTree",false,5);
-      tconc_next->RefineTree();
-      tbslas::Profile<double>::Toc();
+      // tbslas::Profile<double>::Tic("RefineTree",false,5);
+      // tconc_next->RefineTree();
+      // tbslas::Profile<double>::Toc();
 
-      // prepare the next step tree
-      tbslas::Profile<double>::Tic("sync_tree_refinement",false,5);
-      tbslas::sync_tree_refinement(*tconc_next, *tconc_curr);
-      tbslas::Profile<double>::Toc();
-
-      // save the comptued values
       snprintf(out_name_buffer, sizeof(out_name_buffer),
                "%s/sltree_val_%d_", tbslas::get_result_dir().c_str(), tstep);
       tconc_next->Write2File(out_name_buffer,q);
+
+      // prepare the next step tree
+      // tbslas::Profile<double>::Tic("sync_tree_refinement",false,5);
+      // tbslas::sync_tree_refinement(*tconc_next, *tconc_curr);
+      // tbslas::Profile<double>::Toc();
+
+      // delete tconc_curr;
+      // Tree_t* tconc_curr = new Tree_t(comm);
+      // tbslas::clone_tree<Tree_t>(*tconc_next, *tconc_curr, 1);
+      // std::vector<Node_t*>  ncurr_list = tconc_curr->GetNodeList();
+      // for(int i = 0; i < ncurr_list.size(); i++) {
+      //   ncurr_list[i]->input_fn = NULL;
+      // }
 
       tbslas::swap_pointers(&tconc_curr, &tconc_next);
     }

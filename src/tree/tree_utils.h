@@ -258,25 +258,20 @@ template<typename NodeType>
 void
 sync_node_refinement(NodeType& node_in,
                      NodeType& node_out) {
-  // if(node_in.IsGhost()) return;
+  if(node_in.IsGhost())
+    return;
 
-  if(node_in.IsLeaf()) {
-    node_out.Truncate();
-    // printf("TUNCATE NODE: [%f, %f, %f]\n",
-    //        node_out.Coord()[0],
-    //        node_out.Coord()[1],
-    //        node_out.Coord()[2]
-    //        );
+  if (node_in.IsLeaf()) {
+    node_out.Truncate(); return;
   } else {
     node_out.Subdivide();
-    // printf("REFINE NODE: [%f, %f, %f]\n",
-    //        node_out.Coord()[0],
-    //        node_out.Coord()[1],
-    //        node_out.Coord()[2]
-    //        );
+    NodeType* child_in;
+    NodeType*child_out;
     int n_child = 1UL<< node_in.Dim();
     for (int k = 0; k < n_child; k++) {
-      sync_node_refinement(*node_in.Child(k), *node_out.Child(k));
+      child_in  = static_cast<NodeType*>(node_in.Child(k));
+      child_out = static_cast<NodeType*>(node_out.Child(k));
+      sync_node_refinement(*child_in, *child_out);
     }
   }
 }
@@ -292,6 +287,8 @@ sync_tree_refinement(TreeType& tree_in,
   NodeType* node_out = tree_out.PreorderFirst();
 
   sync_node_refinement<NodeType>(*node_in, *node_out);
+  MPI_Barrier(MPI_COMM_WORLD);
+  //tree_out.RedistNodes();
 }
 
 }  // namespace tbslas

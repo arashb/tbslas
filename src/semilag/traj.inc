@@ -25,7 +25,7 @@ integrate_rk2(FieldFunctor field_fn,
               const real_t tinit,
               const real_t dt,
               std::vector<real_t>& xsol) {
-  //  Profile<double>::Tic("integrate_rk2",false,5);
+  Profile<double>::Tic("integrate_rk2",false,5);
   int num_points = xinit.size()/3;
   std::vector<real_t> xtmp(xinit.size());
   std::vector<real_t> vtmp(xinit.size());
@@ -39,7 +39,7 @@ integrate_rk2(FieldFunctor field_fn,
   field_fn(xtmp.data(), num_points, vtmp.data());
   for (int i = 0; i < xinit.size(); i++)
     xsol[i] = xinit[i] + dt*vtmp[i];
-  //  Profile<double>::Toc();
+  Profile<double>::Toc();
 }
 
 template<typename real_t, typename FieldFunctor>
@@ -50,7 +50,7 @@ traj_rk2(FieldFunctor field_fn,
          const real_t tfinal,
          const int num_rk_step,
          std::vector<real_t>& xsol) {
-  //  Profile<double>::Tic("traj_rk2",false,5);
+  Profile<double>::Tic("traj_rk2",false,5);
   // FIXME: currently only time independent
   real_t tau = (tfinal - tinit)/num_rk_step;
 
@@ -64,7 +64,7 @@ traj_rk2(FieldFunctor field_fn,
     integrate_rk2(field_fn, xsol, current_time, tau, xsol);
     current_time = current_time + tau;
   }
-  //  Profile<double>::Toc();
+  Profile<double>::Toc();
 }
 
 template<typename real_t, typename InterpPolicy, int sdim, int vdim>
