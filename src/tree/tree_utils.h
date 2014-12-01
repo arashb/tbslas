@@ -170,10 +170,10 @@ init_tree(TreeType& tree,
       input_fn(points_pos.data(), num_points, points_val.data());
 
       pvfmm::cheb_approx<RealType, RealType>(points_val.data(),
-                                         cheb_deg,
-                                         data_dof,
-                                         &(n_curr->ChebData()[0])
-                                         );
+                                             cheb_deg,
+                                             data_dof,
+                                             &(n_curr->ChebData()[0])
+                                             );
     }
     n_curr = tree.PostorderNxt(n_curr);
   }
@@ -254,117 +254,44 @@ max_tree_values(TreeType& tree,
   max_depth = static_cast<int>(lcl_max_values[1]);
 }
 
-template<typename TreeType>
-int
-tree2vec(TreeType& tree,
-         std::vector<typename TreeType::Real_t>& vec) {
-  typedef typename TreeType::Real_t RealType;
-  typedef typename TreeType::Node_t NodeType;
+template<typename NodeType>
+void
+sync_node_refinement(NodeType& node_in,
+                     NodeType& node_out) {
+  // if(node_in.IsGhost()) return;
 
-  RealType scal_exp = 1.0;
-  int sdim        = 3;
-  std::vector<NodeType*> nlist;
-
-  // Get non-ghost, leaf nodes.
-  std::vector<NodeType*>& nlist_ = tree.GetNodeList();
-  for (size_t i = 0; i < nlist_.size(); i++) {
-    if (nlist_[i]->IsLeaf() && !nlist_[i]->IsGhost()) {
-      nlist.push_back(nlist_[i]);
+  if(node_in.IsLeaf()) {
+    node_out.Truncate();
+    // printf("TUNCATE NODE: [%f, %f, %f]\n",
+    //        node_out.Coord()[0],
+    //        node_out.Coord()[1],
+    //        node_out.Coord()[2]
+    //        );
+  } else {
+    node_out.Subdivide();
+    // printf("REFINE NODE: [%f, %f, %f]\n",
+    //        node_out.Coord()[0],
+    //        node_out.Coord()[1],
+    //        node_out.Coord()[2]
+    //        );
+    int n_child = 1UL<< node_in.Dim();
+    for (int k = 0; k < n_child; k++) {
+      sync_node_refinement(*node_in.Child(k), *node_out.Child(k));
     }
   }
-  assert(nlist.size()>0);
-
-  // int omp_p       = omp_get_max_threads();
-  int cheb_deg = nlist[0]->ChebDeg();
-  int data_dof = nlist[0]->DataDOF();
-  size_t n_coeff3 = (cheb_deg+1)*(cheb_deg+2)*(cheb_deg+3)/6;
-
-  // TODO: add OpenMP parallelization
-  //#pragma omp parallel for
-  //for (size_t tid=0;tid<omp_p;tid++) {
-  // size_t i_start=(nlist.size()* tid   )/omp_p;
-  // size_t i_end  =(nlist.size()*(tid+1))/omp_p;
-  // vec.reserve(n_coeff3*data_dof*nlist.size());
-
-  size_t i_start = 0;
-  size_t i_end   = nlist.size();
-  for (size_t i = i_start; i < i_end; i++) {
-    pvfmm::Vector<RealType>& coeff_vec = nlist[i]->ChebData();
-    double s = 1;//std::pow(0.5,sdim*nlist[i]->Depth()*0.5*scal_exp);
-
-    size_t vec_offset = i*n_coeff3*data_dof;
-    for (size_t j = 0; j < n_coeff3*data_dof; j++)
-      // vec[j+vec_offset] = coeff_vec[j]*s;
-      vec.push_back(coeff_vec[j]*s);
-  }
-  return 0;
-}
-
-// int vec2tree(Vec& Y, FMMData fmm_data){
-//   PetscErrorCode ierr;
-//   FMM_Tree_t* tree=fmm_data.tree;
-//   const MPI_Comm* comm=tree->Comm();
-//   int cheb_deg=fmm_data.fmm_mat->ChebDeg();
-
-//   std::vector<FMMNode_t*> nlist;
-//   { // Get non-ghost, leaf nodes.
-//     std::vector<FMMNode_t*>& nlist_=tree->GetNodeList();
-//     for(size_t i=0;i<nlist_.size();i++){
-//       if(nlist_[i]->IsLeaf() && !nlist_[i]->IsGhost()){
-//         nlist.push_back(nlist_[i]);
-//       }
-//     }
-//   }
-
-//   int omp_p=omp_get_max_threads();
-//   size_t n_coeff3=(cheb_deg+1)*(cheb_deg+2)*(cheb_deg+3)/6;
-
-//   {
-//     PetscInt Y_size;
-//     ierr = VecGetLocalSize(Y, &Y_size);
-//     int data_dof=Y_size/(n_coeff3*nlist.size());
-
-//     const PetscScalar *Y_ptr;
-//     ierr = VecGetArrayRead(Y, &Y_ptr);
-
-// #pragma omp parallel for
-//     for(size_t tid=0;tid<omp_p;tid++){
-//       size_t i_start=(nlist.size()* tid   )/omp_p;
-//       size_t i_end  =(nlist.size()*(tid+1))/omp_p;
-//       for(size_t i=i_start;i<i_end;i++){
-//         pvfmm::Vector<double>& coeff_vec=nlist[i]->ChebData();
-//         double s=std::pow(2.0,COORD_DIM*nlist[i]->Depth()*0.5*SCAL_EXP);
-
-//         size_t Y_offset=i*n_coeff3*data_dof;
-//         for(size_t j=0;j<n_coeff3*data_dof;j++) coeff_vec[j]=PetscRealPart(Y_ptr[j+Y_offset])*s;
-//         nlist[i]->DataDOF()=data_dof;
-//       }
-//     }
-//   }
-
-//   return 0;
-// }
-
-template<typename TreeType>
-void
-save_tree(TreeType& tree, std::string file_name) {
-  typedef typename TreeType::Node_t NodeType;
-  typedef typename TreeType::Real_t RealType;
-
-  std::vector<RealType> vec;
-  tbslas::tree2vec<TreeType>(tree, vec);
-  for (int i = 0; i < vec.size(); i++) {
-    printf("%f ", vec[i]);
-  }
-
 }
 
 template<typename TreeType>
 void
-load_tree() {
-  typedef typename TreeType::Node_t NodeType;
+sync_tree_refinement(TreeType& tree_in,
+                     TreeType& tree_out) {
   typedef typename TreeType::Real_t RealType;
+  typedef typename TreeType::Node_t NodeType;
 
+  NodeType* node_in  = tree_in.PreorderFirst();
+  NodeType* node_out = tree_out.PreorderFirst();
+
+  sync_node_refinement<NodeType>(*node_in, *node_out);
 }
 
 }  // namespace tbslas

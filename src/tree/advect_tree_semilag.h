@@ -22,15 +22,16 @@
 
 namespace tbslas {
 
-template <typename real_t,
-          class NodeType,
-          class TreeType>
+template <class TreeType>
 void advect_tree_semilag(TreeType& tvel_curr,
                          TreeType& tree_curr,
                          TreeType& tree_next,
-                         int timestep,
-                         real_t dt,
+                         const int timestep,
+                         const typename TreeType::Real_t dt,
                          int num_rk_step = 1) {
+  typedef typename TreeType::Node_t NodeType;
+  typedef typename TreeType::Real_t RealType;
+
   Profile<double>::Tic("advect_tree_semilag",false,5);
   NodeType* n_curr = tree_curr.PostorderFirst();
   NodeType* n_next = tree_next.PostorderFirst();
@@ -39,7 +40,7 @@ void advect_tree_semilag(TreeType& tvel_curr,
   int sdim     = tree_curr.Dim();
 
   // compute chebychev points positions on the fly
-  std::vector<real_t> cheb_pos = pvfmm::cheb_nodes<real_t>(cheb_deg, sdim);
+  std::vector<RealType> cheb_pos = pvfmm::cheb_nodes<RealType>(cheb_deg, sdim);
   int num_points               = cheb_pos.size()/sdim;
 
   while (n_curr != NULL) {
@@ -53,11 +54,11 @@ void advect_tree_semilag(TreeType& tvel_curr,
 
   while (n_curr != NULL && n_next != NULL) {
     if (n_curr->IsLeaf() && !n_curr->IsGhost()) {
-      real_t length      = static_cast<real_t>(std::pow(0.5, n_curr->Depth()));
-      real_t* node_coord = n_curr->Coord();
+      RealType length      = static_cast<RealType>(std::pow(0.5, n_curr->Depth()));
+      RealType* node_coord = n_curr->Coord();
 
       // TODO: figure out a way to optimize this part.
-      std::vector<real_t> points_pos(cheb_pos.size());
+      std::vector<RealType> points_pos(cheb_pos.size());
       // scale the cheb points
       for (int i = 0; i < num_points; i++) {
         points_pos[i*sdim+0] = node_coord[0] + length * cheb_pos[i*sdim+0];
@@ -65,9 +66,9 @@ void advect_tree_semilag(TreeType& tvel_curr,
         points_pos[i*sdim+2] = node_coord[2] + length * cheb_pos[i*sdim+2];
       }
 
-      std::vector<real_t> points_val(num_points*data_dof);
-      tbslas::semilag_rk2(tbslas::NodeFieldFunctor<real_t, NodeType>(tvel_curr.RootNode()),
-                          tbslas::NodeFieldFunctor<real_t, NodeType>(tree_curr.RootNode()),
+      std::vector<RealType> points_val(num_points*data_dof);
+      tbslas::semilag_rk2(tbslas::NodeFieldFunctor<RealType, NodeType>(tvel_curr.RootNode()),
+                          tbslas::NodeFieldFunctor<RealType, NodeType>(tree_curr.RootNode()),
                           points_pos,
                           sdim,
                           timestep,
@@ -75,11 +76,11 @@ void advect_tree_semilag(TreeType& tvel_curr,
                           num_rk_step,
                           points_val);
 
-      pvfmm::cheb_approx<real_t, real_t>(points_val.data(),
-                                         cheb_deg,
-                                         data_dof,
-                                         &(n_next->ChebData()[0])
-                                         );
+      pvfmm::cheb_approx<RealType, RealType>(points_val.data(),
+                                             cheb_deg,
+                                             data_dof,
+                                             &(n_next->ChebData()[0])
+                                             );
     }
     n_curr = tree_curr.PostorderNxt(n_curr);
     n_next = tree_next.PostorderNxt(n_next);
