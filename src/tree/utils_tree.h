@@ -287,6 +287,58 @@ GetTreeMortonIdMins(TreeType& tree,
 
 template<typename TreeType>
 void
+CountNumLeafNodes(TreeType& tree) {
+  typedef typename TreeType::Real_t RealType;
+  typedef typename TreeType::Node_t NodeType;
+
+  int np, myrank;
+  MPI_Comm_size(*tree.Comm(), &np);
+  MPI_Comm_rank(*tree.Comm(), &myrank);
+
+  int num_leaf_nodes = 0;
+  int* rbuf = reinterpret_cast<int*>(malloc(np*sizeof(int)));
+  // compute total number of tree leaf nodes
+  NodeType* n_next = tree.PostorderFirst();
+  while (n_next != NULL) {
+    if(!n_next->IsGhost() && n_next->IsLeaf())
+      num_leaf_nodes++;
+    n_next = tree.PostorderNxt(n_next);
+  }
+  MPI_Allgather(&num_leaf_nodes, 1, MPI_INT,
+                rbuf, 1, MPI_INT, *tree.Comm());
+
+#ifndef NDEBUG
+  if(!myrank) {
+    printf("[");
+    for(int i = 0; i < np; i++)
+      printf("%d ",rbuf[i]);
+    printf("]\n");
+  }
+#endif
+
+  delete rbuf;
+}
+
+template<typename NodeType>
+void
+SyncNodeRefinement(NodeType* node_in,
+                   NodeType* node_out) {
+  if(node_in->IsGhost()) return;
+
+  if(node_in->IsLeaf()) {
+    node_out->Truncate();
+  } else {
+    node_out->Subdivide();
+    int n_child = 1UL<< node_in->Dim();
+    for (int k = 0; k < n_child; k++) {
+      SyncNodeRefinement(dynamic_cast<NodeType*>(node_in->Child(k)),
+                         dynamic_cast<NodeType*>(node_out->Child(k)));
+    }
+  }
+}
+
+template<typename TreeType>
+void
 SyncTreeRefinement(TreeType& tree_in,
                    TreeType& tree_out) {
   typedef typename TreeType::Real_t RealType;
@@ -303,20 +355,29 @@ SyncTreeRefinement(TreeType& tree_in,
   std::vector<pvfmm::MortonId> mins_out;
   GetTreeMortonIdMins(tree_out, mins_out);
 
-  for (int ncnt = 0; ncnt < mins_in.size(); ncnt++) {
-    if (myrank != np-1) {
-      if(mins_in[ncnt] >= mins_out[myrank] &&
-         mins_in[ncnt] < mins_out[myrank+1]) {
-        tree_out.FindNode(mins_in[ncnt], true, NULL);
-      }
-    } else {
-      if(mins_in[ncnt] >= mins_out[myrank])
-        tree_out.FindNode(mins_in[ncnt], true, NULL);
-    }
-  }
+  size_t range[2]={0,np};
+  range[0]=std::lower_bound(&mins_in[0], &mins_in[np], mins_out[myrank  ])-&mins_in[0];
+  if(myrank<np-1) range[1]=std::lower_bound(&mins_in[0], &mins_in[np], mins_out[myrank+1])-&mins_in[0];
+  for(size_t i=range[0];i<range[1];i++) tree_out.FindNode(mins_in[i],true,NULL);
 
-  // RedistNodes(MortionID_array)
   tree_out.RedistNodes(&mins_in[myrank]);
+
+  NodeType* node_in  = tree_in.PreorderFirst();
+  NodeType* node_out = tree_out.PreorderFirst();
+  SyncNodeRefinement<NodeType>(node_in, node_out);
+
+#ifndef NDEBUG
+  MPI_Barrier(MPI_COMM_WORLD);
+  if(!myrank)
+    printf("TREE-IN :");
+  CountNumLeafNodes(tree_in);
+
+  MPI_Barrier(MPI_COMM_WORLD);
+  if(!myrank)
+    printf("TREE-OUT:");
+  CountNumLeafNodes(tree_out);
+#endif
+
   tbslas::Profile<double>::Toc();
 }
 

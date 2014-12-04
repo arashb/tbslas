@@ -16,7 +16,10 @@
 #include <vector>
 
 #include "semilag/semilag.h"
+
 #include "tree/node_field_functor.h"
+#include "tree/utils_tree.h"
+
 #include "utils/common.h"
 #include "utils/profile.h"
 
@@ -51,6 +54,10 @@ void SolveSemilagTree(TreeType& tvel_curr,
   std::vector<RealType> cheb_pos = pvfmm::cheb_nodes<RealType>(cheb_deg, sdim);
   int num_points_per_node        = cheb_pos.size()/sdim;
 
+#ifndef NDEBUG
+  CountNumLeafNodes(tree_next);
+#endif
+
   // compute total number of tree leaf nodes
   NodeType* n_next = tree_next.PostorderFirst();
   int num_leaf_nodes = 0;
@@ -59,7 +66,6 @@ void SolveSemilagTree(TreeType& tvel_curr,
       num_leaf_nodes++;
     n_next = tree_next.PostorderNxt(n_next);
   }
-  printf("total_num_nodes: %d\n", num_leaf_nodes);
 
   std::vector<RealType> points_pos_all_nodes;
   points_pos_all_nodes.resize(cheb_pos.size()*num_leaf_nodes);
