@@ -31,12 +31,13 @@ int main (int argc, char **argv) {
   // Read command line options.
   commandline_option_start(argc, argv);
   omp_set_num_threads( atoi(commandline_option(argc, argv,  "-omp",     "1", false, "-omp  <int> = (1)    : Number of OpenMP threads."          )));
-  size_t   N=(size_t)strtod(commandline_option(argc, argv,    "-N",     "1",  true, "-N    <int>          : Number of point sources."           ),NULL);
-  size_t   M=(size_t)strtod(commandline_option(argc, argv,    "-M",     "1", false, "-M    <int>          : Number of points per octant."       ),NULL);
-  int      q=       strtoul(commandline_option(argc, argv,    "-q",    "14", false, "-q    <int> = (14)   : Chebyshev order (+ve integer)."     ),NULL,10);
-  int      d=       strtoul(commandline_option(argc, argv,    "-d",    "15", false, "-d    <int> = (15)   : Maximum tree depth."                ),NULL,10);
-  double tol=        strtod(commandline_option(argc, argv,  "-tol",  "1e-5", false, "-tol <real> = (1e-5) : Tolerance for adaptive refinement." ),NULL);
-  bool  adap=              (commandline_option(argc, argv, "-adap",    NULL, false, "-adap                : Adaptive tree refinement."          )!=NULL);
+  size_t   N = (size_t)strtod(commandline_option(argc, argv,    "-N",     "1",  true, "-N    <int>          : Number of point sources."           ),NULL);
+  size_t   M = (size_t)strtod(commandline_option(argc, argv,    "-M",     "1", false, "-M    <int>          : Number of points per octant."       ),NULL);
+  int      q =         strtoul(commandline_option(argc, argv,    "-q",    "14", false, "-q    <int> = (14)   : Chebyshev order (+ve integer)."     ),NULL,10);
+  int      d =         strtoul(commandline_option(argc, argv,    "-d",    "15", false, "-d    <int> = (15)   : Maximum tree depth."                ),NULL,10);
+  double tol =         strtod(commandline_option(argc, argv,  "-tol",  "1e-5", false, "-tol <real> = (1e-5) : Tolerance for adaptive refinement." ),NULL);
+  bool  adap =               (commandline_option(argc, argv, "-adap",    NULL, false, "-adap                : Adaptive tree refinement."          )!=NULL);
+  int     tn =         strtoul(commandline_option(argc, argv,    "-tn",    "1", false, "-tn    <int> = (1)   : Number of time steps."     ),NULL,10);
   commandline_option_end(argc, argv);
 
   {
@@ -69,14 +70,6 @@ int main (int argc, char **argv) {
              vel_max_value,
              vel_max_depth);
 
-    // tbslas::clone_tree<double,
-    //                    tbslas::Node_t<double>,
-    //                    tbslas::Tree_t<double> > (tvel_curr, *tconc_curr, 1);
-    // tbslas::init_tree<double,
-    //                   tbslas::Node_t<double>,
-    //                   tbslas::Tree_t<double> > (*tconc_curr,
-    //                                             tbslas::get_gaussian_field<double,3>,
-    //                                             1);
     Tree_t* tconc_curr = new Tree_t(comm);
     tbslas::construct_tree<Tree_t>(N, M, q, d, adap, tol, comm,
                                    tbslas::get_gaussian_field<double,3>,
@@ -86,8 +79,6 @@ int main (int argc, char **argv) {
     snprintf(out_name_buffer, sizeof(out_name_buffer),
              "%s/sltree_val_%d_", tbslas::get_result_dir().c_str(), 0);
     tconc_curr->Write2File(out_name_buffer, q);
-
-    tbslas::save_tree(*tconc_curr, "test");
 
     double conc_max_value;
     int conc_max_depth;
@@ -104,13 +95,22 @@ int main (int argc, char **argv) {
     Tree_t* tconc_next = new Tree_t(comm);
     tbslas::clone_tree<Tree_t>(*tconc_curr, *tconc_next, 1);
 
+    // set the input_fn to NULL -> need for adaptive refinement
+    std::vector<Node_t*>  ncurr_list = tconc_curr->GetNodeList();
+    for(int i = 0; i < ncurr_list.size(); i++) {
+      ncurr_list[i]->input_fn = NULL;
+    }
+
+    std::vector<Node_t*>  nnext_list = tconc_next->GetNodeList();
+    for(int i = 0; i < nnext_list.size(); i++) {
+      nnext_list[i]->input_fn = NULL;
+    }
+
     // simulation parameters
-    double cfl = 1;
-    double dx_min = pow(0.5, conc_max_depth);
-    double dt = (cfl * dx_min)/vel_max_value;
-    // double dt = 0.5;
+    double cfl      = 1;
+    double dx_min   = pow(0.5, conc_max_depth);
+    double dt       = (cfl * dx_min)/vel_max_value;
     int num_rk_step = 1;
-    int tn          = 1;
 
     // TIME STEPPING
     for (int tstep = 1; tstep < tn+1; tstep++) {
@@ -119,22 +119,40 @@ int main (int argc, char **argv) {
         printf("dt: %f tstep: %d\n", dt, tstep);
         printf("============================\n");
       }
-      tconc_curr->ConstructLET(pvfmm::FreeSpace);
-      tbslas::advect_tree_semilag<double, Node_t, Tree_t>(tvel_curr,
-                                                          *tconc_curr,
-                                                          *tconc_next,
-                                                          tstep,
-                                                          dt,
-                                                          num_rk_step);
+      // tbslas::Profile<double>::Tic("ConstructLET",false,5);
+      // tconc_curr->ConstructLET(pvfmm::FreeSpace);
+      // tbslas::Profile<double>::Toc();
+
+      tbslas::advect_tree_semilag<Tree_t>(tvel_curr,
+                                          *tconc_curr,
+                                          *tconc_next,
+                                          tstep,
+                                          dt,
+                                          num_rk_step);
+
+      // refine the tree according to the computed values
+      tbslas::Profile<double>::Tic("RefineTree",false,5);
+      tconc_next->RefineTree();
+      tbslas::Profile<double>::Toc();
 
       snprintf(out_name_buffer, sizeof(out_name_buffer),
                "%s/sltree_val_%d_", tbslas::get_result_dir().c_str(), tstep);
       tconc_next->Write2File(out_name_buffer,q);
 
+      // prepare the next step tree
+      tbslas::Profile<double>::Tic("sync_tree_refinement",false,5);
+      tbslas::sync_tree_refinement(*tconc_next, *tconc_curr);
+      tbslas::Profile<double>::Toc();
+
       tbslas::swap_pointers(&tconc_curr, &tconc_next);
     }
+
     //Output Profiling results.
     tbslas::Profile<double>::print(&comm);
+
+    // CLEAN UP MEM.
+    delete tconc_curr;
+    delete tconc_next;
   }
 
   // Shut down MPI

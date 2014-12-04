@@ -33,7 +33,7 @@ semilag_rk2(VFieldFunctor vel_evaluator,
             const real_t dt,
             const int num_rk_step,
             std::vector<real_t>& points_vals) {
-  //  Profile<double>::Tic("semilag_rk2",false,5);
+  Profile<double>::Tic("semilag_rk2",false,5);
   const size_t num_points = points_pos.size()/sdim;
   real_t tinit  = timestep*dt;
   real_t tfinal = tinit - dt;  // backward in time
@@ -49,7 +49,7 @@ semilag_rk2(VFieldFunctor vel_evaluator,
            departure_points_pos);
 
   con_evaluator(departure_points_pos.data(), num_points,  points_vals.data());
-  //  Profile<double>::Toc();
+  Profile<double>::Toc();
 }
 
 template<typename real_t,
@@ -63,7 +63,7 @@ semilag_rk2(const VField& vel_field,
             const real_t dt,
             const int num_rk_step,
             CField& conc_field) {
-  //  Profile<double>::Tic("semilag_rk2",false,5);
+  Profile<double>::Tic("semilag_rk2",false,5);
   real_t tinit  = timestep*dt;
   real_t tfinal = tinit - dt;  // backward in time
 
@@ -87,7 +87,7 @@ semilag_rk2(const VField& vel_field,
                     timestep-1);             // using previeous time step values
   // to interpolate
   conc_field.push_back_values(departure_points_values, dt*timestep);
-  //  Profile<double>::Toc();
+  Profile<double>::Toc();
 }
 
 }  // namespace tbslas

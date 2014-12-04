@@ -22,66 +22,105 @@
 
 namespace tbslas {
 
-template <typename real_t,
-          class NodeType,
-          class TreeType>
+template <class TreeType>
 void advect_tree_semilag(TreeType& tvel_curr,
                          TreeType& tree_curr,
                          TreeType& tree_next,
-                         int timestep,
-                         real_t dt,
+                         const int timestep,
+                         const typename TreeType::Real_t dt,
                          int num_rk_step = 1) {
+  typedef typename TreeType::Node_t NodeType;
+  typedef typename TreeType::Real_t RealType;
+
   Profile<double>::Tic("advect_tree_semilag",false,5);
+  ////////////////////////////////////////////////////////////////////////
+  // (1) collect the starting positions of the backward traj computation
+  ////////////////////////////////////////////////////////////////////////
+  // get the tree parameters from current tree
   NodeType* n_curr = tree_curr.PostorderFirst();
-  NodeType* n_next = tree_next.PostorderFirst();
+  while (n_curr != NULL) {
+    if(!n_curr->IsGhost() && n_curr->IsLeaf())
+      break;
+    n_curr = tree_curr.PostorderNxt(n_curr);
+  }
   int data_dof = n_curr->DataDOF();
   int cheb_deg = n_curr->ChebDeg();
   int sdim     = tree_curr.Dim();
 
   // compute chebychev points positions on the fly
-  std::vector<real_t> cheb_pos = pvfmm::cheb_nodes<real_t>(cheb_deg, sdim);
-  int num_points               = cheb_pos.size()/sdim;
+  std::vector<RealType> cheb_pos = pvfmm::cheb_nodes<RealType>(cheb_deg, sdim);
+  int num_points_per_node        = cheb_pos.size()/sdim;
 
-  while (n_curr != NULL) {
-    if(!n_curr->IsGhost() && n_curr->IsLeaf()) break;
-    n_curr = tree_curr.PostorderNxt(n_curr);
+  // compute total number of tree leaf nodes
+  NodeType* n_next = tree_next.PostorderFirst();
+  int num_leaf_nodes = 0;
+  while (n_next != NULL) {
+    if(!n_next->IsGhost() && n_next->IsLeaf())
+      num_leaf_nodes++;
+    n_next = tree_next.PostorderNxt(n_next);
   }
+  printf("total_num_nodes: %d\n", num_leaf_nodes);
+
+  std::vector<RealType> points_pos_all_nodes;
+  points_pos_all_nodes.resize(cheb_pos.size()*num_leaf_nodes);
+
+  n_next = tree_next.PostorderFirst();
+  while (n_next != NULL) {
+    if(!n_next->IsGhost() && n_next->IsLeaf())
+      break;
+    n_next = tree_next.PostorderNxt(n_next);
+  }
+
+  int tree_next_node_counter = 0;
+  while (n_next != NULL) {
+    if (n_next->IsLeaf() && !n_next->IsGhost()) {
+      RealType length      = static_cast<RealType>(std::pow(0.5, n_next->Depth()));
+      RealType* node_coord = n_next->Coord();
+      // scale the cheb points
+      size_t shift = tree_next_node_counter*cheb_pos.size();
+      for (int i = 0; i < num_points_per_node; i++) {
+        points_pos_all_nodes[shift + i*sdim+0] = node_coord[0] + length * cheb_pos[i*sdim+0];
+        points_pos_all_nodes[shift + i*sdim+1] = node_coord[1] + length * cheb_pos[i*sdim+1];
+        points_pos_all_nodes[shift + i*sdim+2] = node_coord[2] + length * cheb_pos[i*sdim+2];
+      }
+      tree_next_node_counter++;
+    }
+    n_next = tree_next.PostorderNxt(n_next);
+  }
+  ////////////////////////////////////////////////////////////////////////
+  // (2) solve semi-Lagrangian
+  ////////////////////////////////////////////////////////////////////////
+  int num_points_local_nodes = points_pos_all_nodes.size()/sdim;
+  std::vector<RealType> points_val_local_nodes(num_points_local_nodes*data_dof);
+  tbslas::semilag_rk2(tbslas::NodeFieldFunctor<RealType,TreeType>(&tvel_curr),
+                      tbslas::NodeFieldFunctor<RealType,TreeType>(&tree_curr),
+                      points_pos_all_nodes,
+                      sdim,
+                      timestep,
+                      dt,
+                      num_rk_step,
+                      points_val_local_nodes);
+
+  ////////////////////////////////////////////////////////////////////////
+  // (3) set the computed values
+  ////////////////////////////////////////////////////////////////////////
+  n_next = tree_next.PostorderFirst();
   while (n_next != NULL) {
     if(!n_next->IsGhost() && n_next->IsLeaf()) break;
     n_next = tree_next.PostorderNxt(n_next);
   }
 
-  while (n_curr != NULL && n_next != NULL) {
-    if (n_curr->IsLeaf() && !n_curr->IsGhost()) {
-      real_t length      = static_cast<real_t>(std::pow(0.5, n_curr->Depth()));
-      real_t* node_coord = n_curr->Coord();
-
-      // TODO: figure out a way to optimize this part.
-      std::vector<real_t> points_pos(cheb_pos.size());
-      // scale the cheb points
-      for (int i = 0; i < num_points; i++) {
-        points_pos[i*sdim+0] = node_coord[0] + length * cheb_pos[i*sdim+0];
-        points_pos[i*sdim+1] = node_coord[1] + length * cheb_pos[i*sdim+1];
-        points_pos[i*sdim+2] = node_coord[2] + length * cheb_pos[i*sdim+2];
-      }
-
-      std::vector<real_t> points_val(num_points*data_dof);
-      tbslas::semilag_rk2(tbslas::NodeFieldFunctor<real_t, NodeType>(tvel_curr.RootNode()),
-                          tbslas::NodeFieldFunctor<real_t, NodeType>(tree_curr.RootNode()),
-                          points_pos,
-                          sdim,
-                          timestep,
-                          dt,
-                          num_rk_step,
-                          points_val);
-
-      pvfmm::cheb_approx<real_t, real_t>(points_val.data(),
-                                         cheb_deg,
-                                         data_dof,
-                                         &(n_next->ChebData()[0])
-                                         );
+  tree_next_node_counter = 0;
+  while (n_next != NULL) {
+    if (n_next->IsLeaf() && !n_next->IsGhost()) {
+      pvfmm::cheb_approx<RealType, RealType>(
+          &points_val_local_nodes[tree_next_node_counter*num_points_per_node*data_dof],
+          cheb_deg,
+          data_dof,
+          &(n_next->ChebData()[0])
+                                             );
+      tree_next_node_counter++;
     }
-    n_curr = tree_curr.PostorderNxt(n_curr);
     n_next = tree_next.PostorderNxt(n_next);
   }
   Profile<double>::Toc();
