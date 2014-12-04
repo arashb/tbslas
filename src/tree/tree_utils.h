@@ -13,11 +13,16 @@
 #ifndef SRC_TREE_TREE_UTILS_H_
 #define SRC_TREE_TREE_UTILS_H_
 
+#include <mpi.h>
 #include <vector>
 #include <string>
 
 #include "utils/profile.h"
 #include "utils/common.h"
+
+#include <mortonid.hpp>
+#include <tree.hpp>
+#include <parUtils.h>
 
 namespace tbslas {
 
@@ -254,26 +259,30 @@ max_tree_values(TreeType& tree,
   max_depth = static_cast<int>(lcl_max_values[1]);
 }
 
-template<typename NodeType>
+template<typename TreeType>
 void
-sync_node_refinement(NodeType& node_in,
-                     NodeType& node_out) {
-  if(node_in.IsGhost())
-    return;
+GetTreeMortonIdMins(TreeType& tree,
+                    std::vector<pvfmm::MortonId>& mins) {
+  typedef typename TreeType::Real_t RealType;
+  typedef typename TreeType::Node_t NodeType;
 
-  if (node_in.IsLeaf()) {
-    node_out.Truncate(); return;
-  } else {
-    node_out.Subdivide();
-    NodeType* child_in;
-    NodeType*child_out;
-    int n_child = 1UL<< node_in.Dim();
-    for (int k = 0; k < n_child; k++) {
-      child_in  = static_cast<NodeType*>(node_in.Child(k));
-      child_out = static_cast<NodeType*>(node_out.Child(k));
-      sync_node_refinement(*child_in, *child_out);
-    }
+  NodeType* n=tree.PreorderFirst();
+  while (n != NULL) {
+    if(!n->IsGhost() && n->IsLeaf()) break;
+    n=tree.PreorderNxt(n);
   }
+  ASSERT_WITH_MSG(n!=NULL,"No non-ghost nodes found on this process.");
+
+  pvfmm::MortonId my_min;
+  my_min = n->GetMortonId();
+
+  int np;
+  MPI_Comm_size(*tree.Comm(),&np);
+  mins.resize(np);
+
+  MPI_Allgather(&my_min , 1, pvfmm::par::Mpi_datatype<pvfmm::MortonId>::value(),
+                &mins[0], 1, pvfmm::par::Mpi_datatype<pvfmm::MortonId>::value(), *tree.Comm());
+
 }
 
 template<typename TreeType>
@@ -283,12 +292,30 @@ sync_tree_refinement(TreeType& tree_in,
   typedef typename TreeType::Real_t RealType;
   typedef typename TreeType::Node_t NodeType;
 
-  NodeType* node_in  = tree_in.PreorderFirst();
-  NodeType* node_out = tree_out.PreorderFirst();
+  int np, myrank;
+  MPI_Comm_size(*tree_in.Comm(), &np);
+  MPI_Comm_rank(*tree_in.Comm(), &myrank);
 
-  sync_node_refinement<NodeType>(*node_in, *node_out);
-  MPI_Barrier(MPI_COMM_WORLD);
-  //tree_out.RedistNodes();
+  std::vector<pvfmm::MortonId> mins_in;
+  GetTreeMortonIdMins(tree_in, mins_in);
+
+  std::vector<pvfmm::MortonId> mins_out;
+  GetTreeMortonIdMins(tree_out, mins_out);
+
+  for (int ncnt = 0; ncnt < mins_in.size(); ncnt++) {
+    if (myrank != np-1) {
+      if(mins_in[ncnt] >= mins_out[myrank] &&
+         mins_in[ncnt] < mins_out[myrank+1]) {
+        tree_out.FindNode(mins_in[ncnt], true, NULL);
+      }
+    } else {
+      if(mins_in[ncnt] >= mins_out[myrank])
+        tree_out.FindNode(mins_in[ncnt], true, NULL);
+    }
+  }
+
+  // RedistNodes(MortionID_array)
+  tree_out.RedistNodes(&mins_in[myrank]);
 }
 
 }  // namespace tbslas
