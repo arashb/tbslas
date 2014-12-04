@@ -23,16 +23,16 @@
 namespace tbslas {
 
 template <class TreeType>
-void advect_tree_semilag(TreeType& tvel_curr,
-                         TreeType& tree_curr,
-                         TreeType& tree_next,
-                         const int timestep,
-                         const typename TreeType::Real_t dt,
-                         int num_rk_step = 1) {
+void SolveSemilagTree(TreeType& tvel_curr,
+                      TreeType& tree_curr,
+                      TreeType& tree_next,
+                      const int timestep,
+                      const typename TreeType::Real_t dt,
+                      int num_rk_step = 1) {
   typedef typename TreeType::Node_t NodeType;
   typedef typename TreeType::Real_t RealType;
 
-  Profile<double>::Tic("advect_tree_semilag",false,5);
+  Profile<double>::Tic("SolveSemilagTree",false,5);
   ////////////////////////////////////////////////////////////////////////
   // (1) collect the starting positions of the backward traj computation
   ////////////////////////////////////////////////////////////////////////
@@ -92,14 +92,14 @@ void advect_tree_semilag(TreeType& tvel_curr,
   ////////////////////////////////////////////////////////////////////////
   int num_points_local_nodes = points_pos_all_nodes.size()/sdim;
   std::vector<RealType> points_val_local_nodes(num_points_local_nodes*data_dof);
-  tbslas::semilag_rk2(tbslas::NodeFieldFunctor<RealType,TreeType>(&tvel_curr),
-                      tbslas::NodeFieldFunctor<RealType,TreeType>(&tree_curr),
-                      points_pos_all_nodes,
-                      sdim,
-                      timestep,
-                      dt,
-                      num_rk_step,
-                      points_val_local_nodes);
+  tbslas::SolveSemilagRK2(tbslas::NodeFieldFunctor<RealType,TreeType>(&tvel_curr),
+                          tbslas::NodeFieldFunctor<RealType,TreeType>(&tree_curr),
+                          points_pos_all_nodes,
+                          sdim,
+                          timestep,
+                          dt,
+                          num_rk_step,
+                          points_val_local_nodes);
 
   ////////////////////////////////////////////////////////////////////////
   // (3) set the computed values
@@ -128,4 +128,4 @@ void advect_tree_semilag(TreeType& tvel_curr,
 
 }  // namespace tbslas
 
-#endif  // SRC_TREE_ADVECT_TREE_SEMILAG_H_
+#endif  // SRC_TREE_SOLVE_SEMILAG_TREE_H_

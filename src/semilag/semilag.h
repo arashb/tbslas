@@ -22,26 +22,26 @@ template<typename real_t,
          typename VFieldFunctor,
          typename CFieldFunctor>
 void
-semilag_rk2(VFieldFunctor vel_evaluator,
-            CFieldFunctor con_evaluator,
-            const std::vector<real_t>& points_pos,
-            const int sdim,
-            const int timestep,
-            const real_t dt,
-            const int num_rk_step,
-            std::vector<real_t>& points_vals);
+SolveSemilagRK2(VFieldFunctor vel_evaluator,
+                CFieldFunctor con_evaluator,
+                const std::vector<real_t>& points_pos,
+                const int sdim,
+                const int timestep,
+                const real_t dt,
+                const int num_rk_step,
+                std::vector<real_t>& points_vals);
 
 template<typename real_t,
          typename InterpPolicy,
          typename VField,
          typename CField>
 void
-semilag_rk2(const VField& vel_field,
-            const InterpPolicy& interp_policy,
-            const int timestep,
-            const real_t dt,
-            const int num_rk_step,
-            CField& conc_field);
+SolveSemilagRK2(const VField& vel_field,
+                const InterpPolicy& interp_policy,
+                const int timestep,
+                const real_t dt,
+                const int num_rk_step,
+                CField& conc_field);
 
 }  // namespace tbslas
 

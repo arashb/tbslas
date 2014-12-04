@@ -25,15 +25,15 @@ template<typename real_t,
          typename VFieldFunctor,
          typename CFieldFunctor>
 void
-semilag_rk2(VFieldFunctor vel_evaluator,
-            CFieldFunctor con_evaluator,
-            const std::vector<real_t>& points_pos,
-            const int sdim,
-            const int timestep,
-            const real_t dt,
-            const int num_rk_step,
-            std::vector<real_t>& points_vals) {
-  Profile<double>::Tic("semilag_rk2",false,5);
+SolveSemilagRK2(VFieldFunctor vel_evaluator,
+                CFieldFunctor con_evaluator,
+                const std::vector<real_t>& points_pos,
+                const int sdim,
+                const int timestep,
+                const real_t dt,
+                const int num_rk_step,
+                std::vector<real_t>& points_vals) {
+  Profile<double>::Tic("SolveSemilagRK2",false,5);
   const size_t num_points = points_pos.size()/sdim;
   real_t tinit  = timestep*dt;
   real_t tfinal = tinit - dt;  // backward in time
@@ -41,12 +41,12 @@ semilag_rk2(VFieldFunctor vel_evaluator,
   std::vector<real_t> departure_points_pos(points_pos.size());
 
   // computing the departure points
-  traj_rk2(vel_evaluator,
-           points_pos,
-           tinit,
-           tfinal,
-           num_rk_step,
-           departure_points_pos);
+  ComputeTrajRK2(vel_evaluator,
+                 points_pos,
+                 tinit,
+                 tfinal,
+                 num_rk_step,
+                 departure_points_pos);
 
   con_evaluator(departure_points_pos.data(), num_points,  points_vals.data());
   Profile<double>::Toc();
@@ -57,13 +57,13 @@ template<typename real_t,
          typename VField,
          typename CField>
 void
-semilag_rk2(const VField& vel_field,
-            const InterpPolicy& interp_policy,
-            const int timestep,
-            const real_t dt,
-            const int num_rk_step,
-            CField& conc_field) {
-  Profile<double>::Tic("semilag_rk2",false,5);
+SolveSemilagRK2(const VField& vel_field,
+                const InterpPolicy& interp_policy,
+                const int timestep,
+                const real_t dt,
+                const int num_rk_step,
+                CField& conc_field) {
+  Profile<double>::Tic("SolveSemilagRK2",false,5);
   real_t tinit  = timestep*dt;
   real_t tfinal = tinit - dt;  // backward in time
 
@@ -75,8 +75,8 @@ semilag_rk2(const VField& vel_field,
 
   // computing the departure points
   std::cout << "--> computing the backward trajectory" << std::endl;
-  traj_rk2(vel_field, points_pos, tinit, tfinal, num_rk_step, interp_policy,
-           departure_points_pos);
+  ComputeTrajRK2(vel_field, points_pos, tinit, tfinal, num_rk_step, interp_policy,
+                 departure_points_pos);
 
   std::cout << "--> interplating at the departure points" << std::endl;
   // interpolating the concectration values at the departure points

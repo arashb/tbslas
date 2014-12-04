@@ -23,7 +23,7 @@
 namespace tbslas {
 
 template <class Tree_t>
-void eval(Tree_t* tree,
+void EvalTree(Tree_t* tree,
           size_t N,
           typename Tree_t::Real_t* trg_coord_,
           typename Tree_t::Real_t* value) {
@@ -126,15 +126,8 @@ class NodeFieldFunctor {
   void operator () (const real_t* points_pos,
                     int num_points,
                     real_t* out) {
-    Profile<double>::Tic("node_eval",false,5);
-    // for (int i = 0; i < num_points; i++) {
-    //   std::vector<real_t> x,y,z;
-    //   x.push_back(points_pos[i*COORD_DIM+0]);
-    //   y.push_back(points_pos[i*COORD_DIM+1]);
-    //   z.push_back(points_pos[i*COORD_DIM+2]);
-    //   node_->ReadVal(x, y, z, &out[i*node_->DataDOF()]);
-    // }
-    eval(node_, num_points, const_cast<real_t*>(points_pos), out);
+    Profile<double>::Tic("EvalTree",false,5);
+    EvalTree(node_, num_points, const_cast<real_t*>(points_pos), out);
     Profile<double>::Toc();
   }
 

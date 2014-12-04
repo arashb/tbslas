@@ -27,13 +27,13 @@
 namespace tbslas {
 
 template<typename TreeType>
-void clone_tree(TreeType& tree_in,
-                TreeType& tree_out,
-                int data_dof) {
+void CloneTree(TreeType& tree_in,
+               TreeType& tree_out,
+               int data_dof) {
   typedef typename TreeType::Node_t NodeType;
   typedef typename TreeType::Real_t RealType;
 
-  Profile<double>::Tic("clone_tree",false,5);
+  Profile<double>::Tic("CloneTree",false,5);
   typename NodeType::NodeData tree_data;
   tree_data.dim       = tree_in.Dim();
   tree_data.max_depth = MAX_DEPTH;
@@ -83,20 +83,20 @@ void clone_tree(TreeType& tree_in,
 
 template <typename TreeType,
           typename InputFunction>
-void construct_tree(const size_t N,
-                    const size_t M,
-                    const int cheb_deg,
-                    const int depth,
-                    const bool adap,
-                    const typename TreeType::Real_t tol,
-                    const MPI_Comm& comm,
-                    const InputFunction input_fn,
-                    const int data_dof,
-                    TreeType& tree) {
+void ConstructTree(const size_t N,
+                   const size_t M,
+                   const int cheb_deg,
+                   const int depth,
+                   const bool adap,
+                   const typename TreeType::Real_t tol,
+                   const MPI_Comm& comm,
+                   const InputFunction input_fn,
+                   const int data_dof,
+                   TreeType& tree) {
   typedef typename TreeType::Real_t RealType;
   typedef typename TreeType::Node_t NodeType;
 
-  Profile<double>::Tic("construct_tree",false,5);
+  Profile<double>::Tic("ConstructTree",false,5);
   //Various parameters.
   typename NodeType::NodeData tree_data;
   tree_data.dim       = COORD_DIM;
@@ -137,13 +137,13 @@ void construct_tree(const size_t N,
 template<typename TreeType,
          typename InputFunction>
 void
-init_tree(TreeType& tree,
-          InputFunction input_fn,
-          int data_dof) {
+InitTree(TreeType& tree,
+         InputFunction input_fn,
+         int data_dof) {
   typedef typename TreeType::Node_t NodeType;
   typedef typename TreeType::Real_t RealType;
 
-  Profile<double>::Tic("init_tree",false,5);
+  Profile<double>::Tic("InitTree",false,5);
   NodeType* n_curr = tree.PostorderFirst();
   int cheb_deg     = n_curr->ChebDeg();
   int sdim         = tree.Dim();
@@ -190,9 +190,9 @@ init_tree(TreeType& tree,
 // and not the maximum norm value.
 template<typename TreeType>
 void
-max_tree_values(TreeType& tree,
-                typename TreeType::Real_t& max_value,
-                int& max_depth) {
+GetMaxTreeValues(TreeType& tree,
+                 typename TreeType::Real_t& max_value,
+                 int& max_depth) {
   typedef typename TreeType::Real_t RealType;
   typedef typename TreeType::Node_t NodeType;
   NodeType* n_curr = tree.PostorderFirst();
@@ -287,11 +287,12 @@ GetTreeMortonIdMins(TreeType& tree,
 
 template<typename TreeType>
 void
-sync_tree_refinement(TreeType& tree_in,
-                     TreeType& tree_out) {
+SyncTreeRefinement(TreeType& tree_in,
+                   TreeType& tree_out) {
   typedef typename TreeType::Real_t RealType;
   typedef typename TreeType::Node_t NodeType;
 
+  tbslas::Profile<double>::Tic("SyncTreeRefinement",false,5);
   int np, myrank;
   MPI_Comm_size(*tree_in.Comm(), &np);
   MPI_Comm_rank(*tree_in.Comm(), &myrank);
@@ -316,6 +317,7 @@ sync_tree_refinement(TreeType& tree_in,
 
   // RedistNodes(MortionID_array)
   tree_out.RedistNodes(&mins_in[myrank]);
+  tbslas::Profile<double>::Toc();
 }
 
 }  // namespace tbslas

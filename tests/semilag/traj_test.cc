@@ -51,7 +51,7 @@ TEST_F(TrajTest, RK2SteadyVorticityField) {
   tbslas::CubicInterpPolicy<double> cubic_interp_policy;
   std::vector<double> xsol(xinit.size());
 
-  traj_rk2(vecfd, xinit, 0.0, tf, tn, cubic_interp_policy, xsol);
+  tbslas::ComputeTrajRK2(vecfd, xinit, 0.0, tf, tn, cubic_interp_policy, xsol);
 
   // std::cout << xsol[0] << " " << xsol[1] << " " << xsol[2] << std::endl;
   ASSERT_NEAR(xinit[0], xsol[0], 0.001);
@@ -68,12 +68,12 @@ TEST_F(TrajTest, RK2SteadyVorticityFunctor) {
 
   std::vector<double> xsol(xinit.size());
 
-  tbslas::traj_rk2(tbslas::get_vorticity_field<double,3>,
-                   xinit,
-                   0.0,
-                   tf,
-                   tn,
-                   xsol);
+  tbslas::ComputeTrajRK2(tbslas::get_vorticity_field<double,3>,
+                         xinit,
+                         0.0,
+                         tf,
+                         tn,
+                         xsol);
 
   // FIXME: somehow the asserts do not work precisely
   ASSERT_NEAR(xinit[0], xsol[0], 0.001);

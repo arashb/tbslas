@@ -25,20 +25,20 @@ namespace tbslas {
 //**********************************************************************
 template<typename real_t, typename FieldFunctor>
 void
-integrate_rk2(FieldFunctor field_fn,
-              const std::vector<real_t>& xinit,
-              const real_t tinit,
-              const real_t dt,
-              std::vector<real_t>& xsol);
+IntegrateRK2(FieldFunctor field_fn,
+             const std::vector<real_t>& xinit,
+             const real_t tinit,
+             const real_t dt,
+             std::vector<real_t>& xsol);
 
 template<typename real_t, typename Functor>
 void
-traj_rk2(Functor field_fn,
-         const std::vector<real_t>& xinit,
-         const real_t tinit,
-         const real_t tfinal,
-         const int num_rk_step,
-         std::vector<real_t>& xsol);
+ComputeTrajRK2(Functor field_fn,
+               const std::vector<real_t>& xinit,
+               const real_t tinit,
+               const real_t tfinal,
+               const int num_rk_step,
+               std::vector<real_t>& xsol);
 
 //**********************************************************************
 // INTERFACE FUNCTIONS USING VECTOR FIELDS
@@ -47,24 +47,24 @@ template<typename real_t,
          typename InterpPolicy,
          int sdim, int vdim>
 void
-integrate_rk2(const VecField<real_t, sdim, vdim>& field,
-              const std::vector<real_t>& xinit,
-              const real_t tinit,
-              const real_t dt,
-              const InterpPolicy& interp_policy,
-              std::vector<real_t>& xsol);
+IntegrateRK2(const VecField<real_t, sdim, vdim>& field,
+             const std::vector<real_t>& xinit,
+             const real_t tinit,
+             const real_t dt,
+             const InterpPolicy& interp_policy,
+             std::vector<real_t>& xsol);
 
 template<typename real_t,
          typename InterpPolicy,
          int sdim, int vdim>
 void
-traj_rk2(const VecField<real_t, sdim, vdim>& field,
-         const std::vector<real_t>& xinit,
-         const real_t tinit,
-         const real_t tfinal,
-         const int num_rk_step,
-         const InterpPolicy& interp_policy,
-         std::vector<real_t>& xsol);
+ComputeTrajRK2(const VecField<real_t, sdim, vdim>& field,
+               const std::vector<real_t>& xinit,
+               const real_t tinit,
+               const real_t tfinal,
+               const int num_rk_step,
+               const InterpPolicy& interp_policy,
+               std::vector<real_t>& xsol);
 
 }  // namespace tbslas
 

@@ -18,8 +18,8 @@
 // Enable profiling
 #define __TBSLAS_PROFILE__ 5
 #include <utils/profile.h>
-#include <tree/advect_tree_semilag.h>
-#include <tree/tree_utils.h>
+#include <tree/semilag_tree.h>
+#include <tree/utils_tree.h>
 
 typedef pvfmm::Cheb_Node<double> Node_t;
 typedef pvfmm::MPI_Tree<Node_t> Tree_t;
@@ -48,7 +48,7 @@ int main (int argc, char **argv) {
 
     // INIT THE TREES
     Tree_t tvel_curr(comm);
-    tbslas::construct_tree<Tree_t>(N, M, q, d, adap, tol, comm,
+    tbslas::ConstructTree<Tree_t>(N, M, q, d, adap, tol, comm,
                                    tbslas::get_vorticity_field<double,3>,
                                    3,
                                    tvel_curr);
@@ -61,7 +61,7 @@ int main (int argc, char **argv) {
 
     double vel_max_value;
     int vel_max_depth;
-    tbslas::max_tree_values<Tree_t>
+    tbslas::GetMaxTreeValues<Tree_t>
         (tvel_curr, vel_max_value, vel_max_depth);
 
     if (!myrank)
@@ -71,7 +71,7 @@ int main (int argc, char **argv) {
              vel_max_depth);
 
     Tree_t* tconc_curr = new Tree_t(comm);
-    tbslas::construct_tree<Tree_t>(N, M, q, d, adap, tol, comm,
+    tbslas::ConstructTree<Tree_t>(N, M, q, d, adap, tol, comm,
                                    tbslas::get_gaussian_field<double,3>,
                                    1,
                                    *tconc_curr);
@@ -82,7 +82,7 @@ int main (int argc, char **argv) {
 
     double conc_max_value;
     int conc_max_depth;
-    tbslas::max_tree_values<Tree_t>
+    tbslas::GetMaxTreeValues<Tree_t>
         (*tconc_curr, conc_max_value, conc_max_depth);
 
     if (!myrank)
@@ -93,7 +93,7 @@ int main (int argc, char **argv) {
 
     // clone a tree
     Tree_t* tconc_next = new Tree_t(comm);
-    tbslas::clone_tree<Tree_t>(*tconc_curr, *tconc_next, 1);
+    tbslas::CloneTree<Tree_t>(*tconc_curr, *tconc_next, 1);
 
     // set the input_fn to NULL -> need for adaptive refinement
     std::vector<Node_t*>  ncurr_list = tconc_curr->GetNodeList();
@@ -119,16 +119,12 @@ int main (int argc, char **argv) {
         printf("dt: %f tstep: %d\n", dt, tstep);
         printf("============================\n");
       }
-      // tbslas::Profile<double>::Tic("ConstructLET",false,5);
-      // tconc_curr->ConstructLET(pvfmm::FreeSpace);
-      // tbslas::Profile<double>::Toc();
-
-      tbslas::advect_tree_semilag<Tree_t>(tvel_curr,
-                                          *tconc_curr,
-                                          *tconc_next,
-                                          tstep,
-                                          dt,
-                                          num_rk_step);
+      tbslas::SolveSemilagTree<Tree_t>(tvel_curr,
+                                       *tconc_curr,
+                                       *tconc_next,
+                                       tstep,
+                                       dt,
+                                       num_rk_step);
 
       // refine the tree according to the computed values
       tbslas::Profile<double>::Tic("RefineTree",false,5);
@@ -140,9 +136,7 @@ int main (int argc, char **argv) {
       tconc_next->Write2File(out_name_buffer,q);
 
       // prepare the next step tree
-      tbslas::Profile<double>::Tic("sync_tree_refinement",false,5);
-      tbslas::sync_tree_refinement(*tconc_next, *tconc_curr);
-      tbslas::Profile<double>::Toc();
+      tbslas::SyncTreeRefinement(*tconc_next, *tconc_curr);
 
       tbslas::swap_pointers(&tconc_curr, &tconc_next);
     }

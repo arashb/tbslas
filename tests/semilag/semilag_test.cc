@@ -94,15 +94,15 @@ TEST_F(SemilagTest, SteadyVorticityWithFunctor) {
     std::cout << "-> timestep: " << timestep
               << " time: " << dt*timestep << std::endl;
 
-    tbslas::semilag_rk2(tbslas::get_vorticity_field<double,3>,
-                        tbslas::get_gaussian_field<double,3>,
-                        points_pos,
-                        sdim,
-                        timestep,
-                        dt,
-                        num_rk_step,
-                        points_val
-                        );
+    tbslas::SolveSemilagRK2(tbslas::get_vorticity_field<double,3>,
+                            tbslas::get_gaussian_field<double,3>,
+                            points_pos,
+                            sdim,
+                            timestep,
+                            dt,
+                            num_rk_step,
+                            points_val
+                            );
 
     // vel_field.push_back_values(points_val_vorticity, dt*timestep);
     con_field.push_back_values(points_val, dt*timestep);

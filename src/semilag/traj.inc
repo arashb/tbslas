@@ -14,18 +14,18 @@
 #include <vector>
 
 #include "semilag/vec_field.h"
-//#include "utils/profile.h"
+#include "utils/profile.h"
 
 namespace tbslas {
 
 template<typename real_t, typename FieldFunctor>
 void
-integrate_rk2(FieldFunctor field_fn,
+IntegrateRK2(FieldFunctor field_fn,
               const std::vector<real_t>& xinit,
               const real_t tinit,
               const real_t dt,
               std::vector<real_t>& xsol) {
-  Profile<double>::Tic("integrate_rk2",false,5);
+  Profile<double>::Tic("IntegrateRK2",false,5);
   int num_points = xinit.size()/3;
   std::vector<real_t> xtmp(xinit.size());
   std::vector<real_t> vtmp(xinit.size());
@@ -44,13 +44,13 @@ integrate_rk2(FieldFunctor field_fn,
 
 template<typename real_t, typename FieldFunctor>
 void
-traj_rk2(FieldFunctor field_fn,
+ComputeTrajRK2(FieldFunctor field_fn,
          const std::vector<real_t>& xinit,
          const real_t tinit,
          const real_t tfinal,
          const int num_rk_step,
          std::vector<real_t>& xsol) {
-  Profile<double>::Tic("traj_rk2",false,5);
+  Profile<double>::Tic("ComputeTrajRK2",false,5);
   // FIXME: currently only time independent
   real_t tau = (tfinal - tinit)/num_rk_step;
 
@@ -61,7 +61,7 @@ traj_rk2(FieldFunctor field_fn,
   // n-step RK2
   for (int taustep = 0; taustep < num_rk_step; taustep++) {
     // std::cout << xsol[0] << " " << xsol[1] << " " << xsol[2] << std::endl;
-    integrate_rk2(field_fn, xsol, current_time, tau, xsol);
+    IntegrateRK2(field_fn, xsol, current_time, tau, xsol);
     current_time = current_time + tau;
   }
   Profile<double>::Toc();
@@ -69,13 +69,13 @@ traj_rk2(FieldFunctor field_fn,
 
 template<typename real_t, typename InterpPolicy, int sdim, int vdim>
 void
-integrate_rk2(const VecField<real_t, sdim, vdim>& field,
+IntegrateRK2(const VecField<real_t, sdim, vdim>& field,
               const std::vector<real_t>& xinit,
               const real_t init_time,
               const real_t dt,
               const InterpPolicy& interp_policy,
               std::vector<real_t>& xsol) {
-  //  Profile<double>::Tic("integrate_rk2",false,5);
+  //  Profile<double>::Tic("IntegrateRK2",false,5);
   std::vector<real_t> xtmp(xinit.size());
   std::vector<real_t> vtmp(xinit.size());
 
@@ -91,14 +91,14 @@ integrate_rk2(const VecField<real_t, sdim, vdim>& field,
 
 template<typename real_t, typename InterpPolicy, int sdim, int vdim>
 void
-traj_rk2(const VecField<real_t, sdim, vdim>& field,
+ComputeTrajRK2(const VecField<real_t, sdim, vdim>& field,
          const std::vector<real_t>& xinit,
          const real_t tinit,
          const real_t tfinal,
          const int num_rk_step,
          const InterpPolicy& interp_policy,
          std::vector<real_t>& xsol) {
-  //  Profile<double>::Tic("traj_rk2",false,5);
+  //  Profile<double>::Tic("ComputeTrajRK2",false,5);
   real_t tau = (tfinal - tinit)/num_rk_step;
 
   for (int i = 0; i < xinit.size(); i++)
@@ -108,7 +108,7 @@ traj_rk2(const VecField<real_t, sdim, vdim>& field,
   // n-step RK2
   for (int taustep = 0; taustep < num_rk_step; taustep++) {
     // std::cout << xsol[0] << " " << xsol[1] << " " << xsol[2] << std::endl;
-    integrate_rk2(field, xsol, current_time, tau, interp_policy, xsol);
+    IntegrateRK2(field, xsol, current_time, tau, interp_policy, xsol);
     current_time = current_time + tau;
   }
   //Profile<double>::Toc();
