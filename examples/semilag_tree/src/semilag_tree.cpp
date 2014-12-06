@@ -49,12 +49,12 @@ int main (int argc, char **argv) {
     // INIT THE TREES
     Tree_t tvel_curr(comm);
     tbslas::ConstructTree<Tree_t>(N, M, q, d, adap, tol, comm,
-                                   tbslas::get_vorticity_field<double,3>,
-                                   3,
-                                   tvel_curr);
+                                  tbslas::get_vorticity_field<double,3>,
+                                  3,
+                                  tvel_curr);
     tvel_curr.ConstructLET(pvfmm::FreeSpace);
-    char out_name_buffer[300];
 
+    char out_name_buffer[300];
     snprintf(out_name_buffer, sizeof(out_name_buffer),
              "%s/sltree_vel_%d_", tbslas::get_result_dir().c_str(), 0);
     tvel_curr.Write2File(out_name_buffer, q);
@@ -70,20 +70,16 @@ int main (int argc, char **argv) {
              vel_max_value,
              vel_max_depth);
 
-    Tree_t* tconc_curr = new Tree_t(comm);
+    Tree_t tconc_curr(comm);
     tbslas::ConstructTree<Tree_t>(N, M, q, d, adap, tol, comm,
-                                   tbslas::get_gaussian_field<double,3>,
-                                   1,
-                                   *tconc_curr);
-
-    snprintf(out_name_buffer, sizeof(out_name_buffer),
-             "%s/sltree_val_%d_", tbslas::get_result_dir().c_str(), 0);
-    tconc_curr->Write2File(out_name_buffer, q);
+                                  tbslas::get_gaussian_field<double,3>,
+                                  1,
+                                  tconc_curr);
 
     double conc_max_value;
     int conc_max_depth;
     tbslas::GetMaxTreeValues<Tree_t>
-        (*tconc_curr, conc_max_value, conc_max_depth);
+        (tconc_curr, conc_max_value, conc_max_depth);
 
     if (!myrank)
       printf("%d:CON MAX VALUE: %f CON MAX DEPTH:%d\n",
@@ -91,62 +87,22 @@ int main (int argc, char **argv) {
              conc_max_value,
              conc_max_depth);
 
-    // clone a tree
-    Tree_t* tconc_next = new Tree_t(comm);
-    tbslas::CloneTree<Tree_t>(*tconc_curr, *tconc_next, 1);
-
-    // set the input_fn to NULL -> need for adaptive refinement
-    std::vector<Node_t*>  ncurr_list = tconc_curr->GetNodeList();
-    for(int i = 0; i < ncurr_list.size(); i++) {
-      ncurr_list[i]->input_fn = NULL;
-    }
-
-    std::vector<Node_t*>  nnext_list = tconc_next->GetNodeList();
-    for(int i = 0; i < nnext_list.size(); i++) {
-      nnext_list[i]->input_fn = NULL;
-    }
-
     // simulation parameters
     double cfl      = 1;
     double dx_min   = pow(0.5, conc_max_depth);
-    double dt       = (cfl * dx_min)/vel_max_value;
-    int num_rk_step = 1;
 
-    // TIME STEPPING
-    for (int tstep = 1; tstep < tn+1; tstep++) {
-      if(!myrank) {
-        printf("============================\n");
-        printf("dt: %f tstep: %d\n", dt, tstep);
-        printf("============================\n");
-      }
-      tbslas::SolveSemilagTree<Tree_t>(tvel_curr,
-                                       *tconc_curr,
-                                       *tconc_next,
-                                       tstep,
-                                       dt,
-                                       num_rk_step);
+    struct tbslas::SimParam<double> sim_param;
+    sim_param.total_num_timestep = tn;
+    sim_param.dt                 = (cfl * dx_min)/vel_max_value;
+    sim_param.num_rk_step        = 1;
 
-      // refine the tree according to the computed values
-      tbslas::Profile<double>::Tic("RefineTree",false,5);
-      tconc_next->RefineTree();
-      tbslas::Profile<double>::Toc();
-
-      snprintf(out_name_buffer, sizeof(out_name_buffer),
-               "%s/sltree_val_%d_", tbslas::get_result_dir().c_str(), tstep);
-      tconc_next->Write2File(out_name_buffer,q);
-
-      // prepare the next step tree
-      tbslas::SyncTreeRefinement(*tconc_next, *tconc_curr);
-
-      tbslas::swap_pointers(&tconc_curr, &tconc_next);
-    }
-
+    tbslas::RunSemilagSimulation(&tvel_curr,
+                                 &tconc_curr,
+                                 &sim_param,
+                                 true,
+                                 true);
     //Output Profiling results.
     tbslas::Profile<double>::print(&comm);
-
-    // CLEAN UP MEM.
-    delete tconc_curr;
-    delete tconc_next;
   }
 
   // Shut down MPI

@@ -10,10 +10,11 @@
 // limitations under the License.
 // *************************************************************************
 
-#ifndef SRC_TREE_ADVECT_TREE_SEMILAG_H_
-#define SRC_TREE_ADVECT_TREE_SEMILAG_H_
+#ifndef SRC_TREE_SEMILAG_TREE_H_
+#define SRC_TREE_SEMILAG_TREE_H_
 
 #include <vector>
+#include <string>
 
 #include "semilag/semilag.h"
 
@@ -24,6 +25,25 @@
 #include "utils/profile.h"
 
 namespace tbslas {
+
+template<class RealType>
+struct SimParam {
+
+  SimParam():
+      vtk_order(14),
+      vtk_filename_format("%s/values_%d_") {
+  }
+  // time stepping
+  int total_num_timestep;
+  RealType dt;
+
+  // semi-lagrangian solver
+  int num_rk_step;
+
+  // OUTPUT
+  int vtk_order;
+  std::string vtk_filename_format;
+};
 
 template <class TreeType>
 void SolveSemilagTree(TreeType& tvel_curr,
@@ -132,6 +152,95 @@ void SolveSemilagTree(TreeType& tvel_curr,
   Profile<double>::Toc();
 }
 
+template <class TreeType>
+void
+RunSemilagSimulation(TreeType* vel_tree,
+                     TreeType* con_tree_curr,
+                     struct tbslas::SimParam<typename TreeType::Real_t>* sim_param,
+                     bool adaptive = true,
+                     bool save = true) {
+  typedef typename TreeType::Node_t NodeType;
+  typedef typename TreeType::Real_t RealType;
+
+  int myrank;
+  MPI_Comm comm=MPI_COMM_WORLD;
+  MPI_Comm_rank(comm, &myrank);
+
+  // simulation parameters
+  int tn = sim_param->total_num_timestep;
+  RealType dt = sim_param->dt;
+  int num_rk_step = sim_param->num_rk_step;
+
+  //////////////////////////////////////////////////////////////////////
+  // NEXT STEP TREE
+  //////////////////////////////////////////////////////////////////////
+  // clone tree
+  TreeType* con_tree_next = new TreeType(comm);
+  tbslas::CloneTree<TreeType>(*con_tree_curr, *con_tree_next, 1);
+
+  // set the input_fn to NULL -> needed for adaptive refinement
+  std::vector<NodeType*>  ncurr_list = con_tree_curr->GetNodeList();
+  for(int i = 0; i < ncurr_list.size(); i++) {
+    ncurr_list[i]->input_fn = NULL;
+  }
+
+  std::vector<NodeType*>  nnext_list = con_tree_next->GetNodeList();
+  for(int i = 0; i < nnext_list.size(); i++) {
+    nnext_list[i]->input_fn = NULL;
+  }
+
+  //////////////////////////////////////////////////////////////////////
+  // TIME STEPPING
+  //////////////////////////////////////////////////////////////////////
+  int tstep = 0;
+  TreeType* tconc_curr = con_tree_curr;
+  TreeType* tconc_next = con_tree_next;
+  // save current time step data
+  char out_name_buffer[300];
+  if (save) {
+    snprintf(out_name_buffer, sizeof(out_name_buffer),
+             sim_param->vtk_filename_format.c_str(),
+             tbslas::get_result_dir().c_str(), tstep);
+    tconc_curr->Write2File(out_name_buffer, sim_param->vtk_order);
+  }
+
+  for (tstep = 1; tstep < tn+1; tstep++) {
+    if(!myrank) {
+      printf("============================\n");
+      printf("dt: %f tstep: %d\n", dt, tstep);
+      printf("============================\n");
+    }
+    tbslas::SolveSemilagTree<TreeType>(*vel_tree,
+                                       *tconc_curr,
+                                       *tconc_next,
+                                       tstep,
+                                       dt,
+                                       num_rk_step);
+
+    if (adaptive) {
+      // refine the tree according to the computed values
+      tbslas::Profile<double>::Tic("RefineTree",false,5);
+      tconc_next->RefineTree();
+      tbslas::Profile<double>::Toc();
+
+      // prepare the next step tree
+      tbslas::SyncTreeRefinement(*tconc_next, *tconc_curr);
+    }
+
+    // save current time step data
+    if (save) {
+      snprintf(out_name_buffer, sizeof(out_name_buffer),
+               sim_param->vtk_filename_format.c_str(),
+               tbslas::get_result_dir().c_str(), tstep);
+      tconc_next->Write2File(out_name_buffer, sim_param->vtk_order);
+    }
+
+    tbslas::swap_pointers(&tconc_curr, &tconc_next);
+  }
+  // clean up memory
+  delete con_tree_next;
+}
+
 }  // namespace tbslas
 
-#endif  // SRC_TREE_SOLVE_SEMILAG_TREE_H_
+#endif  // SRC_TREE_SEMILAG_TREE_H_
