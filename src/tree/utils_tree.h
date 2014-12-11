@@ -29,7 +29,8 @@ namespace tbslas {
 template<typename TreeType>
 void CloneTree(TreeType& tree_in,
                TreeType& tree_out,
-               int data_dof) {
+               int data_dof
+               ) {
   typedef typename TreeType::Node_t NodeType;
   typedef typename TreeType::Real_t RealType;
 
@@ -42,7 +43,7 @@ void CloneTree(TreeType& tree_in,
   //Set input function pointer
   tree_data.input_fn = tbslas::dummy_fn<RealType>;
   tree_data.data_dof = data_dof;
-  tree_data.tol      = 1;
+  tree_data.tol      = tree_in.RootNode()->MaxErr();
 
   //Set source coordinates.
   std::vector<RealType> pt_coord;
