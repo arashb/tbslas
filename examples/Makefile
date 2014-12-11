@@ -24,7 +24,9 @@ OBJDIR = ./obj
 INCDIR = ./include
 
 TARGET_BIN = \
-       $(BINDIR)/semilag_tree
+       $(BINDIR)/semilag_tree \
+       $(BINDIR)/zalesak
+
 
 all : $(TARGET_BIN)
 
