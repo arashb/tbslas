@@ -75,6 +75,9 @@ int main (int argc, char **argv) {
                                   tbslas::get_gaussian_field<double,3>,
                                   1,
                                   tconc_curr);
+    // clone tree
+    Tree_t tconc_next(comm);
+    tbslas::CloneTree<Tree_t>(tconc_curr, tconc_next, 1);
 
     double conc_max_value;
     int conc_max_depth;
@@ -96,11 +99,15 @@ int main (int argc, char **argv) {
     sim_param.dt                 = (cfl * dx_min)/vel_max_value;
     sim_param.num_rk_step        = 1;
 
+    Tree_t* result;
     tbslas::RunSemilagSimulation(&tvel_curr,
                                  &tconc_curr,
+                                 &tconc_next,
                                  &sim_param,
+                                 &result,
                                  true,
                                  true);
+
     //Output Profiling results.
     tbslas::Profile<double>::print(&comm);
   }

@@ -69,50 +69,11 @@ void SolveSemilagTree(TreeType& tvel_curr,
   int data_dof = n_curr->DataDOF();
   int cheb_deg = n_curr->ChebDeg();
   int sdim     = tree_curr.Dim();
-
-  // compute chebychev points positions on the fly
-  std::vector<RealType> cheb_pos = pvfmm::cheb_nodes<RealType>(cheb_deg, sdim);
-  int num_points_per_node        = cheb_pos.size()/sdim;
-
-#ifndef NDEBUG
-  CountNumLeafNodes(tree_next);
-#endif
-
-  // compute total number of tree leaf nodes
-  NodeType* n_next = tree_next.PostorderFirst();
-  int num_leaf_nodes = 0;
-  while (n_next != NULL) {
-    if(!n_next->IsGhost() && n_next->IsLeaf())
-      num_leaf_nodes++;
-    n_next = tree_next.PostorderNxt(n_next);
-  }
+  int num_points_per_node = (cheb_deg+1)*(cheb_deg+1)*(cheb_deg+1);
 
   std::vector<RealType> points_pos_all_nodes;
-  points_pos_all_nodes.resize(cheb_pos.size()*num_leaf_nodes);
+  tbslas::CollectChebTreeGridPoints(tree_next, points_pos_all_nodes);
 
-  n_next = tree_next.PostorderFirst();
-  while (n_next != NULL) {
-    if(!n_next->IsGhost() && n_next->IsLeaf())
-      break;
-    n_next = tree_next.PostorderNxt(n_next);
-  }
-
-  int tree_next_node_counter = 0;
-  while (n_next != NULL) {
-    if (n_next->IsLeaf() && !n_next->IsGhost()) {
-      RealType length      = static_cast<RealType>(std::pow(0.5, n_next->Depth()));
-      RealType* node_coord = n_next->Coord();
-      // scale the cheb points
-      size_t shift = tree_next_node_counter*cheb_pos.size();
-      for (int i = 0; i < num_points_per_node; i++) {
-        points_pos_all_nodes[shift + i*sdim+0] = node_coord[0] + length * cheb_pos[i*sdim+0];
-        points_pos_all_nodes[shift + i*sdim+1] = node_coord[1] + length * cheb_pos[i*sdim+1];
-        points_pos_all_nodes[shift + i*sdim+2] = node_coord[2] + length * cheb_pos[i*sdim+2];
-      }
-      tree_next_node_counter++;
-    }
-    n_next = tree_next.PostorderNxt(n_next);
-  }
   ////////////////////////////////////////////////////////////////////////
   // (2) solve semi-Lagrangian
   ////////////////////////////////////////////////////////////////////////
@@ -130,13 +91,13 @@ void SolveSemilagTree(TreeType& tvel_curr,
   ////////////////////////////////////////////////////////////////////////
   // (3) set the computed values
   ////////////////////////////////////////////////////////////////////////
-  n_next = tree_next.PostorderFirst();
+  NodeType* n_next = tree_next.PostorderFirst();
   while (n_next != NULL) {
     if(!n_next->IsGhost() && n_next->IsLeaf()) break;
     n_next = tree_next.PostorderNxt(n_next);
   }
 
-  tree_next_node_counter = 0;
+  int tree_next_node_counter = 0;
   while (n_next != NULL) {
     if (n_next->IsLeaf() && !n_next->IsGhost()) {
       pvfmm::cheb_approx<RealType, RealType>(
@@ -156,7 +117,9 @@ template <class TreeType>
 void
 RunSemilagSimulation(TreeType* vel_tree,
                      TreeType* con_tree_curr,
+                     TreeType* con_tree_next,
                      struct tbslas::SimParam<typename TreeType::Real_t>* sim_param,
+                     TreeType** result,
                      bool adaptive = true,
                      bool save = true) {
   typedef typename TreeType::Node_t NodeType;
@@ -175,8 +138,8 @@ RunSemilagSimulation(TreeType* vel_tree,
   // NEXT STEP TREE
   //////////////////////////////////////////////////////////////////////
   // clone tree
-  TreeType* con_tree_next = new TreeType(comm);
-  tbslas::CloneTree<TreeType>(*con_tree_curr, *con_tree_next, 1);
+  // TreeType* con_tree_next = new TreeType(comm);
+  // tbslas::CloneTree<TreeType>(*con_tree_curr, *con_tree_next, 1);
 
   // set the input_fn to NULL -> needed for adaptive refinement
   std::vector<NodeType*>  ncurr_list = con_tree_curr->GetNodeList();
@@ -207,7 +170,7 @@ RunSemilagSimulation(TreeType* vel_tree,
   for (tstep = 1; tstep < tn+1; tstep++) {
     if(!myrank) {
       printf("============================\n");
-      printf("dt: %f tstep: %d\n", dt, tstep);
+      printf("dt: %f tstep: %d time: %f\n", dt, tstep, dt*tstep);
       printf("============================\n");
     }
     tbslas::SolveSemilagTree<TreeType>(*vel_tree,
@@ -227,18 +190,17 @@ RunSemilagSimulation(TreeType* vel_tree,
       tbslas::SyncTreeRefinement(*tconc_next, *tconc_curr);
     }
 
+    tbslas::swap_pointers(&tconc_curr, &tconc_next);
+
     // save current time step data
+    *result = tconc_curr;
     if (save) {
       snprintf(out_name_buffer, sizeof(out_name_buffer),
                sim_param->vtk_filename_format.c_str(),
                tbslas::get_result_dir().c_str(), tstep);
-      tconc_next->Write2File(out_name_buffer, sim_param->vtk_order);
+      (*result)->Write2File(out_name_buffer, sim_param->vtk_order);
     }
-
-    tbslas::swap_pointers(&tconc_curr, &tconc_next);
-  }
-  // clean up memory
-  delete con_tree_next;
+  }  // end of for
 }
 
 }  // namespace tbslas
