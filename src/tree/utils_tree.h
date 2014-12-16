@@ -287,7 +287,7 @@ GetTreeMortonIdMins(TreeType& tree,
 }
 
 template<typename TreeType>
-void
+int
 CountNumLeafNodes(TreeType& tree) {
   typedef typename TreeType::Real_t RealType;
   typedef typename TreeType::Node_t NodeType;
@@ -297,7 +297,6 @@ CountNumLeafNodes(TreeType& tree) {
   MPI_Comm_rank(*tree.Comm(), &myrank);
 
   int num_leaf_nodes = 0;
-  int* rbuf = reinterpret_cast<int*>(malloc(np*sizeof(int)));
   // compute total number of tree leaf nodes
   NodeType* n_next = tree.PostorderFirst();
   while (n_next != NULL) {
@@ -305,19 +304,11 @@ CountNumLeafNodes(TreeType& tree) {
       num_leaf_nodes++;
     n_next = tree.PostorderNxt(n_next);
   }
-  MPI_Allgather(&num_leaf_nodes, 1, MPI_INT,
-                rbuf, 1, MPI_INT, *tree.Comm());
+  int total_num_leaf_nodes = 0;
+  MPI_Reduce(&num_leaf_nodes, &total_num_leaf_nodes, 1, MPI_INT,
+             MPI_SUM, 0, *tree.Comm());
 
-#ifndef NDEBUG
-  if(!myrank) {
-    printf("[");
-    for(int i = 0; i < np; i++)
-      printf("%d ",rbuf[i]);
-    printf("]\n");
-  }
-#endif
-
-  delete rbuf;
+  return total_num_leaf_nodes;
 }
 
 template<typename NodeType>
@@ -366,18 +357,6 @@ SyncTreeRefinement(TreeType& tree_in,
   NodeType* node_in  = tree_in.PreorderFirst();
   NodeType* node_out = tree_out.PreorderFirst();
   SyncNodeRefinement<NodeType>(node_in, node_out);
-
-#ifndef NDEBUG
-  MPI_Barrier(MPI_COMM_WORLD);
-  if(!myrank)
-    printf("TREE-IN :");
-  CountNumLeafNodes(tree_in);
-
-  MPI_Barrier(MPI_COMM_WORLD);
-  if(!myrank)
-    printf("TREE-OUT:");
-  CountNumLeafNodes(tree_out);
-#endif
 
   tbslas::Profile<double>::Toc();
 }

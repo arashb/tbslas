@@ -24,6 +24,9 @@
 typedef pvfmm::Cheb_Node<double> Node_t;
 typedef pvfmm::MPI_Tree<Node_t> Tree_t;
 
+
+double tcurr = 0;
+
 int main (int argc, char **argv) {
   MPI_Init(&argc, &argv);
   MPI_Comm comm=MPI_COMM_WORLD;
@@ -72,7 +75,7 @@ int main (int argc, char **argv) {
 
     Tree_t tconc_curr(comm);
     tbslas::ConstructTree<Tree_t>(N, M, q, d, adap, tol, comm,
-                                  tbslas::get_gaussian_field<double,3>,
+                                  get_gaussian_field_cylinder_atT<double,3>,
                                   1,
                                   tconc_curr);
     // clone tree

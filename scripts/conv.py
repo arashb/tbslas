@@ -11,35 +11,92 @@
 #See the License for the specific language governing permissions and
 #limitations under the License.
 #*************************************************************************
-import os, subprocess, math
+import os
+import subprocess
+import math
+import time
+import socket
+import sys
 
 ################################################################################
-# CONSTRUCT THE EXECUTION COMMAND
+# GLOBALS
+################################################################################
+MPI_NUM_PROCESS = sys.argv[1]
+OMP_NUM_THREADS = sys.argv[2]
+
+HOSTNAME = socket.gethostname()
+TIMESTR  = time.strftime("%Y%m%d-%H%M%S")
+
+################################################################################
+# ENVIRONMENT VARIABLES
+################################################################################
+try:
+    TBSLAS_DIR = os.environ['TBSLAS_DIR']
+except KeyError as e:
+    print "Environment variable {0} is not set.".format(e)
+    sys.exit()
+
+os.environ['OMP_NUM_THREADS'] = OMP_NUM_THREADS
+################################################################################
+# DIRECTORIES
+################################################################################
+TBSLAS_EXAMPLES_DIR = os.path.join(TBSLAS_DIR, "examples/")
+TBSLAS_EXAMPLES_BIN_DIR = os.path.join(TBSLAS_EXAMPLES_DIR, "bin/")
+
+################################################################################
+# EXECUTION COMMAND
 ################################################################################
 PROGRAM  = "zalesak"
-WORK_DIR = "examples/"
-BIN_DIR  = os.path.join(WORK_DIR, "bin/")
-RES_DIR  = os.path.join(WORK_DIR, "results/")
+EXEC     = os.path.join(TBSLAS_EXAMPLES_BIN_DIR, PROGRAM)
 
-EXEC    = os.path.join(BIN_DIR, PROGRAM)
+def determine_command_prefix():
+    if 'stampede' in HOSTNAME:
+        return ['ibrun', 'tacc_affinity']
+    elif 'zico' in HOSTNAME:
+        return ['mpirun', '-n', str(MPI_NUM_PROCESS)]
 
+    return []
+
+def generate_commands():
+    commands = []
+    dt = 0.1047 #math.pi/30
+    tn = 1
+    toli = 3
+    tolf = 4
+    tol_list = [math.pow(0.1,x) for x in range(toli,tolf+1)]
+    for tol in tol_list:
+        ARGS    = ['-N', '8', '-tol', str(tol), '-dt', str(dt), '-tn', str(tn)]
+        cmd = determine_command_prefix() + [EXEC] + ARGS
+        # save command
+        commands.append(cmd)
+        dt = dt*0.5
+        tn = 2*tn
+    return commands
+
+def execute_commands(commands):
+    output = []
+    for command in commands:
+        command_message = "COMMAND: " +  str(command) + '\n'
+        print(command_message)
+        # output = output +  [command_message]
+        # execute command
+        p = subprocess.Popen(command, shell=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        for line in p.stdout.readlines():
+            print line
+            output.append(line)
+    return output
+
+def analyse_output(output):
+    f = open('conv-'+TIMESTR+'.out','w')
+    for line in output:
+        if line.startswith('TOL:'):
+            f.write(line)
+    f.close()
 
 ################################################################################
 # MAIN
 ################################################################################
-def main():
-    dt = 0.1047 #math.pi/30
-    toli = 1
-    tolf = 9
-    tol_list = [math.pow(0.1,x) for x in range(toli,tolf)]
-    for tol in tol_list:
-        ARGS    = ['-N', '8', '-tol', str(tol), '-dt', str(dt)]
-        COMMAND = [EXEC] + ARGS
-        print("BINARY: " +  str(COMMAND))
-        p = subprocess.Popen(COMMAND, shell=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        for line in p.stdout.readlines():
-            if line.startswith('TOL:'):
-                print line
-
 if __name__ == '__main__':
-    main()
+    commands = generate_commands()
+    output   = execute_commands(commands)
+    analyse_output(output)

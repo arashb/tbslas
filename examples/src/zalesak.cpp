@@ -36,6 +36,8 @@
 typedef pvfmm::Cheb_Node<double> Node_t;
 typedef pvfmm::MPI_Tree<Node_t> Tree_t;
 
+double tcurr = 0;
+
 int main (int argc, char **argv) {
   MPI_Init(&argc, &argv);
   MPI_Comm comm=MPI_COMM_WORLD;
@@ -49,8 +51,8 @@ int main (int argc, char **argv) {
   int      d =         strtoul(commandline_option(argc, argv,    "-d",    "15", false, "-d    <int> = (15)   : Maximum tree depth."                ),NULL,10);
   double tol =         strtod(commandline_option(argc, argv,  "-tol",  "1e-5", false, "-tol <real> = (1e-5) : Tolerance for adaptive refinement." ),NULL);
   bool  adap =               (commandline_option(argc, argv, "-adap",    NULL, false, "-adap                : Adaptive tree refinement."          )!=NULL);
-  // int     tn =         strtoul(commandline_option(argc, argv,    "-tn",    "1", false, "-tn    <int> = (1)   : Number of time steps."     ),NULL,10);
-  double  dt =         strtod(commandline_option(argc, argv,  "-dt",  "0.1e-5", false, "-tol <real> = (1e-5) : Temporal resolution." ), NULL);
+  int     tn =         strtoul(commandline_option(argc, argv,    "-tn",    "1", false, "-tn    <int> = (1)   : Number of time steps."     ),NULL,10);
+  double dt  =         strtod(commandline_option(argc, argv,  "-dt",  "0.1e-2", false, "-tol <real> = (1e-5) : Temporal resolution." ), NULL);
 
   commandline_option_end(argc, argv);
 
@@ -59,6 +61,7 @@ int main (int argc, char **argv) {
     MPI_Comm_rank(comm, &myrank);
 
     // tbslas::Profile<double>::Enable(true, &comm);
+
     // =========================================================================
     // INIT THE VELOCITY TREE
     // =========================================================================    
@@ -75,10 +78,11 @@ int main (int argc, char **argv) {
 
     // =========================================================================
     // INIT THE CONCENTRATION TREE
-    // =========================================================================    
+    // =========================================================================
+    tcurr = 0;
     Tree_t tconc_curr(comm);
     tbslas::ConstructTree<Tree_t>(N, M, q, d, adap, tol, comm,
-                                  tbslas::get_gaussian_field<double,3>,
+                                  get_gaussian_field_cylinder_atT<double,3>,
                                   1,
                                   tconc_curr);
 
@@ -88,40 +92,12 @@ int main (int argc, char **argv) {
 
     // =========================================================================
     // PREPARE SIMULATION PARAMETERS
-    // =========================================================================    
-    double vel_max_value;
-    int vel_max_depth;
-    tbslas::GetMaxTreeValues<Tree_t>
-        (tvel_curr, vel_max_value, vel_max_depth);
-
-    if (!myrank)
-      printf("%d: VEL MAX VALUE: %f VEL MAX DEPTH:%d\n",
-             myrank,
-             vel_max_value,
-             vel_max_depth);
-
-    double conc_max_value;
-    int conc_max_depth;
-    tbslas::GetMaxTreeValues<Tree_t>
-        (tconc_curr, conc_max_value, conc_max_depth);
-
-    if (!myrank)
-      printf("%d:CON MAX VALUE: %f CON MAX DEPTH:%d\n",
-             myrank,
-             conc_max_value,
-             conc_max_depth);
-
-    double tend = 2*3.14159265359;
-    int tn      = tend/dt;
-
+    // =========================================================================
     struct tbslas::SimParam<double> sim_param;
     sim_param.dt                 = dt;
     sim_param.total_num_timestep = tn;
     sim_param.num_rk_step        = 1;
 
-    // =========================================================================
-    // PREPARE SIMULATION PARAMETERS
-    // =========================================================================
     Tree_t* tresult;
     tbslas::RunSemilagSimulation(&tvel_curr,
                                  &tconc_curr,
@@ -129,17 +105,20 @@ int main (int argc, char **argv) {
                                  &sim_param,
                                  &tresult,
                                  true,
-                                 false);
+                                 true);
 
     // =========================================================================
     // compute error
     // =========================================================================
     double l_inf_error, l_two_error;
+    tcurr = tn*dt;
     tbslas::ComputeTreeError(*tresult,
-                             tbslas::get_gaussian_field<double,3>,
+                             get_gaussian_field_cylinder_atT<double,3>,
                              l_inf_error,
                              l_two_error);
-    printf("TOL: %f LTWO: %2.10f LINF = %2.10f\n", tol, l_two_error, l_inf_error);
+    int tnln = tbslas::CountNumLeafNodes(*tresult);
+    if(!myrank)
+      printf("TOL: %2.10f LTWO: %2.10f LINF = %2.10f TNLN: %d\n", tol, l_two_error, l_inf_error, tnln);
 
     //Output Profiling results.
     // tbslas::Profile<double>::print(&comm);
