@@ -1,13 +1,15 @@
 #!/bin/bash
 #SBATCH -J TBSLAS_CONV
 #SBATCH --export=ALL
-#SBATCH -n 16              # total number of mpi tasks requested
-#SBATCH -N 16              # nodes
+#SBATCH -n 3              # total number of mpi tasks requested
+#SBATCH -N 3              # nodes
 #SBATCH -p normal     # queue (partition) -- normal, development, etc.
-#SBATCH -t 02:00:00        # run time (hh:mm:ss) - 1.5 hours
+#SBATCH -t 00:03:00        # run time (hh:mm:ss) - 1.5 hours
 
-nodes = 16
-cores = 16
+MPI_NUM_PROCESSES=3
+OMP_NUM_THREADS=16
+TOL_NUM_DIGITS_INIT=3
+TOL_NUM_DIGITS_FINAL=9
 
 WORK_DIR=${PWD}
 cd ${WORK_DIR}
@@ -15,8 +17,5 @@ cd ${WORK_DIR}
 module load fftw3
 module load python
 
-export TBSLAS_RESULT_DIR=${WORK}/conv
-mkdir -p ${TBSLAS_RESULT_DIR};
-
-python ./conv.py nodes cores
+python ./conv.py ${MPI_NUM_PROCESSES} ${OMP_NUM_THREADS} ${TOL_NUM_DIGITS_INIT} ${TOL_NUM_DIGITS_FINAL}
 ### End of script

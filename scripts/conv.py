@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 #*************************************************************************
 #Copyright (C) 2014 by Arash Bakhtiari
 #You may not use this file except in compliance with the License.
@@ -18,14 +16,20 @@ import time
 import socket
 import sys
 
+from collections import OrderedDict
 ################################################################################
 # GLOBALS
 ################################################################################
-MPI_NUM_PROCESS = sys.argv[1]
-OMP_NUM_THREADS = sys.argv[2]
+if len(sys.argv) < 5:
+    raise 
+MPI_NUM_PROCESS = int(sys.argv[1])
+OMP_NUM_THREADS = int(sys.argv[2])
+TOL_NUM_DIGITS_INIT = int(sys.argv[3])
+TOL_NUM_DIGITS_FINAL = int(sys.argv[4])
 
 HOSTNAME = socket.gethostname()
 TIMESTR  = time.strftime("%Y%m%d-%H%M%S")
+OUTPUT_PREFIX = 'conv-'+TIMESTR
 
 ################################################################################
 # ENVIRONMENT VARIABLES
@@ -36,12 +40,14 @@ except KeyError as e:
     print "Environment variable {0} is not set.".format(e)
     sys.exit()
 
-os.environ['OMP_NUM_THREADS'] = OMP_NUM_THREADS
+os.environ['OMP_NUM_THREADS'] = str(OMP_NUM_THREADS)
 ################################################################################
 # DIRECTORIES
 ################################################################################
+PWD = os.environ['PWD']
 TBSLAS_EXAMPLES_DIR = os.path.join(TBSLAS_DIR, "examples/")
 TBSLAS_EXAMPLES_BIN_DIR = os.path.join(TBSLAS_EXAMPLES_DIR, "bin/")
+TBSLAS_RESULT_DIR_PREFIX = ''
 
 ################################################################################
 # EXECUTION COMMAND
@@ -49,45 +55,56 @@ TBSLAS_EXAMPLES_BIN_DIR = os.path.join(TBSLAS_EXAMPLES_DIR, "bin/")
 PROGRAM  = "zalesak"
 EXEC     = os.path.join(TBSLAS_EXAMPLES_BIN_DIR, PROGRAM)
 
+def prepare_environment():
+    global TBSLAS_RESULT_DIR_PREFIX
+    RESULT_DIR = PWD
+    if 'stampede' in HOSTNAME:
+        RESULT_DIR = os.environ['WORK']
+    TBSLAS_RESULT_DIR_PREFIX = os.path.join(RESULT_DIR, OUTPUT_PREFIX)
+
 def determine_command_prefix():
     if 'stampede' in HOSTNAME:
         return ['ibrun', 'tacc_affinity']
     elif 'zico' in HOSTNAME:
         return ['mpirun', '-n', str(MPI_NUM_PROCESS)]
-
     return []
 
 def generate_commands():
-    commands = []
+    # generate a dictionary data type of commands
+    commands = OrderedDict()
     dt = 0.1047 #math.pi/30
     tn = 1
-    toli = 3
-    tolf = 4
-    tol_list = [math.pow(0.1,x) for x in range(toli,tolf+1)]
+    #tol = math.pow(0.1,float(TOL_NUM_DIGITS_INIT))
+    tol_list = [math.pow(0.1,x) for x in range(TOL_NUM_DIGITS_INIT,TOL_NUM_DIGITS_FINAL+1)]
+    #for counter in range(0,TOL_NUM_STEPS):
     for tol in tol_list:
         ARGS    = ['-N', '8', '-tol', str(tol), '-dt', str(dt), '-tn', str(tn)]
         cmd = determine_command_prefix() + [EXEC] + ARGS
         # save command
-        commands.append(cmd)
-        dt = dt*0.5
-        tn = 2*tn
+        commands[str(tol)] = cmd
+        dt  = dt*0.5
+        #tol = tol*0.5
+        tn  = 2*tn
     return commands
 
 def execute_commands(commands):
     output = []
-    for command in commands:
+    for tolerance, command in commands.iteritems():
         command_message = "COMMAND: " +  str(command) + '\n'
-        print(command_message)
-        # output = output +  [command_message]
+        sys.stdout.write(command_message)
         # execute command
+        os.environ['TBSLAS_RESULT_DIR'] = os.path.join(TBSLAS_RESULT_DIR_PREFIX,'tol_'+tolerance)
+        os.makedirs(os.environ['TBSLAS_RESULT_DIR'])
+
         p = subprocess.Popen(command, shell=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         for line in p.stdout.readlines():
-            print line
+            if line.startswith('TOL:'):
+                sys.stdout.write(line)
             output.append(line)
     return output
 
 def analyse_output(output):
-    f = open('conv-'+TIMESTR+'.out','w')
+    f = open(OUTPUT_PREFIX+'.out','w')
     for line in output:
         if line.startswith('TOL:'):
             f.write(line)
@@ -98,5 +115,6 @@ def analyse_output(output):
 ################################################################################
 if __name__ == '__main__':
     commands = generate_commands()
+    prepare_environment()
     output   = execute_commands(commands)
     analyse_output(output)
