@@ -81,7 +81,7 @@ def generate_commands():
         ARGS    = ['-N', '8', '-tol', str(tol), '-dt', str(dt), '-tn', str(tn)]
         cmd = determine_command_prefix() + [EXEC] + ARGS
         # save command
-        commands[str(tol)] = cmd
+        commands[tol] = cmd
         dt  = dt*0.5
         #tol = tol*0.5
         tn  = 2*tn
@@ -92,10 +92,9 @@ def execute_commands(commands):
     for tolerance, command in commands.iteritems():
         command_message = "COMMAND: " +  str(command) + '\n'
         sys.stdout.write(command_message)
-        # execute command
-        os.environ['TBSLAS_RESULT_DIR'] = os.path.join(TBSLAS_RESULT_DIR_PREFIX,'tol_'+tolerance)
+        os.environ['TBSLAS_RESULT_DIR'] = os.path.join(TBSLAS_RESULT_DIR_PREFIX,'tol_{x:.2e}'.format(x=tolerance))
         os.makedirs(os.environ['TBSLAS_RESULT_DIR'])
-
+        # execute command
         p = subprocess.Popen(command, shell=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         for line in p.stdout.readlines():
             if line.startswith('TOL:'):

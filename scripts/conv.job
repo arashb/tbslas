@@ -12,10 +12,21 @@ TOL_NUM_DIGITS_INIT=3
 TOL_NUM_DIGITS_FINAL=9
 
 WORK_DIR=${PWD}
+cd ${TBSLAS_DIR}/examples
+make clean
+make -j
 cd ${WORK_DIR}
 
-module load fftw3
-module load python
+case $HOSTNAME in
+    *stampede*) #stampede.tacc.utexas.edu
+	module load fftw3
+	module load python
+	;;
+    *ronaldo*) #ronaldo.ices.utexas.edu
+	;;
+    *) # none of the known machines
+esac
+
 
 python ./conv.py ${MPI_NUM_PROCESSES} ${OMP_NUM_THREADS} ${TOL_NUM_DIGITS_INIT} ${TOL_NUM_DIGITS_FINAL}
 ### End of script
