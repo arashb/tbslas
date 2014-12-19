@@ -19,6 +19,7 @@
 #include <cheb_node.hpp>
 
 #include "utils/profile.h"
+#include "semilag/cubic_interp_policy.h"
 
 namespace tbslas {
 
@@ -91,18 +92,76 @@ void EvalTree(Tree_t* tree,
         coord.resize(n_pts*COORD_DIM);
         Real_t* coord_ptr=&trg_coord[0]+part_indx[j]*COORD_DIM;
         for (size_t i=0;i<n_pts;i++) {
-          coord[i*COORD_DIM+0]=(coord_ptr[i*COORD_DIM+0]-c[0])*2.0*s-1.0;
-          coord[i*COORD_DIM+1]=(coord_ptr[i*COORD_DIM+1]-c[1])*2.0*s-1.0;
-          coord[i*COORD_DIM+2]=(coord_ptr[i*COORD_DIM+2]-c[2])*2.0*s-1.0;
+          coord[i*COORD_DIM+0]=(coord_ptr[i*COORD_DIM+0]-c[0])*s;
+          coord[i*COORD_DIM+1]=(coord_ptr[i*COORD_DIM+1]-c[1])*s;
+          coord[i*COORD_DIM+2]=(coord_ptr[i*COORD_DIM+2]-c[2])*s;
         }
 
         if (tmp_out.Dim()<n_pts*data_dof) {
           tmp_out.ReInit(n_pts*data_dof);
         }
         tmp_out.SetZero();
+        // ************************************************************
+        // CUBIC INTERPOLATION
+        // ************************************************************
+        // construct regular grid
+        Profile<double>::Tic("ConstructRegGrid", false, 5);
+        int reg_grid_resolution = nodes[j]->ChebDeg()*8;
+        std::vector<Real_t> reg_grid_coord_1d(reg_grid_resolution);
+        tbslas::get_reg_grid_points<Real_t, 1>(reg_grid_resolution,
+                                               reg_grid_coord_1d.data());
 
-        pvfmm::Vector<Real_t>& coeff=nodes[j]->ChebData();
-        pvfmm::cheb_eval(coeff, nodes[j]->ChebDeg(), coord, tmp_out);
+        Real_t length = 1.0/s;
+        std::vector<Real_t> x(reg_grid_resolution);
+        std::vector<Real_t> y(reg_grid_resolution);
+        std::vector<Real_t> z(reg_grid_resolution);
+        for(size_t i=0;i<reg_grid_resolution;i++) {
+          x[i]=nodes[j]->Coord()[0]+length*reg_grid_coord_1d[i];
+          y[i]=nodes[j]->Coord()[1]+length*reg_grid_coord_1d[i];
+          z[i]=nodes[j]->Coord()[2]+length*reg_grid_coord_1d[i];
+        }
+        Profile<double>::Toc();
+        // for (int i = 0; i< reg_grid_resolution; i++)
+        //   printf("point: [%f]\n",
+        //          reg_grid_coord_1d[i]);
+        // evaluate values at the regular grid points
+        Profile<double>::Tic("ChebEvalRegGrid", false, 5);
+        int reg_grid_num_points = std::pow(reg_grid_resolution, COORD_DIM);
+        std::vector<Real_t> reg_grid_vals(reg_grid_num_points*data_dof);
+        // void cheb_eval(const Vector<T>& coeff_, int cheb_deg, const std::vector<T>& in_x, const std::vector<T>& in_y, const std::vector<T>& in_z, Vector<T>& out, mem::MemoryManager* mem_mgr){
+
+        nodes[j]->ReadVal(x, y, z, reg_grid_vals.data());
+        Profile<double>::Toc();
+        // cubic interpolatation at target points
+        // pvfmm::Vector<Real_t> reg_grid_vals_tmp(reg_grid_num_points*data_dof);
+        // Profile<double>::Tic("ConvertMemLayout", false, 1);
+        // for (int i = 0; i < reg_grid_num_points; i++) {
+        //   for (int data_dof_cnt = 0; data_dof_cnt < data_dof; data_dof_cnt++) {
+        //     reg_grid_vals_tmp[i+reg_grid_num_points*data_dof_cnt] = reg_grid_vals[i*data_dof+data_dof_cnt];
+        //   }
+        // }
+        // Profile<double>::Toc();
+        Profile<double>::Tic("TriCubicInterp", false, 5);
+        Real_t spacing = 1.0/(reg_grid_resolution-1);
+        for (int data_dim_cnt = 0; data_dim_cnt < data_dof; data_dim_cnt++) {
+          likely::TriCubicInterpolator tc_inerpolator(&reg_grid_vals[data_dim_cnt*reg_grid_num_points],
+                                                      spacing,
+                                                      reg_grid_resolution);
+          for (int i = 0; i < n_pts; i++) {
+            tmp_out[i*data_dof+data_dim_cnt] = tc_inerpolator(coord[i*COORD_DIM+0],
+                                                              coord[i*COORD_DIM+1],
+                                                              coord[i*COORD_DIM+2]);
+          }
+        }
+        Profile<double>::Toc();
+
+        // ************************************************************
+        // CHEBYSHEV INTERPOLATION
+        // ************************************************************
+        // Profile<double>::Tic("ChebEval", false, 5);
+        // pvfmm::Vector<Real_t>& coeff=nodes[j]->ChebData();
+        // pvfmm::cheb_eval(coeff, nodes[j]->ChebDeg(), coord, tmp_out);
+        // Profile<double>::Toc();
         memcpy(&trg_value[0]+part_indx[j]*data_dof, &tmp_out[0], n_pts*data_dof*sizeof(Real_t));
       }
     }
@@ -126,7 +185,7 @@ class NodeFieldFunctor {
   void operator () (const real_t* points_pos,
                     int num_points,
                     real_t* out) {
-    Profile<double>::Tic("EvalTree",false,5);
+    Profile<double>::Tic("EvalTree",false, 0);
     EvalTree(node_, num_points, const_cast<real_t*>(points_pos), out);
     Profile<double>::Toc();
   }

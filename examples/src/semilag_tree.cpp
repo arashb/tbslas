@@ -119,7 +119,7 @@ int main (int argc, char **argv) {
 
     struct tbslas::SimParam<double> sim_param;
     sim_param.total_num_timestep = tn;
-    sim_param.dt                 = (cfl * dx_min)/vel_max_value;
+    sim_param.dt                 = 3.14/4;//(cfl * dx_min)/vel_max_value;
     sim_param.num_rk_step        = 1;
     sim_param.vtk_filename_format = OUTPUT_FILE_FORMAT;
     sim_param.vtk_filename_prefix = OUTPUT_FILE_PREFIX;

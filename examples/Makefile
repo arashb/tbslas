@@ -12,7 +12,9 @@ ifndef CXXFLAGS_PVFMM
 $(error Cannot find file: MakeVariables)
 endif
 
-TBSLAS_INC = -I$(TBSLAS_DIR)/src
+TBSLAS_INC = -I$(TBSLAS_DIR)/src -I$(TBSLAS_DIR)/ext/tricubic/
+TBSLAS_LIBS = -ltricubic
+TBSLAS_LDLIBS = -L$(TBSLAS_DIR)/ext/tricubic $(TBSLAS_LIBS)
 CXXFLAGS_TBSLAS = -std=c++0x
 
 RM = rm -f
@@ -50,7 +52,7 @@ else
 
 $(BINDIR)/%: $(OBJDIR)/%.o
 	-@$(MKDIRS) $(dir $@)
-	$(CXX_PVFMM) $(CXXFLAGS_PVFMM) $(CXXFLAGS_TBSLAS)                   $^       $(LDFLAGS_PVFMM) -o $@
+	$(CXX_PVFMM) $(CXXFLAGS_PVFMM) $(CXXFLAGS_TBSLAS)                   $^       $(LDFLAGS_PVFMM) $(TBSLAS_LDLIBS) -o $@
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.cpp
 	-@$(MKDIRS) $(dir $@)
