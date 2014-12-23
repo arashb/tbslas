@@ -77,21 +77,21 @@ is_little_endian() {
 }
 
 template <class Real_t>
-std::vector<Real_t> point_distrib(DistribType dist_type, size_t N, MPI_Comm comm){
+std::vector<Real_t> point_distrib(DistribType dist_type, size_t N, MPI_Comm comm) {
   int np, myrank;
   MPI_Comm_size(comm, &np);
   MPI_Comm_rank(comm, &myrank);
   std::vector<Real_t> coord;
   srand48(myrank+1);
 
-  switch(dist_type){
+  switch(dist_type) {
     case UnifGrid:
       {
         size_t NN=(size_t)round(pow((double)N,1.0/3.0));
         size_t N_total=NN*NN*NN;
         size_t start= myrank   *N_total/np;
         size_t end  =(myrank+1)*N_total/np;
-        for(size_t i=start;i<end;i++){
+        for (size_t i=start;i<end;i++) {
           coord.push_back(((Real_t)((i/  1    )%NN)+0.5)/NN);
           coord.push_back(((Real_t)((i/ NN    )%NN)+0.5)/NN);
           coord.push_back(((Real_t)((i/(NN*NN))%NN)+0.5)/NN);
@@ -118,7 +118,7 @@ std::vector<Real_t> point_distrib(DistribType dist_type, size_t N, MPI_Comm comm
         size_t start= myrank   *N_total/np;
         size_t end  =(myrank+1)*N_total/np;
 
-        for(size_t i=start*3;i<end*3;i++){
+        for (size_t i=start*3;i<end*3;i++) {
           Real_t y=-1;
           while(y<=0 || y>=1){
             Real_t r1=sqrt(-2*log(drand48())/log_e)*cos(2*M_PI*drand48());
@@ -139,7 +139,7 @@ std::vector<Real_t> point_distrib(DistribType dist_type, size_t N, MPI_Comm comm
 
         const Real_t r=0.25;
         const Real_t center[3]={0.5,0.5,0.5};
-        for(size_t i=0;i<N_local;i++){
+        for (size_t i=0;i<N_local;i++) {
           Real_t* y=&coord[i*3];
           Real_t phi=2*M_PI*drand48();
           Real_t theta=M_PI*drand48();
@@ -158,10 +158,10 @@ std::vector<Real_t> point_distrib(DistribType dist_type, size_t N, MPI_Comm comm
         coord.resize(N_local*3);
 
         const Real_t center[3]={0.5,0.5,0.5};
-        for(size_t i=0;i<N_local;i++){
+        for (size_t i=0;i<N_local;i++) {
           Real_t* y=&coord[i*3];
           Real_t r=1;
-          while(r>0.5 || r==0){
+          while (r>0.5 || r==0) {
             y[0]=drand48(); y[1]=drand48(); y[2]=drand48();
             r=sqrt((y[0]-center[0])*(y[0]-center[0])
                    +(y[1]-center[1])*(y[1]-center[1])
@@ -202,8 +202,10 @@ get_vorticity_field(const real_t* points_pos,
   real_t omega = 1;
   real_t time_factor = 1;//+sin(2*3.14159*time);
   for (int i = 0; i < num_points; i++) {
-    points_values[i*3+0] = 0;//omega*(0.5 - points_pos[i*sdim+1])*time_factor;
-    points_values[i*3+1] = 0;//omega*(points_pos[i*sdim+0] - 0.5)*time_factor;
+    points_values[i*3+0] =
+             omega*(0.5 - points_pos[i*sdim+1])*time_factor;
+    points_values[i*3+1] =
+                omega*(points_pos[i*sdim+0] - 0.5)*time_factor;
     points_values[i*3+2] = 0;
   }
 }
@@ -247,16 +249,14 @@ get_gaussian_field_cylinder(const real_t* points_pos,
   real_t c = sin_theta_2*0.5/sigma_x_2 + cos_theta_2*0.5/sigma_y_2;
 
   for (int i = 0; i < num_points; i++) {
-    out[i]  = points_pos[i*sdim+0] +
-        points_pos[i*sdim+1] +
-        points_pos[i*sdim+2];
-        // A*exp(-(a * (points_pos[i*sdim]-xc)   * (points_pos[i*sdim]-xc)   +
-        //               b * (points_pos[i*sdim]-xc)   * (points_pos[i*sdim+1]-yc) +
-        //               c * (points_pos[i*sdim+1]-yc) * (points_pos[i*sdim+1]-yc)
-        //               )
-        //             );
+    out[i]  =
+        A*exp(-(a * (points_pos[i*sdim+0]-xc) * (points_pos[i*sdim+0]-xc) +
+                b * (points_pos[i*sdim+0]-xc) * (points_pos[i*sdim+1]-yc) +
+                c * (points_pos[i*sdim+1]-yc) * (points_pos[i*sdim+1]-yc)
+                )
+              );
   }
-};
+}
 
 template<typename real_t, int sdim>
 void
@@ -278,7 +278,7 @@ get_gaussian_field_3d(const real_t* points_pos,
                       )
                     );
   }
-};
+}
 
 template <typename real_t, int dim>
 std::vector<real_t>
@@ -300,9 +300,8 @@ generate_reg_grid_points(const size_t N) {
 template<typename real_t>
 std::vector<real_t>
 generate_vorticity_field(const std::vector<real_t>& points_pos,
-                         const real_t time ,
-                         const real_t omega
-                         ) {
+                         const real_t time,
+                         const real_t omega) {
   real_t time_factor = 1+sin(2*3.14159*time);
   size_t tN = points_pos.size()/3;
   std::vector<real_t> points_values(3*tN);

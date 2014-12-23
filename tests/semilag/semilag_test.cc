@@ -10,6 +10,14 @@
 #include "semilag/vec_field.h"
 #include "semilag/semilag.h"
 
+template<typename real_t, int sdim>
+void
+get_gaussian_field_3d_wrapper(const real_t* points_pos,
+                              const int num_points,
+                              real_t* out) {
+  tbslas::get_gaussian_field_3d<real_t,sdim>(points_pos, num_points, out);
+}
+
 typedef tbslas::VecField<double,3,3> VFieldD33;
 typedef tbslas::VecField<double,3,1> VFieldD31;
 typedef std::vector<double> VecD              ;
@@ -71,8 +79,8 @@ TEST_F(SemilagTest, SteadyVorticityWithFunctor) {
                                         points_val_vorticity.data());
 
   VecD points_val_gaussian(num_points);
-  tbslas::get_gaussian_field<double,3>(points_pos.data(), num_points,
-                                       points_val_gaussian.data());
+  get_gaussian_field_3d_wrapper<double,3>(points_pos.data(), num_points,
+                                          points_val_gaussian.data());
 
   VFieldD33 vel_field;
   VFieldD31 con_field;
@@ -95,7 +103,7 @@ TEST_F(SemilagTest, SteadyVorticityWithFunctor) {
               << " time: " << dt*timestep << std::endl;
 
     tbslas::SolveSemilagRK2(tbslas::get_vorticity_field<double,3>,
-                            tbslas::get_gaussian_field<double,3>,
+                            get_gaussian_field_3d_wrapper<double,3>,
                             points_pos,
                             sdim,
                             timestep,

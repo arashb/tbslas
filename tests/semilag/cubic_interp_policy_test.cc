@@ -148,3 +148,40 @@ TEST_F(CubicInterpPolicyTest, InterpTimeDependentExtremeOutOfInterval) {
                             query_values);}
       ,"");
 }
+
+TEST_F(CubicInterpPolicyTest, InterpCubic3D) {
+  ::testing::FLAGS_gtest_death_test_style = "threadsafe";
+    int tstep = 1;
+  std::vector<double> query_points;
+  // POINT[0.066987,0.296632,0.997261] 
+  query_points.push_back(0.066987);
+  query_points.push_back(0.296632);
+  query_points.push_back(0.997261);
+
+  double xx[4];
+  double yy[4];
+  double zz[4];
+  double grid_values[4][4][4];
+
+  for (int i = 0; i < 4; i++)
+    xx[i] = i*dx;
+  for (int i = 0; i < 4; i++)
+    for (int j = 0; j < 4; j++)
+      for (int k = 0; k < 4; k++)
+        grid_values[i][j][k] = 1;
+
+  std::vector<double> query_values(1*vdim);
+
+  query_values[0] =
+      interp_policy.InterpCubic3D(query_points[0],
+                                  query_points[1],
+                                  query_points[2],
+                                  xx,
+                                  xx,
+                                  xx,
+                                  grid_values);
+
+  std::cout << query_values[0] << std::endl;
+  ASSERT_EQ(1,query_values[0]);
+  // ASSERT_EQ(2,query_values[1]);
+}

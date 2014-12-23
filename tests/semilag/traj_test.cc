@@ -25,7 +25,7 @@ class TrajTest : public ::testing::Test {
     size_t tN = dN*dN*dN;
 
     VecD pnts_pos = tbslas::generate_reg_grid_points<double,3>(dN);
-    VecD pnts_vls = tbslas::generate_vorticity_field(pnts_pos);
+    VecD pnts_vls = tbslas::generate_vorticity_field(pnts_pos, 0.0, 1.0);
     vecfd.init(pnts_pos, pnts_vls);
 
     // initialization of constant velocity field
