@@ -73,6 +73,9 @@ int main (int argc, char **argv) {
     // PRINT METADATA
     // =========================================================================
     if (!myrank) {
+      MetaData_t::AddMetaData("interp",
+                              (TBSLAS_INTERP_TYPE == TBSLAS_INTERP_CHEBYSHEV)?"chebyshev":"cubic" ,
+                              "Interpolation type used to evaluate tree values.");
       MetaData_t::Print();
     }
 
