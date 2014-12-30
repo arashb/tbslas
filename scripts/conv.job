@@ -6,7 +6,7 @@
 #SBATCH -p normal     # queue (partition) -- normal, development, etc.
 #SBATCH -t 00:03:00        # run time (hh:mm:ss) - 1.5 hours
 
-MPI_NUM_PROCESSES=3
+MPI_NUM_PROCESSES=2
 OMP_NUM_THREADS=16
 TOL_NUM_DIGITS_INIT=3
 TOL_NUM_DIGITS_FINAL=9
@@ -23,6 +23,10 @@ case $HOSTNAME in
 	module load python
 	;;
     *ronaldo*) #ronaldo.ices.utexas.edu
+	;;
+    *zico*) #zico.ices.utexas.edu
+	module load fftw3
+	module load python
 	;;
     *) # none of the known machines
 esac

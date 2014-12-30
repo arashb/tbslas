@@ -40,7 +40,7 @@ except KeyError as e:
     print "Environment variable {0} is not set.".format(e)
     sys.exit()
 
-os.environ['OMP_NUM_THREADS'] = str(OMP_NUM_THREADS)
+# os.environ['OMP_NUM_THREADS'] = str(OMP_NUM_THREADS)
 ################################################################################
 # DIRECTORIES
 ################################################################################
@@ -78,7 +78,7 @@ def generate_commands():
     tol_list = [math.pow(0.1,x) for x in range(TOL_NUM_DIGITS_INIT,TOL_NUM_DIGITS_FINAL+1)]
     #for counter in range(0,TOL_NUM_STEPS):
     for tol in tol_list:
-        ARGS    = ['-N', '8', '-tol', str(tol), '-dt', str(dt), '-tn', str(tn)]
+        ARGS    = ['-N', '8', '-tol', str(tol), '-dt', str(dt), '-tn', str(tn), '-omp', str(OMP_NUM_THREADS)]
         cmd = determine_command_prefix() + [EXEC] + ARGS
         # save command
         commands[tol] = cmd
