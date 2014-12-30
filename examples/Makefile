@@ -25,7 +25,8 @@ INCDIR = ./include
 
 TARGET_BIN = \
        $(BINDIR)/semilag_tree \
-       $(BINDIR)/zalesak
+       $(BINDIR)/zalesak \
+       $(BINDIR)/diffusion
 
 
 all : $(TARGET_BIN)
