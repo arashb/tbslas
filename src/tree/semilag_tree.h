@@ -31,7 +31,9 @@ struct SimParam {
 
   SimParam():
       vtk_order(14),
-      vtk_filename_format("%s/values_%d_") {
+      vtk_filename_format("%s/%s-VAR_%s-TS_%04d-RNK"),
+      vtk_filename_prefix("output"),
+      vtk_filename_variable("conc") {
   }
   // time stepping
   int total_num_timestep;
@@ -43,6 +45,8 @@ struct SimParam {
   // OUTPUT
   int vtk_order;
   std::string vtk_filename_format;
+  std::string vtk_filename_prefix;
+  std::string vtk_filename_variable;
 };
 
 template <class TreeType>
@@ -195,9 +199,13 @@ RunSemilagSimulation(TreeType* vel_tree,
     // save current time step data
     *result = tconc_curr;
     if (save) {
-      snprintf(out_name_buffer, sizeof(out_name_buffer),
+      snprintf(out_name_buffer,
+               sizeof(out_name_buffer),
                sim_param->vtk_filename_format.c_str(),
-               tbslas::get_result_dir().c_str(), tstep);
+               tbslas::get_result_dir().c_str(),
+               sim_param->vtk_filename_prefix.c_str(),
+               sim_param->vtk_filename_variable.c_str(),
+               tstep);
       (*result)->Write2File(out_name_buffer, sim_param->vtk_order);
     }
   }  // end of for

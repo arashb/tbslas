@@ -21,7 +21,7 @@ from collections import OrderedDict
 # GLOBALS
 ################################################################################
 if len(sys.argv) < 5:
-    raise 
+    raise
 MPI_NUM_PROCESS = int(sys.argv[1])
 OMP_NUM_THREADS = int(sys.argv[2])
 TOL_NUM_DIGITS_INIT = int(sys.argv[3])
@@ -65,9 +65,8 @@ def prepare_environment():
 def determine_command_prefix():
     if 'stampede' in HOSTNAME:
         return ['ibrun', 'tacc_affinity']
-    elif 'zico' in HOSTNAME:
+    else:
         return ['mpirun', '-n', str(MPI_NUM_PROCESS)]
-    return []
 
 def generate_commands():
     # generate a dictionary data type of commands
@@ -103,7 +102,7 @@ def execute_commands(commands):
     return output
 
 def analyse_output(output):
-    f = open(OUTPUT_PREFIX+'.out','w')
+    f = open(os.path.join(TBSLAS_RESULT_DIR_PREFIX,OUTPUT_PREFIX+'.out'), 'w')
     for line in output:
         if line.startswith('TOL:'):
             f.write(line)

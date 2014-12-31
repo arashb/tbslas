@@ -27,6 +27,9 @@ typedef pvfmm::MPI_Tree<Node_t> Tree_t;
 
 double tcurr = 0;
 
+const char* OUTPUT_FILE_FORMAT = "%s/%s-VAR_%s-TS_%04d-RNK";
+const char* OUTPUT_FILE_PREFIX = "semilag-tree";
+
 int main (int argc, char **argv) {
   MPI_Init(&argc, &argv);
   MPI_Comm comm=MPI_COMM_WORLD;
@@ -58,8 +61,13 @@ int main (int argc, char **argv) {
     tvel_curr.ConstructLET(pvfmm::FreeSpace);
 
     char out_name_buffer[300];
-    snprintf(out_name_buffer, sizeof(out_name_buffer),
-             "%s/sltree_vel_%d_", tbslas::get_result_dir().c_str(), 0);
+    snprintf(out_name_buffer,
+             sizeof(out_name_buffer),
+             OUTPUT_FILE_FORMAT,
+             tbslas::get_result_dir().c_str(),
+             OUTPUT_FILE_PREFIX,
+             "vel",
+             0);
     tvel_curr.Write2File(out_name_buffer, q);
 
     double vel_max_value;
@@ -101,6 +109,8 @@ int main (int argc, char **argv) {
     sim_param.total_num_timestep = tn;
     sim_param.dt                 = (cfl * dx_min)/vel_max_value;
     sim_param.num_rk_step        = 1;
+    sim_param.vtk_filename_format = OUTPUT_FILE_FORMAT;
+    sim_param.vtk_filename_prefix = OUTPUT_FILE_PREFIX;
 
     Tree_t* result;
     tbslas::RunSemilagSimulation(&tvel_curr,

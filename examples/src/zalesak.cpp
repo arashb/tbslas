@@ -38,6 +38,9 @@ typedef pvfmm::MPI_Tree<Node_t> Tree_t;
 
 double tcurr = 0;
 
+const char* OUTPUT_FILE_FORMAT = "%s/%s-VAR_%s-TS_%04d-RNK";
+const char* OUTPUT_FILE_PREFIX = "zalesak";
+
 int main (int argc, char **argv) {
   MPI_Init(&argc, &argv);
   MPI_Comm comm=MPI_COMM_WORLD;
@@ -97,6 +100,8 @@ int main (int argc, char **argv) {
     sim_param.dt                 = dt;
     sim_param.total_num_timestep = tn;
     sim_param.num_rk_step        = 1;
+    sim_param.vtk_filename_format = OUTPUT_FILE_FORMAT;
+    sim_param.vtk_filename_prefix = OUTPUT_FILE_PREFIX;
 
     Tree_t* tresult;
     tbslas::RunSemilagSimulation(&tvel_curr,
