@@ -98,6 +98,15 @@ int main (int argc, char **argv) {
                                   get_gaussian_field_cylinder_atT<double,3>,
                                   1,
                                   tconc_curr);
+    snprintf(out_name_buffer,
+             sizeof(out_name_buffer),
+             OUTPUT_FILE_FORMAT,
+             tbslas::get_result_dir().c_str(),
+             OUTPUT_FILE_PREFIX,
+             "conc",
+             0);
+    tconc_curr.Write2File(out_name_buffer, q);
+
     // clone tree
     Tree_t tconc_next(comm);
     tbslas::CloneTree<Tree_t>(tconc_curr, tconc_next, 1);
@@ -119,7 +128,7 @@ int main (int argc, char **argv) {
 
     struct tbslas::SimParam<double> sim_param;
     sim_param.total_num_timestep = tn;
-    sim_param.dt                 = 3.14/4;//(cfl * dx_min)/vel_max_value;
+    sim_param.dt                 = 3.14/12;//(cfl * dx_min)/vel_max_value;
     sim_param.num_rk_step        = 1;
     sim_param.vtk_filename_format = OUTPUT_FILE_FORMAT;
     sim_param.vtk_filename_prefix = OUTPUT_FILE_PREFIX;
