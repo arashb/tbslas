@@ -102,11 +102,15 @@ def execute_commands(commands):
     return output
 
 def analyse_output(output):
-    f = open(os.path.join(TBSLAS_RESULT_DIR_PREFIX,OUTPUT_PREFIX+'.out'), 'w')
+    # metadata and convergence results
+    res_file_meta = open(os.path.join(TBSLAS_RESULT_DIR_PREFIX,OUTPUT_PREFIX+'.metadata'), 'w')
+    res_file_conv = open(os.path.join(TBSLAS_RESULT_DIR_PREFIX,OUTPUT_PREFIX+'.out'), 'w')
     for line in output:
+        res_file_meta.write(line)
         if line.startswith('TOL:'):
-            f.write(line)
-    f.close()
+            res_file_conv.write(line)
+    res_file_conv.close()
+    res_file_meta.close()
 
 ################################################################################
 # MAIN

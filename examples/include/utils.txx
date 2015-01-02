@@ -4,6 +4,11 @@
  * \date 1-1-2013
  */
 
+#include <utils/metadata.h>
+typedef tbslas::MetaData<std::string,
+                         std::string,
+                         std::string> MetaData_t;
+
 template <class FMM_Mat_t>
 void CheckFMMOutput(pvfmm::FMM_Tree<FMM_Mat_t>* mytree, const pvfmm::Kernel<typename FMM_Mat_t::Real_t>* mykernel){
   if(mykernel==NULL) return;
@@ -292,9 +297,9 @@ const char* commandline_option(int argc, char** argv, const char* opt, const cha
       return def_val;
     }
   }
-
-  for(int i=0;i<argc;i++){
-    if(!strcmp(argv[i],opt)){
+  for(int i=0; i<argc; i++) {
+    if(!strcmp(argv[i], opt)) {
+      MetaData_t::AddMetaData(opt, argv[(i+1)%argc], err_msg);
       return argv[(i+1)%argc];
     }
   }
@@ -303,6 +308,11 @@ const char* commandline_option(int argc, char** argv, const char* opt, const cha
     std::cout<<"To see usage options\n"<<"    "<<argv[0]<<" --help\n\n";
     exit(0);
   }
+  if(def_val)
+  MetaData_t::AddMetaData(std::string(opt),
+                          std::string(def_val),
+                          std::string(err_msg)
+                          );
   return def_val;
 }
 

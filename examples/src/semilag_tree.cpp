@@ -6,6 +6,7 @@
 #include <iostream>
 #include <cassert>
 #include <algorithm>
+#include <string>
 
 #include <pvfmm_common.hpp>
 #include <mpi_tree.hpp>
@@ -24,6 +25,9 @@
 typedef pvfmm::Cheb_Node<double> Node_t;
 typedef pvfmm::MPI_Tree<Node_t> Tree_t;
 
+typedef tbslas::MetaData<std::string,
+                         std::string,
+                         std::string> MetaData_t;
 
 double tcurr = 0;
 
@@ -43,16 +47,24 @@ int main (int argc, char **argv) {
   int      d =         strtoul(commandline_option(argc, argv,    "-d",    "15", false, "-d    <int> = (15)   : Maximum tree depth."                ),NULL,10);
   double tol =         strtod(commandline_option(argc, argv,  "-tol",  "1e-5", false, "-tol <real> = (1e-5) : Tolerance for adaptive refinement." ),NULL);
   bool  adap =               (commandline_option(argc, argv, "-adap",    NULL, false, "-adap                : Adaptive tree refinement."          )!=NULL);
-  int     tn =         strtoul(commandline_option(argc, argv,    "-tn",    "1", false, "-tn    <int> = (1)   : Number of time steps."     ),NULL,10);
+  int     tn =         strtoul(commandline_option(argc, argv,    "-tn",    "1", false, "-tn   <int> = (1)   : Number of time steps."     ),NULL,10);
   commandline_option_end(argc, argv);
 
   {
     int myrank;
     MPI_Comm_rank(comm, &myrank);
-
     tbslas::Profile<double>::Enable(true, &comm);
 
+    // =========================================================================
+    // PRINT METADATA
+    // =========================================================================
+    if (!myrank) {
+      MetaData_t::Print();
+    }
+
+    // =========================================================================
     // INIT THE TREES
+    // =========================================================================
     Tree_t tvel_curr(comm);
     tbslas::ConstructTree<Tree_t>(N, M, q, d, adap, tol, comm,
                                   tbslas::get_vorticity_field<double,3>,

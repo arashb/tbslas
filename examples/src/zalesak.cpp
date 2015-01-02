@@ -18,6 +18,7 @@
 #include <iostream>
 #include <cassert>
 #include <algorithm>
+#include <string>
 
 #include <pvfmm_common.hpp>
 #include <mpi_tree.hpp>
@@ -27,6 +28,7 @@
 #include <cheb_utils.hpp>
 
 #include <utils/common.h>
+#include <utils/metadata.h>
 // Enable profiling
 #define __TBSLAS_PROFILE__ 5
 #include <utils/profile.h>
@@ -36,6 +38,9 @@
 typedef pvfmm::Cheb_Node<double> Node_t;
 typedef pvfmm::MPI_Tree<Node_t> Tree_t;
 
+typedef tbslas::MetaData<std::string,
+                         std::string,
+                         std::string> MetaData_t;
 double tcurr = 0;
 
 const char* OUTPUT_FILE_FORMAT = "%s/%s-VAR_%s-TS_%04d-RNK";
@@ -62,8 +67,14 @@ int main (int argc, char **argv) {
   {
     int myrank;
     MPI_Comm_rank(comm, &myrank);
+    tbslas::Profile<double>::Enable(true, &comm);
 
-    // tbslas::Profile<double>::Enable(true, &comm);
+    // =========================================================================
+    // PRINT METADATA
+    // =========================================================================
+    if (!myrank) {
+      MetaData_t::Print();
+    }
 
     // =========================================================================
     // INIT THE VELOCITY TREE
@@ -73,12 +84,6 @@ int main (int argc, char **argv) {
                                   tbslas::get_vorticity_field<double,3>,
                                   3,
                                   tvel_curr);
-
-    // char out_name_buffer[300];
-    // snprintf(out_name_buffer, sizeof(out_name_buffer),
-    //          "%s/sltree_vel_%d_", tbslas::get_result_dir().c_str(), 0);
-    // tvel_curr.Write2File(out_name_buffer, q);
-
     // =========================================================================
     // INIT THE CONCENTRATION TREE
     // =========================================================================
@@ -92,7 +97,6 @@ int main (int argc, char **argv) {
     // clone tree
     Tree_t tconc_next(comm);
     tbslas::CloneTree<Tree_t>(tconc_curr, tconc_next, 1);
-
     // =========================================================================
     // PREPARE SIMULATION PARAMETERS
     // =========================================================================
@@ -111,7 +115,6 @@ int main (int argc, char **argv) {
                                  &tresult,
                                  true,
                                  true);
-
     // =========================================================================
     // compute error
     // =========================================================================
@@ -123,10 +126,11 @@ int main (int argc, char **argv) {
                              l_two_error);
     int tnln = tbslas::CountNumLeafNodes(*tresult);
     if(!myrank)
-      printf("TOL: %2.10f LTWO: %2.10f LINF = %2.10f TNLN: %d\n", tol, l_two_error, l_inf_error, tnln);
+      printf("TOL: %2.10f LTWO: %2.10f LINF = %2.10f TNLN: %d\n",
+             tol, l_two_error, l_inf_error, tnln);
 
     //Output Profiling results.
-    // tbslas::Profile<double>::print(&comm);
+    tbslas::Profile<double>::print(&comm);
   }
 
   // Shut down MPI
