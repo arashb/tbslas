@@ -15,9 +15,12 @@
 
 #include <utility>
 #include <cmath>
+#include <string>
 
 extern const double TBSLAS_DT;
 extern const double TBSLAS_ALPHA;
+
+char kernel_name[256];
 
 namespace tbslas {
 
@@ -52,9 +55,15 @@ void modified_laplace_poten(Real_t* r_src,
   }
 }
 
+const char* GetModfiedLaplaceKernelName() {
+  snprintf(kernel_name, sizeof(kernel_name),
+           "modified_laplace_alpha_%5.2f",TBSLAS_ALPHA);
+  return kernel_name;
+}
+
 const pvfmm::Kernel<double> modified_laplace_potn_d =
     pvfmm::BuildKernel<double, modified_laplace_poten>
-    ("modified_laplace", 3, std::pair<int,int>(1,1));
+    (GetModfiedLaplaceKernelName(), 3, std::pair<int,int>(1,1));
 
 template<class Real_t>
 struct ModifiedLaplaceKernel{

@@ -36,7 +36,7 @@
 #include <tree/utils_tree.h>
 
 int NUM_TIME_STEPS = 1;
-const double TBSLAS_DT = 0.01;
+const double TBSLAS_DT = 0.1;
 const double TBSLAS_ALPHA = (1.0)/TBSLAS_DT;
 
 const double xc = 0.6;
@@ -52,12 +52,13 @@ typedef tbslas::MetaData<std::string,
 
 
 //////////////////////////////////////////////////////////////////////////////
-// Test1: Laplace problem, Smooth Gaussian, FreeSpace Boundary
+// Test1: Laplace problem, Smooth Gaussian (exp(-beta*r^2)), FreeSpace Boundary
 ///////////////////////////////////////////////////////////////////////////////
+const double a = -160;  // -beta
 template <class Real_t>
 void fn_input_t1(const Real_t* coord, int n, Real_t* out) { //Input function
   int dof=1;
-  Real_t a=-160;
+  // Real_t a=-160;
   Real_t alpha = TBSLAS_ALPHA;
   for(int i=0;i<n;i++) {
     const Real_t* c=&coord[i*COORD_DIM];
@@ -71,7 +72,7 @@ void fn_input_t1(const Real_t* coord, int n, Real_t* out) { //Input function
 template <class Real_t>
 void fn_poten_t1(const Real_t* coord, int n, Real_t* out) { //Output potential
   int dof=1;
-  Real_t a=-160;
+  // Real_t a=-160;
   for(int i=0;i<n;i++) {
     const Real_t* c=&coord[i*COORD_DIM];
     {
@@ -272,7 +273,6 @@ void fmm_test(int test_case, size_t N, size_t M, bool unif, int mult_order,
     tree->Write2File(out_name_buffer, cheb_deg);
 
   }
-
 
   // **********************************************************************
   // CLEAN UP MEMORY

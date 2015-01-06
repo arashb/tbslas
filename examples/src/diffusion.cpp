@@ -19,7 +19,7 @@
 #include <diffusion/kernel.h>
 
 int NUM_TIME_STEPS = 1;
-const double TBSLAS_DT = 0.01;
+const double TBSLAS_DT = 0.1;
 const double TBSLAS_ALPHA = (1.0)/TBSLAS_DT;
 
 const char* OUTPUT_FILE_FORMAT = "%s/%s-VAR_%s-TS_%04d-RNK";
@@ -30,12 +30,13 @@ typedef tbslas::MetaData<std::string,
                          std::string> MetaData_t;
 
 //////////////////////////////////////////////////////////////////////////////
-// Test1: Laplace problem, Smooth Gaussian, Periodic Boundary
+// Test1: Laplace problem, Smooth Gaussian, Free Space Boundary
 ///////////////////////////////////////////////////////////////////////////////
+const double a = -160;  // -beta
 template <class Real_t>
 void fn_input_t1(const Real_t* coord, int n, Real_t* out) { //Input function
   int dof=1;
-  Real_t a=-160;
+  // Real_t a=-160;
   Real_t alpha = TBSLAS_ALPHA;
   for(int i=0;i<n;i++) {
     const Real_t* c=&coord[i*COORD_DIM];
@@ -49,7 +50,7 @@ void fn_input_t1(const Real_t* coord, int n, Real_t* out) { //Input function
 template <class Real_t>
 void fn_poten_t1(const Real_t* coord, int n, Real_t* out) { //Output potential
   int dof=1;
-  Real_t a=-160;
+  // Real_t a=-160;
   for(int i=0;i<n;i++) {
     const Real_t* c=&coord[i*COORD_DIM];
     {
@@ -177,25 +178,35 @@ void fmm_test(int test_case, size_t N, size_t M, bool unif, int mult_order,
                         mykernel);
   }
 
+  tree->InitFMM_Tree(false,bndry);
+  //Find error in Chebyshev approximation.
+  CheckChebOutput<FMM_Tree_t>
+      (tree, (typename TestFn<Real_t>::Fn_t) fn_input_,
+       mykernel->ker_dim[0], std::string("Input"));
+
   char out_name_buffer[300];
-  for (int ts_counter = 0; ts_counter < NUM_TIME_STEPS; ts_counter++) {
-    //Initialize FMM Tree
-    tree->InitFMM_Tree(false,bndry);
+  snprintf(out_name_buffer,
+           sizeof(out_name_buffer),
+           OUTPUT_FILE_FORMAT,
+           tbslas::get_result_dir().c_str(),
+           OUTPUT_FILE_PREFIX,
+           "diff",
+           0);
 
-    //Find error in Chebyshev approximation.
-    // CheckChebOutput<FMM_Tree_t>
-    //     (tree, (typename TestFn<Real_t>::Fn_t) fn_input_,
-    //      mykernel->ker_dim[0], std::string("Input"));
+  //Write2File
+  tree->Write2File(out_name_buffer,tree_data.cheb_deg);
 
+  for (int ts_counter = 1; ts_counter < NUM_TIME_STEPS+1; ts_counter++) {
     // Setup FMM
     tree->SetupFMM(fmm_mat);
     tree->RunFMM();
     tree->Copy_FMMOutput(); //Copy FMM output to tree Data.
 
     //Find error in FMM output.
-    // CheckChebOutput<FMM_Tree_t>(tree,
-    //                             (typename TestFn<Real_t>::Fn_t) fn_poten_,
-    //                             mykernel->ker_dim[1], std::string("Output"));
+    if (ts_counter == 1)
+    CheckChebOutput<FMM_Tree_t>(tree,
+                                (typename TestFn<Real_t>::Fn_t) fn_poten_,
+                                mykernel->ker_dim[1], std::string("Output"));
 
     snprintf(out_name_buffer,
              sizeof(out_name_buffer),
@@ -207,6 +218,9 @@ void fmm_test(int test_case, size_t N, size_t M, bool unif, int mult_order,
 
     //Write2File
     tree->Write2File(out_name_buffer,tree_data.cheb_deg);
+
+    //Initialize FMM Tree for the next time step
+    tree->InitFMM_Tree(false,bndry);
   }
 
   //Delete matrices.
