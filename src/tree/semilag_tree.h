@@ -118,6 +118,73 @@ void SolveSemilagTree(TreeType& tvel_curr,
 }
 
 template <class TreeType>
+void SolveSemilagInSitu(TreeType& tvel_curr,
+                        TreeType& tree_curr,
+                        const int timestep,
+                        const typename TreeType::Real_t dt,
+                        int num_rk_step = 1) {
+  typedef typename TreeType::Node_t NodeType;
+  typedef typename TreeType::Real_t RealType;
+
+  Profile<double>::Tic("SolveSemilagTree",false,5);
+  ////////////////////////////////////////////////////////////////////////
+  // (1) collect the starting positions of the backward traj computation
+  ////////////////////////////////////////////////////////////////////////
+  // get the tree parameters from current tree
+  NodeType* n_curr = tree_curr.PostorderFirst();
+  while (n_curr != NULL) {
+    if(!n_curr->IsGhost() && n_curr->IsLeaf())
+      break;
+    n_curr = tree_curr.PostorderNxt(n_curr);
+  }
+  int data_dof = n_curr->DataDOF();
+  int cheb_deg = n_curr->ChebDeg();
+  int sdim     = tree_curr.Dim();
+  int num_points_per_node = (cheb_deg+1)*(cheb_deg+1)*(cheb_deg+1);
+
+  std::vector<RealType> points_pos_all_nodes;
+  tbslas::CollectChebTreeGridPoints(tree_curr, points_pos_all_nodes);
+
+  ////////////////////////////////////////////////////////////////////////
+  // (2) solve semi-Lagrangian
+  ////////////////////////////////////////////////////////////////////////
+  int num_points_local_nodes = points_pos_all_nodes.size()/sdim;
+  std::vector<RealType> points_val_local_nodes(num_points_local_nodes*data_dof);
+  tbslas::SolveSemilagRK2(tbslas::NodeFieldFunctor<RealType,TreeType>(&tvel_curr),
+                          tbslas::NodeFieldFunctor<RealType,TreeType>(&tree_curr),
+                          points_pos_all_nodes,
+                          sdim,
+                          timestep,
+                          dt,
+                          num_rk_step,
+                          points_val_local_nodes);
+
+  ////////////////////////////////////////////////////////////////////////
+  // (3) set the computed values
+  ////////////////////////////////////////////////////////////////////////
+  NodeType* n_next = tree_curr.PostorderFirst();
+  while (n_next != NULL) {
+    if(!n_next->IsGhost() && n_next->IsLeaf()) break;
+    n_next = tree_curr.PostorderNxt(n_next);
+  }
+
+  int tree_next_node_counter = 0;
+  while (n_next != NULL) {
+    if (n_next->IsLeaf() && !n_next->IsGhost()) {
+      pvfmm::cheb_approx<RealType, RealType>(
+          &points_val_local_nodes[tree_next_node_counter*num_points_per_node*data_dof],
+          cheb_deg,
+          data_dof,
+          &(n_next->ChebData()[0])
+                                             );
+      tree_next_node_counter++;
+    }
+    n_next = tree_curr.PostorderNxt(n_next);
+  }
+  Profile<double>::Toc();
+}
+
+template <class TreeType>
 void
 RunSemilagSimulation(TreeType* vel_tree,
                      TreeType* con_tree_curr,
@@ -165,9 +232,13 @@ RunSemilagSimulation(TreeType* vel_tree,
   // save current time step data
   char out_name_buffer[300];
   if (save) {
-    snprintf(out_name_buffer, sizeof(out_name_buffer),
+    snprintf(out_name_buffer,
+             sizeof(out_name_buffer),
              sim_param->vtk_filename_format.c_str(),
-             tbslas::get_result_dir().c_str(), tstep);
+             tbslas::get_result_dir().c_str(),
+             sim_param->vtk_filename_prefix.c_str(),
+             sim_param->vtk_filename_variable.c_str(),
+             tstep);
     tconc_curr->Write2File(out_name_buffer, sim_param->vtk_order);
   }
 
@@ -207,6 +278,82 @@ RunSemilagSimulation(TreeType* vel_tree,
                sim_param->vtk_filename_variable.c_str(),
                tstep);
       (*result)->Write2File(out_name_buffer, sim_param->vtk_order);
+    }
+  }  // end of for
+}
+
+template <class TreeType>
+void
+RunSemilagSimulationInSitu(TreeType* vel_tree,
+                           TreeType* con_tree_curr,
+                           struct tbslas::SimParam<typename TreeType::Real_t>* sim_param,
+                           bool adaptive = true,
+                           bool save     = true) {
+  typedef typename TreeType::Node_t NodeType;
+  typedef typename TreeType::Real_t RealType;
+
+  int myrank;
+  MPI_Comm comm=MPI_COMM_WORLD;
+  MPI_Comm_rank(comm, &myrank);
+
+  // simulation parameters
+  int tn = sim_param->total_num_timestep;
+  RealType dt = sim_param->dt;
+  int num_rk_step = sim_param->num_rk_step;
+
+  // set the input_fn to NULL -> needed for adaptive refinement
+  std::vector<NodeType*>  ncurr_list = con_tree_curr->GetNodeList();
+  for(int i = 0; i < ncurr_list.size(); i++) {
+    ncurr_list[i]->input_fn = NULL;
+  }
+
+  //////////////////////////////////////////////////////////////////////
+  // TIME STEPPING
+  //////////////////////////////////////////////////////////////////////
+  int tstep = 0;
+  TreeType* tconc_curr = con_tree_curr;
+  // save current time step data
+  char out_name_buffer[300];
+  if (save) {
+    snprintf(out_name_buffer,
+             sizeof(out_name_buffer),
+             sim_param->vtk_filename_format.c_str(),
+             tbslas::get_result_dir().c_str(),
+             sim_param->vtk_filename_prefix.c_str(),
+             sim_param->vtk_filename_variable.c_str(),
+             tstep);
+    tconc_curr->Write2File(out_name_buffer, sim_param->vtk_order);
+  }
+
+  for (tstep = 1; tstep < tn+1; tstep++) {
+    if(!myrank) {
+      printf("============================\n");
+      printf("dt: %f tstep: %d time: %f\n", dt, tstep, dt*tstep);
+      printf("============================\n");
+    }
+    tbslas::SolveSemilagInSitu<TreeType>(*vel_tree,
+                                         *tconc_curr,
+                                         tstep,
+                                         dt,
+                                         num_rk_step);
+
+    if (adaptive) {
+      // refine the tree according to the computed values
+      tbslas::Profile<double>::Tic("RefineTree",false,5);
+      tconc_curr->RefineTree();
+      tbslas::Profile<double>::Toc();
+    }
+
+    // save current time step data
+    if (save) {
+      snprintf(out_name_buffer,
+               sizeof(out_name_buffer),
+               sim_param->vtk_filename_format.c_str(),
+               tbslas::get_result_dir().c_str(),
+               sim_param->vtk_filename_prefix.c_str(),
+               sim_param->vtk_filename_variable.c_str(),
+               tstep);
+      tconc_curr->Write2File(out_name_buffer, sim_param->vtk_order);
     }
   }  // end of for
 }

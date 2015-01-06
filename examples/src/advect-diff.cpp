@@ -1,3 +1,15 @@
+// *************************************************************************
+// Copyright (C) 2014 by Arash Bakhtiari
+// You may not use this file except in compliance with the License.
+// You obtain a copy of the License in the LICENSE file.
+
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// *************************************************************************
+
 #include <mpi.h>
 #include <pvfmm_common.hpp>
 #include <cstdlib>
@@ -17,20 +29,30 @@
 // TBSLAS
 #include <utils/common.h>
 #include <diffusion/kernel.h>
+// Enable profiling
+#define __TBSLAS_PROFILE__ 5
+#include <utils/profile.h>
+#include <tree/semilag_tree.h>
+#include <tree/utils_tree.h>
 
 int NUM_TIME_STEPS = 1;
 const double TBSLAS_DT = 0.01;
 const double TBSLAS_ALPHA = (1.0)/TBSLAS_DT;
 
+const double xc = 0.6;
+const double yc = 0.5;
+const double zc = 0.5;
+
 const char* OUTPUT_FILE_FORMAT = "%s/%s-VAR_%s-TS_%04d-RNK";
-const char* OUTPUT_FILE_PREFIX = "diffusion";
+const char* OUTPUT_FILE_PREFIX = "advect-diff";
 
 typedef tbslas::MetaData<std::string,
                          std::string,
                          std::string> MetaData_t;
 
+
 //////////////////////////////////////////////////////////////////////////////
-// Test1: Laplace problem, Smooth Gaussian, Periodic Boundary
+// Test1: Laplace problem, Smooth Gaussian, FreeSpace Boundary
 ///////////////////////////////////////////////////////////////////////////////
 template <class Real_t>
 void fn_input_t1(const Real_t* coord, int n, Real_t* out) { //Input function
@@ -40,7 +62,7 @@ void fn_input_t1(const Real_t* coord, int n, Real_t* out) { //Input function
   for(int i=0;i<n;i++) {
     const Real_t* c=&coord[i*COORD_DIM];
     {
-      Real_t r_2=(c[0]-0.5)*(c[0]-0.5)+(c[1]-0.5)*(c[1]-0.5)+(c[2]-0.5)*(c[2]-0.5);
+      Real_t r_2=(c[0]-xc)*(c[0]-xc)+(c[1]-yc)*(c[1]-yc)+(c[2]-zc)*(c[2]-zc);
       out[i*dof+0]=-(2*a*r_2+3)*2*a*exp(a*r_2)+alpha*exp(a*r_2);
     }
   }
@@ -53,10 +75,22 @@ void fn_poten_t1(const Real_t* coord, int n, Real_t* out) { //Output potential
   for(int i=0;i<n;i++) {
     const Real_t* c=&coord[i*COORD_DIM];
     {
-      Real_t r_2=(c[0]-0.5)*(c[0]-0.5)+(c[1]-0.5)*(c[1]-0.5)+(c[2]-0.5)*(c[2]-0.5);
+      Real_t r_2=(c[0]-xc)*(c[0]-xc)+(c[1]-yc)*(c[1]-yc)+(c[2]-yc)*(c[2]-yc);
       out[i*dof+0]=exp(a*r_2);
     }
   }
+}
+
+template<class _FMM_Tree_Type,
+         class _FMM_Mat_Type>
+void
+RunFMM(_FMM_Tree_Type* tree,
+       _FMM_Mat_Type* fmm_mat,
+       pvfmm::BoundaryType bndry) {
+  tree->InitFMM_Tree(false,bndry);
+  tree->SetupFMM(fmm_mat);
+  tree->RunFMM();
+  tree->Copy_FMMOutput(); //Copy FMM output to tree Data.
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -67,11 +101,17 @@ void fmm_test(int test_case, size_t N, size_t M, bool unif, int mult_order,
   typedef pvfmm::FMM_Cheb<FMMNode_t> FMM_Mat_t;
   typedef pvfmm::FMM_Tree<FMM_Mat_t> FMM_Tree_t;
 
+  char out_name_buffer[300];
+  // Find out number of OMP thereads.
+  int omp_p=omp_get_max_threads();
+
+  // **********************************************************************
+  // SETUP FMM KERNEL
+  // **********************************************************************
   void (*fn_input_)(const Real_t* , int , Real_t*)=NULL;
   void (*fn_poten_)(const Real_t* , int , Real_t*)=NULL;
   void (*fn_grad_ )(const Real_t* , int , Real_t*)=NULL;
   const pvfmm::Kernel<Real_t>* mykernel=NULL;
-  const pvfmm::Kernel<Real_t>* mykernel_grad=NULL;;
   pvfmm::BoundaryType bndry;
 
   switch (test_case) {
@@ -88,34 +128,29 @@ void fmm_test(int test_case, size_t N, size_t M, bool unif, int mult_order,
       break;
   }
 
-  // Find out number of OMP thereads.
-  int omp_p=omp_get_max_threads();
-
   // Find out my identity in the default communicator
   int myrank, p;
   MPI_Comm_rank(comm, &myrank);
   MPI_Comm_size(comm,&p);
 
   // **********************************************************************
-  // TREE DATA
+  // SETUP TREE
   // **********************************************************************
   //Various parameters.
   typename FMMNode_t::NodeData tree_data;
-  tree_data.dim=COORD_DIM;
-  tree_data.max_depth=depth;
-  tree_data.cheb_deg=cheb_deg;
-
-  //Set input function pointer
-  tree_data.input_fn=fn_input_;
-  tree_data.data_dof=mykernel->ker_dim[0];
-  tree_data.tol=tol;
+  tree_data.dim       = COORD_DIM;
+  tree_data.max_depth = depth;
+  tree_data.cheb_deg  = cheb_deg;
+  tree_data.input_fn  = fn_input_;
+  tree_data.data_dof  = mykernel->ker_dim[0];
+  tree_data.tol       = tol;
 
   //Set source coordinates.
   std::vector<Real_t> pt_coord;
   if(unif) pt_coord = tbslas::point_distrib<Real_t>(tbslas::UnifGrid,N,comm);
   else pt_coord = tbslas::point_distrib<Real_t>(tbslas::RandElps,N,comm); //RandElps, RandGaus
-  tree_data.max_pts=M; // Points per octant.
-  tree_data.pt_coord=pt_coord;
+  tree_data.max_pts  = M; // Points per octant.
+  tree_data.pt_coord = pt_coord;
 
   //Print various parameters.
   if (!myrank) {
@@ -133,82 +168,115 @@ void fmm_test(int test_case, size_t N, size_t M, bool unif, int mult_order,
     std::cout<<"BoundaryType: "<<(bndry==pvfmm::Periodic?"Periodic":"FreeSpace")<<'\n';
   }
 
-  // **********************************************************************
-  // SETUP TREE
-  // **********************************************************************
-  pvfmm::Profile::Tic("TreeSetup",&comm,true,1);
-  {
-    FMM_Tree_t* tree=new FMM_Tree_t(comm);
-    tree->Initialize(&tree_data);
-    tree->InitFMM_Tree(adap,bndry); //Adaptive refinement.
-
-    pt_coord.clear();
-    FMMNode_t* node=static_cast<FMMNode_t*>(tree->PreorderFirst());
-    while (node!=NULL) {
-      if (node->IsLeaf() && !node->IsGhost()) {
-        Real_t* c=node->Coord();
-        Real_t s=pow(0.5,node->Depth()+1);
-        pt_coord.push_back(c[0]+s);
-        pt_coord.push_back(c[1]+s);
-        pt_coord.push_back(c[2]+s);
-      }
-      node=static_cast<FMMNode_t*>(tree->PreorderNxt(node));
-    }
-    delete tree;
-    tree_data.pt_coord=pt_coord;
-    tree_data.max_pts=1; // Points per octant.
-  }
-  pvfmm::Profile::Toc();
-
   //Create Tree and initialize with input data.
-  FMM_Tree_t* tree=new FMM_Tree_t(comm);
+  FMM_Tree_t* tree = new FMM_Tree_t(comm);
   tree->Initialize(&tree_data);
+  tree->InitFMM_Tree(false,bndry);
+
+  //Write2File
+  snprintf(out_name_buffer,
+           sizeof(out_name_buffer),
+           OUTPUT_FILE_FORMAT,
+           tbslas::get_result_dir().c_str(),
+           OUTPUT_FILE_PREFIX,
+           "advdiff",
+           0);
+  tree->Write2File(out_name_buffer, cheb_deg);
 
   // **********************************************************************
   // SETUP FMM
   // **********************************************************************
   //Initialize FMM_Mat.
-  FMM_Mat_t* fmm_mat=NULL;
+  FMM_Mat_t* fmm_mat = NULL;
   {
-    fmm_mat=new FMM_Mat_t;
+    fmm_mat = new FMM_Mat_t;
     fmm_mat->Initialize(mult_order,
-                        tree_data.cheb_deg,
+                        cheb_deg,
                         comm,
                         mykernel);
   }
 
-  char out_name_buffer[300];
-  for (int ts_counter = 0; ts_counter < NUM_TIME_STEPS; ts_counter++) {
-    //Initialize FMM Tree
-    tree->InitFMM_Tree(false,bndry);
+  // **********************************************************************
+  // VELOCITY FIELD
+  // **********************************************************************
+  FMM_Tree_t tvel_curr(comm);
+  tbslas::ConstructTree<FMM_Tree_t>(N,
+                                    M,
+                                    cheb_deg,
+                                    depth,
+                                    adap,
+                                    tol,
+                                    comm,
+                                    tbslas::get_vorticity_field<double,3>,
+                                    3,
+                                    tvel_curr);
 
-    //Find error in Chebyshev approximation.
-    // CheckChebOutput<FMM_Tree_t>
-    //     (tree, (typename TestFn<Real_t>::Fn_t) fn_input_,
-    //      mykernel->ker_dim[0], std::string("Input"));
+  snprintf(out_name_buffer,
+           sizeof(out_name_buffer),
+           OUTPUT_FILE_FORMAT,
+           tbslas::get_result_dir().c_str(),
+           OUTPUT_FILE_PREFIX,
+           "vel",
+           0);
+  tvel_curr.Write2File(out_name_buffer, cheb_deg);
 
-    // Setup FMM
-    tree->SetupFMM(fmm_mat);
-    tree->RunFMM();
-    tree->Copy_FMMOutput(); //Copy FMM output to tree Data.
+  // **********************************************************************
+  // SEMI-LAGRANGIAN PARAMETERS
+  // **********************************************************************
+  // clone tree
+  FMM_Tree_t tree_next(comm);
+  tbslas::CloneTree<FMM_Tree_t>(*tree, tree_next, 1);
 
-    //Find error in FMM output.
-    // CheckChebOutput<FMM_Tree_t>(tree,
-    //                             (typename TestFn<Real_t>::Fn_t) fn_poten_,
-    //                             mykernel->ker_dim[1], std::string("Output"));
+  struct tbslas::SimParam<double> sim_param;
+  sim_param.total_num_timestep  = 1;
+  sim_param.dt                  = TBSLAS_DT;
+  sim_param.num_rk_step         = 1;
+  sim_param.vtk_filename_format = OUTPUT_FILE_FORMAT;
+  sim_param.vtk_filename_prefix = OUTPUT_FILE_PREFIX;
 
+  int timestep = 1;
+  FMM_Tree_t* result;
+  for (; timestep < 2*NUM_TIME_STEPS+1; timestep +=2) {
+    // **********************************************************************
+    // SOLVE DIFFUSION: FMM
+    // **********************************************************************
+    RunFMM(tree, fmm_mat, bndry);
+
+    // Write2File
     snprintf(out_name_buffer,
              sizeof(out_name_buffer),
              OUTPUT_FILE_FORMAT,
              tbslas::get_result_dir().c_str(),
              OUTPUT_FILE_PREFIX,
-             "diff",
-             ts_counter);
+             "advdiff",
+             timestep);
+    tree->Write2File(out_name_buffer, cheb_deg);
+
+    // **********************************************************************
+    // SOLVE ADVECTION: SEMI-LAGRANGIAN
+    // **********************************************************************
+    tbslas::RunSemilagSimulationInSitu(&tvel_curr,
+                                       tree,
+                                       &sim_param,
+                                       true,
+                                       false);
 
     //Write2File
-    tree->Write2File(out_name_buffer,tree_data.cheb_deg);
+    snprintf(out_name_buffer,
+             sizeof(out_name_buffer),
+             OUTPUT_FILE_FORMAT,
+             tbslas::get_result_dir().c_str(),
+             OUTPUT_FILE_PREFIX,
+             "advdiff",
+             timestep+1);
+    tree->Write2File(out_name_buffer, cheb_deg);
+
   }
 
+
+  // **********************************************************************
+  // CLEAN UP MEMORY
+  // **********************************************************************
   //Delete matrices.
   if(fmm_mat)
     delete fmm_mat;
@@ -220,11 +288,9 @@ void fmm_test(int test_case, size_t N, size_t M, bool unif, int mult_order,
 int main (int argc, char **argv) {
   MPI_Init(&argc, &argv);
   MPI_Comm comm=MPI_COMM_WORLD;
-  int p;
-  MPI_Comm_size(comm,&p);
   int myrank;
   MPI_Comm_rank(comm, &myrank);
-
+  int p; MPI_Comm_size(comm,&p);
   if (p>8) { // Remove slow processors.
     MPI_Comm comm_=MPI_COMM_WORLD;
     size_t N=2048;
@@ -267,12 +333,18 @@ int main (int argc, char **argv) {
   int      d=       strtoul(commandline_option(argc, argv,    "-d",    "15", false, "-d    <int> = (15)   : Maximum tree depth."                ),NULL,10);
   double tol=        strtod(commandline_option(argc, argv,  "-tol",  "1e-5", false, "-tol <real> = (1e-5) : Tolerance for adaptive refinement." ),NULL);
   bool  adap=              (commandline_option(argc, argv, "-adap",    NULL, false, "-adap                : Adaptive tree refinement."          )!=NULL);
-  int   test=       strtoul(commandline_option(argc, argv, "-test",     "1", false, "-test <int> = (1)    : 1) Modified Laplace, Smooth Gaussian, FreeSpace Boundary"),NULL,10);
-  int     tn =         strtoul(commandline_option(argc, argv,    "-tn",    "1", false, "-tn   <int> = (1)   : Number of time steps."     ),NULL,10);
+  int   test=       strtoul(commandline_option(argc, argv, "-test",     "1", false,
+       "-test <int> = (1)    : 1) Laplace, Smooth Gaussian, Periodic Boundary\n\
+                               2) Laplace, Discontinuous Sphere, FreeSpace Boundary\n\
+                               3) Stokes, Smooth Gaussian, FreeSpace Boundary\n\
+                               4) Biot-Savart, Smooth Gaussian, FreeSpace Boundary\n\
+                               5) Helmholtz, Smooth Gaussian, FreeSpace Boundary"),NULL,10);
+    int     tn =         strtoul(commandline_option(argc, argv,    "-tn",    "1", false, "-tn   <int> = (1)   : Number of time steps."     ),NULL,10);
 
   NUM_TIME_STEPS = tn;
   commandline_option_end(argc, argv);
   pvfmm::Profile::Enable(true);
+  tbslas::Profile<double>::Enable(true, &comm);
 
   // =========================================================================
   // PRINT METADATA
@@ -288,6 +360,8 @@ int main (int argc, char **argv) {
 
   //Output Profiling results.
   pvfmm::Profile::print(&comm);
+  //Output Profiling results.
+  tbslas::Profile<double>::print(&comm);
 
   // Shut down MPI
   MPI_Finalize();
