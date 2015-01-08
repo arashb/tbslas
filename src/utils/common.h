@@ -28,8 +28,30 @@
 // EXTERNAL HEADERS
 #include <mpi.h>
 
+// PROJECT HEADERS
+#include "utils/singleton.h"
+#include "utils/sim_config.h"
+
 namespace tbslas {
 
+// ************************************************************
+// GLOBAL DECLARATION
+// ************************************************************
+// simulation configuration singleton
+typedef Singleton<SimConfig> SimConfigSingleton;
+
+// point distribution types
+enum DistribType{
+  UnifGrid,
+  RandUnif,
+  RandGaus,
+  RandElps,
+  RandSphr
+};
+
+// ************************************************************
+// COMMON FUNCTIONS
+// ************************************************************
 template<typename PointerType>
 void swap_pointers(PointerType** ta,
                    PointerType** tb) {
@@ -61,14 +83,6 @@ void dummy_fn(const real_t* points_pos,
               int num_points,
               real_t* values) {
 }
-
-enum DistribType{
-  UnifGrid,
-  RandUnif,
-  RandGaus,
-  RandElps,
-  RandSphr
-};
 
 inline bool
 is_little_endian() {
@@ -367,7 +381,5 @@ find_grid_index_1d(const std::vector<real_t>& grid,
 }
 
 }  // namespace tbslas
-
-//#include "common.inc"
 
 #endif  // SRC_UTILS_COMMON_H_

@@ -36,24 +36,79 @@ const char* OUTPUT_FILE_PREFIX = "semilag-tree";
 
 int main (int argc, char **argv) {
   MPI_Init(&argc, &argv);
-  MPI_Comm comm=MPI_COMM_WORLD;
+  MPI_Comm comm = MPI_COMM_WORLD;
 
-  // Read command line options.
+  // =========================================================================
+  // COMMAND LINE OPTIONS
+  // =========================================================================
   commandline_option_start(argc, argv);
-  omp_set_num_threads( atoi(commandline_option(argc, argv,  "-omp",     "1", false, "-omp  <int> = (1)    : Number of OpenMP threads."          )));
-  size_t   N = (size_t)strtod(commandline_option(argc, argv,    "-N",     "1",  true, "-N    <int>          : Number of point sources."           ),NULL);
-  size_t   M = (size_t)strtod(commandline_option(argc, argv,    "-M",     "1", false, "-M    <int>          : Number of points per octant."       ),NULL);
-  int      q =         strtoul(commandline_option(argc, argv,    "-q",    "14", false, "-q    <int> = (14)   : Chebyshev order (+ve integer)."     ),NULL,10);
-  int      d =         strtoul(commandline_option(argc, argv,    "-d",    "15", false, "-d    <int> = (15)   : Maximum tree depth."                ),NULL,10);
-  double tol =         strtod(commandline_option(argc, argv,  "-tol",  "1e-5", false, "-tol <real> = (1e-5) : Tolerance for adaptive refinement." ),NULL);
-  bool  adap =               (commandline_option(argc, argv, "-adap",    NULL, false, "-adap                : Adaptive tree refinement."          )!=NULL);
-  int     tn =         strtoul(commandline_option(argc, argv,    "-tn",    "1", false, "-tn   <int> = (1)   : Number of time steps."     ),NULL,10);
+
+  omp_set_num_threads(
+      atoi(commandline_option(argc, argv, "-omp", "1", false,
+                              "-omp  <int> = (1)    : Number of OpenMP threads.")));
+
+  size_t N =
+      (size_t)strtod(
+          commandline_option(argc, argv, "-N", "1", true,
+                             "-N    <int>          : Number of point sources."),
+          NULL);
+
+  size_t M =
+      (size_t)strtod(
+          commandline_option(argc, argv, "-M", "1", false,
+                             "-M    <int>          : Number of points per octant."),
+          NULL);
+
+  int q =
+      strtoul(
+          commandline_option(argc, argv, "-q", "14", false,
+                             "-q    <int> = (14)   : Chebyshev order (+ve integer)."),
+          NULL,10);
+
+  int d =
+      strtoul(
+          commandline_option(argc, argv, "-d", "15", false,
+                             "-d    <int> = (15)   : Maximum tree depth."),
+          NULL,10);
+
+  double tol =
+      strtod(
+          commandline_option(argc, argv, "-tol", "1e-5", false,
+                             "-tol <real> = (1e-5) : Tolerance for adaptive refinement.")
+          ,NULL);
+  bool adap =
+      (commandline_option(argc, argv, "-adap", NULL, false,
+                          "-adap                : Adaptive tree refinement." )!=NULL);
+
+  int tn =
+      strtoul(
+          commandline_option(argc, argv, "-tn", "1", false,
+                             "-tn   <int> = (1)    : Number of time steps."),
+          NULL,10);
+
+  bool cubic =
+      (commandline_option(argc, argv, "-cubic", NULL, false,
+                          "-cubic               : Cubic Interpolation  used to evaluate tree values.")!=NULL);
+
   commandline_option_end(argc, argv);
 
   {
     int myrank;
     MPI_Comm_rank(comm, &myrank);
     tbslas::Profile<double>::Enable(true, &comm);
+
+    // =========================================================================
+    // SIMULATION PARAMETERS
+    // =========================================================================
+    tbslas::SimConfig* sim_config     = tbslas::SimConfigSingleton::Instance();
+    sim_config->cubic                 = cubic;
+    sim_config->total_num_timestep    = tn;
+    sim_config->dt                    = 3.14/12;//(cfl * dx_min)/vel_max_value;
+    sim_config->num_rk_step           = 1;
+    sim_config->vtk_filename_format   = OUTPUT_FILE_FORMAT;
+    sim_config->vtk_filename_prefix   = OUTPUT_FILE_PREFIX;
+    sim_config->vtk_filename_variable = "conc";
+    sim_config->vtk_order             = q;
 
     // =========================================================================
     // PRINT METADATA
@@ -75,12 +130,12 @@ int main (int argc, char **argv) {
     char out_name_buffer[300];
     snprintf(out_name_buffer,
              sizeof(out_name_buffer),
-             OUTPUT_FILE_FORMAT,
+             sim_config->vtk_filename_format.c_str(),
              tbslas::get_result_dir().c_str(),
-             OUTPUT_FILE_PREFIX,
+             sim_config->vtk_filename_prefix.c_str(),
              "vel",
              0);
-    tvel_curr.Write2File(out_name_buffer, q);
+    tvel_curr.Write2File(out_name_buffer, sim_config->vtk_order);
 
     double vel_max_value;
     int vel_max_depth;
@@ -100,10 +155,10 @@ int main (int argc, char **argv) {
                                   tconc_curr);
     snprintf(out_name_buffer,
              sizeof(out_name_buffer),
-             OUTPUT_FILE_FORMAT,
+             sim_config->vtk_filename_format.c_str(),
              tbslas::get_result_dir().c_str(),
-             OUTPUT_FILE_PREFIX,
-             "conc",
+             sim_config->vtk_filename_prefix.c_str(),
+             sim_config->vtk_filename_variable.c_str(),
              0);
     tconc_curr.Write2File(out_name_buffer, q);
 
@@ -111,33 +166,28 @@ int main (int argc, char **argv) {
     Tree_t tconc_next(comm);
     tbslas::CloneTree<Tree_t>(tconc_curr, tconc_next, 1);
 
-    double conc_max_value;
-    int conc_max_depth;
-    tbslas::GetMaxTreeValues<Tree_t>
-        (tconc_curr, conc_max_value, conc_max_depth);
+    // double conc_max_value;
+    // int conc_max_depth;
+    // tbslas::GetMaxTreeValues<Tree_t>
+    //     (tconc_curr, conc_max_value, conc_max_depth);
 
-    if (!myrank)
-      printf("%d:CON MAX VALUE: %f CON MAX DEPTH:%d\n",
-             myrank,
-             conc_max_value,
-             conc_max_depth);
+    // if (!myrank)
+    //   printf("%d:CON MAX VALUE: %f CON MAX DEPTH:%d\n",
+    //          myrank,
+    //          conc_max_value,
+    //          conc_max_depth);
 
     // simulation parameters
-    double cfl      = 1;
-    double dx_min   = pow(0.5, conc_max_depth);
+    // double cfl      = 1;
+    // double dx_min   = pow(0.5, conc_max_depth);
 
-    struct tbslas::SimParam<double> sim_param;
-    sim_param.total_num_timestep = tn;
-    sim_param.dt                 = 3.14/12;//(cfl * dx_min)/vel_max_value;
-    sim_param.num_rk_step        = 1;
-    sim_param.vtk_filename_format = OUTPUT_FILE_FORMAT;
-    sim_param.vtk_filename_prefix = OUTPUT_FILE_PREFIX;
-
+    // =========================================================================
+    // RUN
+    // =========================================================================
     Tree_t* result;
     tbslas::RunSemilagSimulation(&tvel_curr,
                                  &tconc_curr,
                                  &tconc_next,
-                                 &sim_param,
                                  &result,
                                  true,
                                  true);

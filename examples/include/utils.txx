@@ -308,9 +308,13 @@ const char* commandline_option(int argc, char** argv, const char* opt, const cha
     std::cout<<"To see usage options\n"<<"    "<<argv[0]<<" --help\n\n";
     exit(0);
   }
+
+  std::string val("0");
   if(def_val)
+    val = std::string(def_val);
+
   MetaData_t::AddMetaData(std::string(opt),
-                          std::string(def_val),
+                          std::string(val),
                           std::string(err_msg)
                           );
   return def_val;

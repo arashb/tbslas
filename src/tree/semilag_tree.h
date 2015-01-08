@@ -26,29 +26,6 @@
 
 namespace tbslas {
 
-template<class RealType>
-struct SimParam {
-
-  SimParam():
-      vtk_order(14),
-      vtk_filename_format("%s/%s-VAR_%s-TS_%04d-RNK"),
-      vtk_filename_prefix("output"),
-      vtk_filename_variable("conc") {
-  }
-  // time stepping
-  int total_num_timestep;
-  RealType dt;
-
-  // semi-lagrangian solver
-  int num_rk_step;
-
-  // OUTPUT
-  int vtk_order;
-  std::string vtk_filename_format;
-  std::string vtk_filename_prefix;
-  std::string vtk_filename_variable;
-};
-
 template <class TreeType>
 void SolveSemilagTree(TreeType& tvel_curr,
                       TreeType& tree_curr,
@@ -189,7 +166,6 @@ void
 RunSemilagSimulation(TreeType* vel_tree,
                      TreeType* con_tree_curr,
                      TreeType* con_tree_next,
-                     struct tbslas::SimParam<typename TreeType::Real_t>* sim_param,
                      TreeType** result,
                      bool adaptive = true,
                      bool save = true) {
@@ -201,17 +177,14 @@ RunSemilagSimulation(TreeType* vel_tree,
   MPI_Comm_rank(comm, &myrank);
 
   // simulation parameters
-  int tn = sim_param->total_num_timestep;
-  RealType dt = sim_param->dt;
+  SimConfig* sim_param = tbslas::SimConfigSingleton::Instance();
+  int tn          = sim_param->total_num_timestep;
+  RealType dt     = sim_param->dt;
   int num_rk_step = sim_param->num_rk_step;
 
   //////////////////////////////////////////////////////////////////////
   // NEXT STEP TREE
   //////////////////////////////////////////////////////////////////////
-  // clone tree
-  // TreeType* con_tree_next = new TreeType(comm);
-  // tbslas::CloneTree<TreeType>(*con_tree_curr, *con_tree_next, 1);
-
   // set the input_fn to NULL -> needed for adaptive refinement
   std::vector<NodeType*>  ncurr_list = con_tree_curr->GetNodeList();
   for(int i = 0; i < ncurr_list.size(); i++) {
@@ -286,7 +259,6 @@ template <class TreeType>
 void
 RunSemilagSimulationInSitu(TreeType* vel_tree,
                            TreeType* con_tree_curr,
-                           struct tbslas::SimParam<typename TreeType::Real_t>* sim_param,
                            bool adaptive = true,
                            bool save     = true) {
   typedef typename TreeType::Node_t NodeType;
@@ -297,8 +269,10 @@ RunSemilagSimulationInSitu(TreeType* vel_tree,
   MPI_Comm_rank(comm, &myrank);
 
   // simulation parameters
-  int tn = sim_param->total_num_timestep;
-  RealType dt = sim_param->dt;
+    // simulation parameters
+  SimConfig* sim_param = tbslas::SimConfigSingleton::Instance();
+  int tn          = sim_param->total_num_timestep;
+  RealType dt     = sim_param->dt;
   int num_rk_step = sim_param->num_rk_step;
 
   // set the input_fn to NULL -> needed for adaptive refinement

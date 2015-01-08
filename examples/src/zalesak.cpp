@@ -52,15 +52,57 @@ int main (int argc, char **argv) {
 
   // Read command line options.
   commandline_option_start(argc, argv);
-  omp_set_num_threads( atoi(commandline_option(argc, argv,  "-omp",     "1", false, "-omp  <int> = (1)    : Number of OpenMP threads."          )));
-  size_t   N = (size_t)strtod(commandline_option(argc, argv,    "-N",     "1",  true, "-N    <int>          : Number of point sources."           ),NULL);
-  size_t   M = (size_t)strtod(commandline_option(argc, argv,    "-M",     "1", false, "-M    <int>          : Number of points per octant."       ),NULL);
-  int      q =         strtoul(commandline_option(argc, argv,    "-q",    "14", false, "-q    <int> = (14)   : Chebyshev order (+ve integer)."     ),NULL,10);
-  int      d =         strtoul(commandline_option(argc, argv,    "-d",    "15", false, "-d    <int> = (15)   : Maximum tree depth."                ),NULL,10);
-  double tol =         strtod(commandline_option(argc, argv,  "-tol",  "1e-5", false, "-tol <real> = (1e-5) : Tolerance for adaptive refinement." ),NULL);
-  bool  adap =               (commandline_option(argc, argv, "-adap",    NULL, false, "-adap                : Adaptive tree refinement."          )!=NULL);
-  int     tn =         strtoul(commandline_option(argc, argv,    "-tn",    "1", false, "-tn    <int> = (1)   : Number of time steps."     ),NULL,10);
-  double dt  =         strtod(commandline_option(argc, argv,  "-dt",  "0.1e-2", false, "-tol <real> = (1e-5) : Temporal resolution." ), NULL);
+  omp_set_num_threads(
+      atoi(commandline_option(argc, argv, "-omp", "1", false,
+                              "-omp  <int> = (1)    : Number of OpenMP threads.")));
+
+  size_t N =
+      (size_t)strtod(
+          commandline_option(argc, argv, "-N", "1", true,
+                             "-N    <int>          : Number of point sources."),
+          NULL);
+
+  size_t M =
+      (size_t)strtod(
+          commandline_option(argc, argv, "-M", "1", false,
+                             "-M    <int>          : Number of points per octant."),
+          NULL);
+
+  int q =
+      strtoul(
+          commandline_option(argc, argv, "-q", "14", false,
+                             "-q    <int> = (14)   : Chebyshev order (+ve integer)."),
+          NULL,10);
+
+  int d =
+      strtoul(
+          commandline_option(argc, argv, "-d", "15", false,
+                             "-d    <int> = (15)   : Maximum tree depth."),
+          NULL,10);
+
+  double tol =
+      strtod(
+          commandline_option(argc, argv, "-tol", "1e-5", false,
+                             "-tol <real> = (1e-5) : Tolerance for adaptive refinement.")
+          ,NULL);
+  bool adap =
+      (commandline_option(argc, argv, "-adap", NULL, false,
+                          "-adap                : Adaptive tree refinement." )!=NULL);
+
+    int tn =
+      strtoul(
+          commandline_option(argc, argv, "-tn", "1", false,
+                             "-tn   <int> = (1)    : Number of time steps."),
+          NULL,10);
+
+  double dt =
+      strtod(
+          commandline_option(argc, argv,  "-dt",  "0.1e-2", false,
+                             "-tol <real> = (1e-5) : Temporal resolution." ), NULL);
+
+  bool cubic =
+      (commandline_option(argc, argv, "-cubic", NULL, false,
+                          "-cubic               : Cubic Interpolation  used to evaluate tree values.")!=NULL);
 
   commandline_option_end(argc, argv);
 
@@ -70,15 +112,23 @@ int main (int argc, char **argv) {
     tbslas::Profile<double>::Enable(true, &comm);
 
     // =========================================================================
+    // SIMULATION PARAMETERS
+    // =========================================================================
+    tbslas::SimConfig* sim_config     = tbslas::SimConfigSingleton::Instance();
+    sim_config->cubic                 = cubic;
+    sim_config->total_num_timestep    = tn;
+    sim_config->dt                    = dt;
+    sim_config->num_rk_step           = 1;
+    sim_config->vtk_filename_format   = OUTPUT_FILE_FORMAT;
+    sim_config->vtk_filename_prefix   = OUTPUT_FILE_PREFIX;
+    sim_config->vtk_filename_variable = "conc";
+    sim_config->vtk_order             = q;
+    // =========================================================================
     // PRINT METADATA
     // =========================================================================
     if (!myrank) {
-      MetaData_t::AddMetaData("interp",
-                              (TBSLAS_INTERP_TYPE == TBSLAS_INTERP_CHEBYSHEV)?"chebyshev":"cubic" ,
-                              "Interpolation type used to evaluate tree values.");
       MetaData_t::Print();
     }
-
     // =========================================================================
     // INIT THE VELOCITY TREE
     // =========================================================================    
@@ -100,21 +150,11 @@ int main (int argc, char **argv) {
     // clone tree
     Tree_t tconc_next(comm);
     tbslas::CloneTree<Tree_t>(tconc_curr, tconc_next, 1);
-    // =========================================================================
-    // PREPARE SIMULATION PARAMETERS
-    // =========================================================================
-    struct tbslas::SimParam<double> sim_param;
-    sim_param.dt                 = dt;
-    sim_param.total_num_timestep = tn;
-    sim_param.num_rk_step        = 1;
-    sim_param.vtk_filename_format = OUTPUT_FILE_FORMAT;
-    sim_param.vtk_filename_prefix = OUTPUT_FILE_PREFIX;
 
     Tree_t* tresult;
     tbslas::RunSemilagSimulation(&tvel_curr,
                                  &tconc_curr,
                                  &tconc_next,
-                                 &sim_param,
                                  &tresult,
                                  true,
                                  true);

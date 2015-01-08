@@ -43,8 +43,9 @@ const double xc = 0.6;
 const double yc = 0.5;
 const double zc = 0.5;
 
-const char* OUTPUT_FILE_FORMAT = "%s/%s-VAR_%s-TS_%04d-RNK";
-const char* OUTPUT_FILE_PREFIX = "advect-diff";
+const char* OUTPUT_FILE_FORMAT   = "%s/%s-VAR_%s-TS_%04d-RNK";
+const char* OUTPUT_FILE_PREFIX   = "advect-diff";
+const char* OUTPUT_FILE_VARIABLE = "conc";
 
 typedef tbslas::MetaData<std::string,
                          std::string,
@@ -94,9 +95,20 @@ RunFMM(_FMM_Tree_Type* tree,
   tree->Copy_FMMOutput(); //Copy FMM output to tree Data.
 }
 
+void
+GetVTKFileName(char (*buffer)[300], int timestep) {
+  tbslas::SimConfig* sim_config = tbslas::SimConfigSingleton::Instance();
+  snprintf(*buffer,
+           sizeof(*buffer),
+           sim_config->vtk_filename_format.c_str(),
+           tbslas::get_result_dir().c_str(),
+           sim_config->vtk_filename_prefix.c_str(),
+           sim_config->vtk_filename_variable.c_str(),
+           timestep);
+}
 ///////////////////////////////////////////////////////////////////////////////
 template <class Real_t>
-void fmm_test(int test_case, size_t N, size_t M, bool unif, int mult_order,
+void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
               int cheb_deg, int depth, bool adap, Real_t tol, MPI_Comm comm) {
   typedef pvfmm::FMM_Node<pvfmm::Cheb_Node<Real_t> > FMMNode_t;
   typedef pvfmm::FMM_Cheb<FMMNode_t> FMM_Mat_t;
@@ -180,7 +192,7 @@ void fmm_test(int test_case, size_t N, size_t M, bool unif, int mult_order,
            OUTPUT_FILE_FORMAT,
            tbslas::get_result_dir().c_str(),
            OUTPUT_FILE_PREFIX,
-           "advdiff",
+           OUTPUT_FILE_VARIABLE,
            0);
   tree->Write2File(out_name_buffer, cheb_deg);
 
@@ -217,61 +229,35 @@ void fmm_test(int test_case, size_t N, size_t M, bool unif, int mult_order,
            OUTPUT_FILE_FORMAT,
            tbslas::get_result_dir().c_str(),
            OUTPUT_FILE_PREFIX,
-           "vel",
+           "velocity",
            0);
   tvel_curr.Write2File(out_name_buffer, cheb_deg);
 
-  // **********************************************************************
-  // SEMI-LAGRANGIAN PARAMETERS
-  // **********************************************************************
-  // clone tree
-  FMM_Tree_t tree_next(comm);
-  tbslas::CloneTree<FMM_Tree_t>(*tree, tree_next, 1);
-
-  struct tbslas::SimParam<double> sim_param;
-  sim_param.total_num_timestep  = 1;
-  sim_param.dt                  = TBSLAS_DT;
-  sim_param.num_rk_step         = 1;
-  sim_param.vtk_filename_format = OUTPUT_FILE_FORMAT;
-  sim_param.vtk_filename_prefix = OUTPUT_FILE_PREFIX;
+  // =========================================================================
+  // SIMULATION PARAMETERS
+  // =========================================================================
+  tbslas::SimConfig* sim_config = tbslas::SimConfigSingleton::Instance();
 
   int timestep = 1;
-  FMM_Tree_t* result;
   for (; timestep < 2*NUM_TIME_STEPS+1; timestep +=2) {
     // **********************************************************************
     // SOLVE DIFFUSION: FMM
     // **********************************************************************
     RunFMM(tree, fmm_mat, bndry);
-
     // Write2File
-    snprintf(out_name_buffer,
-             sizeof(out_name_buffer),
-             OUTPUT_FILE_FORMAT,
-             tbslas::get_result_dir().c_str(),
-             OUTPUT_FILE_PREFIX,
-             "advdiff",
-             timestep);
-    tree->Write2File(out_name_buffer, cheb_deg);
+    GetVTKFileName(&out_name_buffer, timestep);
+    tree->Write2File(out_name_buffer, sim_config->vtk_order);
 
     // **********************************************************************
     // SOLVE ADVECTION: SEMI-LAGRANGIAN
     // **********************************************************************
     tbslas::RunSemilagSimulationInSitu(&tvel_curr,
                                        tree,
-                                       &sim_param,
                                        true,
                                        false);
-
     //Write2File
-    snprintf(out_name_buffer,
-             sizeof(out_name_buffer),
-             OUTPUT_FILE_FORMAT,
-             tbslas::get_result_dir().c_str(),
-             OUTPUT_FILE_PREFIX,
-             "advdiff",
-             timestep+1);
-    tree->Write2File(out_name_buffer, cheb_deg);
-
+    GetVTKFileName(&out_name_buffer, timestep+1);
+    tree->Write2File(out_name_buffer, sim_config->vtk_order);
   }
 
   // **********************************************************************
@@ -334,17 +320,29 @@ int main (int argc, char **argv) {
   double tol=        strtod(commandline_option(argc, argv,  "-tol",  "1e-5", false, "-tol <real> = (1e-5) : Tolerance for adaptive refinement." ),NULL);
   bool  adap=              (commandline_option(argc, argv, "-adap",    NULL, false, "-adap                : Adaptive tree refinement."          )!=NULL);
   int   test=       strtoul(commandline_option(argc, argv, "-test",     "1", false,
-       "-test <int> = (1)    : 1) Laplace, Smooth Gaussian, Periodic Boundary\n\
-                               2) Laplace, Discontinuous Sphere, FreeSpace Boundary\n\
-                               3) Stokes, Smooth Gaussian, FreeSpace Boundary\n\
-                               4) Biot-Savart, Smooth Gaussian, FreeSpace Boundary\n\
-                               5) Helmholtz, Smooth Gaussian, FreeSpace Boundary"),NULL,10);
+       "-test <int> = (1)    : 1) Laplace, Smooth Gaussian, Periodic Boundary"),NULL,10);
     int     tn =         strtoul(commandline_option(argc, argv,    "-tn",    "1", false, "-tn   <int> = (1)   : Number of time steps."     ),NULL,10);
+  bool cubic =
+      (commandline_option(argc, argv, "-cubic", NULL, false,
+                          "-cubic               : Cubic Interpolation  used to evaluate tree values.")!=NULL);
 
   NUM_TIME_STEPS = tn;
   commandline_option_end(argc, argv);
   pvfmm::Profile::Enable(true);
   tbslas::Profile<double>::Enable(true, &comm);
+
+    // =========================================================================
+  // SIMULATION PARAMETERS
+  // =========================================================================
+  tbslas::SimConfig* sim_config     = tbslas::SimConfigSingleton::Instance();
+  sim_config->cubic                 = cubic;
+  sim_config->total_num_timestep    = 1;
+  sim_config->dt                    = TBSLAS_DT;
+  sim_config->num_rk_step           = 1;
+  sim_config->vtk_filename_format   = OUTPUT_FILE_FORMAT;
+  sim_config->vtk_filename_prefix   = OUTPUT_FILE_PREFIX;
+  sim_config->vtk_filename_variable = OUTPUT_FILE_VARIABLE;
+  sim_config->vtk_order             = q;
 
   // =========================================================================
   // PRINT METADATA
@@ -354,8 +352,8 @@ int main (int argc, char **argv) {
   }
 
   // Run FMM with above options.
-  pvfmm::Profile::Tic("FMM_Test",&comm,true);
-  fmm_test<double>(test, N,M,unif, m,q, d, adap,tol, comm);
+  pvfmm::Profile::Tic("RunAdvectDiff",&comm,true);
+  RunAdvectDiff<double>(test, N,M,unif, m,q, d, adap,tol, comm);
   pvfmm::Profile::Toc();
 
   //Output Profiling results.
