@@ -197,15 +197,12 @@ class CubicInterpPolicy {
     real_t mk1 = CubicInterpPolicy::tangent(xx[1], xx[2], xx[3],
                                             pp[1], pp[2], pp[3]);
     real_t t = (x - xx[1])/(xx[2] - xx[1]);
-    // printf("T: %f, x: %f, xx[1]: %f xx[2]: %f\n", t, x, xx[1], xx[2] );
 
     real_t val =
         CubicInterpPolicy::h00(t)*pp[1] +
         CubicInterpPolicy::h10(t)*(xx[2] - xx[1])*mk +
         CubicInterpPolicy::h01(t)*pp[2] +
         CubicInterpPolicy::h11(t)*(xx[2] - xx[1])*mk1;
-    // if (val < -700)
-      // printf("HT: %f, mk: %f, mk1: %f\n", t, mk, mk1 );
     return val;
   }
 

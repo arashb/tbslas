@@ -6,14 +6,14 @@
 #SBATCH -p normal     # queue (partition) -- normal, development, etc.
 #SBATCH -t 00:03:00        # run time (hh:mm:ss) - 1.5 hours
 
-MPI_NUM_PROCESSES=2
-OMP_NUM_THREADS=16
+MPI_NUM_PROCESSES=1
+OMP_NUM_THREADS=4
 TOL_NUM_DIGITS_INIT=3
-TOL_NUM_DIGITS_FINAL=9
+TOL_NUM_DIGITS_FINAL=8
 
 WORK_DIR=${PWD}
 cd ${TBSLAS_DIR}/examples
-make clean
+# make clean
 make -j
 cd ${WORK_DIR}
 

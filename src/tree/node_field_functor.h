@@ -95,7 +95,7 @@ void EvalTree(Tree_t* tree,
 
         Real_t* coord_ptr=&trg_coord[0]+part_indx[j]*COORD_DIM;
 
-        if (!sim_config->cubic) {
+        if (!sim_config->use_cubic) {
           //////////////////////////////////////////////////////////////
           // CHEBYSHEV INTERPOLATION
           //////////////////////////////////////////////////////////////
@@ -123,7 +123,7 @@ void EvalTree(Tree_t* tree,
           // CONSTRUCT REGULAR GRID
           // ************************************************************
           int reg_grid_resolution =
-              nodes[j]->ChebDeg()*sim_config->upsampling_factor;
+              nodes[j]->ChebDeg()*sim_config->cubic_upsampling_factor;
           Real_t spacing = 1.0/(reg_grid_resolution-1);
           std::vector<Real_t> reg_grid_coord_1d(reg_grid_resolution);
           tbslas::get_reg_grid_points<Real_t, 1>(reg_grid_resolution,
@@ -133,15 +133,36 @@ void EvalTree(Tree_t* tree,
           // ************************************************************
           int reg_grid_num_points = std::pow(reg_grid_resolution, COORD_DIM);
           std::vector<Real_t> reg_grid_vals(reg_grid_num_points*data_dof);
-          // scale to [-1,1] -> used in cheb_eval
-          std::vector<Real_t> x(reg_grid_resolution);
-          for(size_t i=0;i<reg_grid_resolution;i++) {
-            x[i] = -1.0+2.0*reg_grid_coord_1d[i];
-          }
           pvfmm::Vector<Real_t> reg_grid_vals_tmp(reg_grid_num_points*data_dof);
-          pvfmm::Vector<Real_t>& coeff=nodes[j]->ChebData();
-          pvfmm::cheb_eval(coeff, nodes[j]->ChebDeg(), x, x, x, reg_grid_vals_tmp);
-
+          // evaluate using the tree
+          if(!sim_config->cubic_use_analytical) {
+            // scale to [-1,1] -> used in cheb_eval
+            std::vector<Real_t> x(reg_grid_resolution);
+            for(size_t i=0;i<reg_grid_resolution;i++) {
+              x[i] = -1.0+2.0*reg_grid_coord_1d[i];
+            }
+            pvfmm::Vector<Real_t>& coeff=nodes[j]->ChebData();
+            pvfmm::cheb_eval(coeff, nodes[j]->ChebDeg(), x, x, x, reg_grid_vals_tmp);
+          } else {   // evaluate using analytical function
+            std::vector<Real_t> reg_grid_anal_coord(3);
+            std::vector<Real_t> reg_grid_anal_vals(1*data_dof);
+            int nx = reg_grid_resolution;
+            for (int xi = 0; xi < nx; xi++) {
+              for (int yi = 0; yi < nx; yi++) {
+                for (int zi = 0; zi < nx; zi++) {
+                  reg_grid_anal_coord[0] = c[0] + reg_grid_coord_1d[xi]/s;
+                  reg_grid_anal_coord[1] = c[1] + reg_grid_coord_1d[yi]/s;
+                  reg_grid_anal_coord[2] = c[2] + reg_grid_coord_1d[zi]/s;
+                  assert(!nodes[j]->input_fn.IsEmpty());
+                  nodes[j]->input_fn(reg_grid_anal_coord.data(),
+                                     1,
+                                     reg_grid_anal_vals.data());
+                  for(int l=0;l<data_dof;l++)
+                    reg_grid_vals_tmp[xi+(yi+(zi+l*nx)*nx)*nx] = reg_grid_anal_vals[l];
+                }
+              }
+            }
+          }
           for (int i = 0; i < reg_grid_vals.size(); i++) {
             reg_grid_vals[i] = reg_grid_vals_tmp[i];
           }

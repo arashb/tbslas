@@ -26,7 +26,7 @@ MPI_NUM_PROCESS = int(sys.argv[1])
 OMP_NUM_THREADS = int(sys.argv[2])
 TOL_NUM_DIGITS_INIT = int(sys.argv[3])
 TOL_NUM_DIGITS_FINAL = int(sys.argv[4])
-
+TOL_NUM_STEPS = TOL_NUM_DIGITS_FINAL - TOL_NUM_DIGITS_INIT + 1 
 HOSTNAME = socket.gethostname()
 TIMESTR  = time.strftime("%Y%m%d-%H%M%S")
 OUTPUT_PREFIX = 'conv-'+TIMESTR
@@ -71,18 +71,18 @@ def determine_command_prefix():
 def generate_commands():
     # generate a dictionary data type of commands
     commands = OrderedDict()
-    dt = 0.1047 #math.pi/30
+    dt = 0.01 #math.pi/30
     tn = 1
-    #tol = math.pow(0.1,float(TOL_NUM_DIGITS_INIT))
-    tol_list = [math.pow(0.1,x) for x in range(TOL_NUM_DIGITS_INIT,TOL_NUM_DIGITS_FINAL+1)]
-    #for counter in range(0,TOL_NUM_STEPS):
-    for tol in tol_list:
+    tol = math.pow(0.1,float(TOL_NUM_DIGITS_INIT))
+    # tol_list = [math.pow(0.1,x) for x in range(TOL_NUM_DIGITS_INIT,TOL_NUM_DIGITS_FINAL+1)]
+    for counter in range(0,TOL_NUM_STEPS):
+    # for tol in tol_list:
         ARGS    = ['-N', '8', '-tol', str(tol), '-dt', str(dt), '-tn', str(tn), '-omp', str(OMP_NUM_THREADS)]
         cmd = determine_command_prefix() + [EXEC] + ARGS
         # save command
         commands[tol] = cmd
         dt  = dt*0.5
-        #tol = tol*0.5
+        tol = tol*0.5
         tn  = 2*tn
     return commands
 

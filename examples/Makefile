@@ -29,7 +29,9 @@ TARGET_BIN = \
        $(BINDIR)/semilag_tree \
        $(BINDIR)/zalesak \
        $(BINDIR)/diffusion \
-       $(BINDIR)/advect-diff 
+       $(BINDIR)/advect-diff \
+       $(BINDIR)/cubic
+
 
 
 all : $(TARGET_BIN)

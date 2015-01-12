@@ -1,3 +1,15 @@
+// *************************************************************************
+// Copyright (C) 2014 by Arash Bakhtiari
+// You may not use this file except in compliance with the License.
+// You obtain a copy of the License in the LICENSE file.
+
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// *************************************************************************
+
 #include <mpi.h>
 #include <omp.h>
 #include <stdio.h>
@@ -16,6 +28,7 @@
 #include <cheb_utils.hpp>
 
 #include <utils/common.h>
+#include <utils/metadata.h>
 // Enable profiling
 #define __TBSLAS_PROFILE__ 5
 #include <utils/profile.h>
@@ -28,21 +41,17 @@ typedef pvfmm::MPI_Tree<Node_t> Tree_t;
 typedef tbslas::MetaData<std::string,
                          std::string,
                          std::string> MetaData_t;
-
 double tcurr = 0;
 
 const char* OUTPUT_FILE_FORMAT = "%s/%s-VAR_%s-TS_%04d-RNK";
-const char* OUTPUT_FILE_PREFIX = "semilag-tree";
+const char* OUTPUT_FILE_PREFIX = "cubic";
 
 int main (int argc, char **argv) {
   MPI_Init(&argc, &argv);
-  MPI_Comm comm = MPI_COMM_WORLD;
+  MPI_Comm comm=MPI_COMM_WORLD;
 
-  // =========================================================================
-  // COMMAND LINE OPTIONS
-  // =========================================================================
+  // Read command line options.
   commandline_option_start(argc, argv);
-
   omp_set_num_threads(
       atoi(commandline_option(argc, argv, "-omp", "1", false,
                               "-omp  <int> = (1)    : Number of OpenMP threads.")));
@@ -80,40 +89,44 @@ int main (int argc, char **argv) {
       (commandline_option(argc, argv, "-adap", NULL, false,
                           "-adap                : Adaptive tree refinement." )!=NULL);
 
-  int tn =
+    int tn =
       strtoul(
           commandline_option(argc, argv, "-tn", "1", false,
                              "-tn   <int> = (1)    : Number of time steps."),
           NULL,10);
 
+  double dt =
+      strtod(
+          commandline_option(argc, argv,  "-dt",  "0.1e-2", false,
+                             "-tol <real> = (1e-5) : Temporal resolution." ), NULL);
+
   bool cubic =
       (commandline_option(argc, argv, "-cubic", NULL, false,
                           "-cubic               : Cubic Interpolation  used to evaluate tree values.")!=NULL);
 
-  double dt =
-      strtod(
-          commandline_option(argc, argv,  "-dt",  "0", false,
-                             "-tol <real> = (1e-5) : Temporal resolution." ), NULL);
-
-    int cuf =
+  int cuf =
       strtoul(
           commandline_option(argc, argv, "-cuf", "4", false,
                              "-cuf   <int> = (4)    : Upsampling factor used for cubic interpolation."),
           NULL,10);
+
+  bool cubic_analytical =
+      (commandline_option(argc, argv, "-ca", NULL, false,
+                          "-ca                  : Analytical values used in cubic interpolation upsampling.")!=NULL);
 
   commandline_option_end(argc, argv);
 
   {
     int myrank;
     MPI_Comm_rank(comm, &myrank);
-    tbslas::Profile<double>::Enable(true, &comm);
+    // tbslas::Profile<double>::Enable(true, &comm);
 
     // =========================================================================
     // SIMULATION PARAMETERS
     // =========================================================================
     tbslas::SimConfig* sim_config       = tbslas::SimConfigSingleton::Instance();
     sim_config->total_num_timestep      = tn;
-    sim_config->dt                      = dt; //3.14/12;
+    sim_config->dt                      = dt;
     sim_config->num_rk_step             = 1;
     sim_config->vtk_filename_format     = OUTPUT_FILE_FORMAT;
     sim_config->vtk_filename_prefix     = OUTPUT_FILE_PREFIX;
@@ -121,86 +134,55 @@ int main (int argc, char **argv) {
     sim_config->vtk_order               = q;
     sim_config->use_cubic               = cubic;
     sim_config->cubic_upsampling_factor = cuf;
-
+    sim_config->cubic_use_analytical    = cubic_analytical;
     // =========================================================================
     // PRINT METADATA
     // =========================================================================
-    if (!myrank) {
-      MetaData_t::Print();
-    }
-
+    // if (!myrank) {
+    //   MetaData_t::Print();
+    // }
     // =========================================================================
-    // INIT THE TREES
+    // CONSTRUCT TREE
     // =========================================================================
-    Tree_t tvel_curr(comm);
-    tbslas::ConstructTree<Tree_t>(N, M, q, d, adap, tol, comm,
-                                  tbslas::get_vorticity_field<double,3>,
-                                  3,
-                                  tvel_curr);
-    tvel_curr.ConstructLET(pvfmm::FreeSpace);
-
-    char out_name_buffer[300];
-    snprintf(out_name_buffer,
-             sizeof(out_name_buffer),
-             sim_config->vtk_filename_format.c_str(),
-             tbslas::get_result_dir().c_str(),
-             sim_config->vtk_filename_prefix.c_str(),
-             "vel",
-             0);
-    tvel_curr.Write2File(out_name_buffer, sim_config->vtk_order);
-
-    Tree_t tconc_curr(comm);
+    tcurr = 0;
+    Tree_t tree(comm);
     tbslas::ConstructTree<Tree_t>(N, M, q, d, adap, tol, comm,
                                   get_gaussian_field_cylinder_atT<double,3>,
                                   1,
-                                  tconc_curr);
-    snprintf(out_name_buffer,
-             sizeof(out_name_buffer),
-             sim_config->vtk_filename_format.c_str(),
-             tbslas::get_result_dir().c_str(),
-             sim_config->vtk_filename_prefix.c_str(),
-             sim_config->vtk_filename_variable.c_str(),
-             0);
-    tconc_curr.Write2File(out_name_buffer, q);
+                                  tree);
 
-    if (dt == 0) {
-      double vel_max_value;
-      int vel_max_depth;
-      tbslas::GetMaxTreeValues<Tree_t>
-          (tvel_curr, vel_max_value, vel_max_depth);
-
-      if (!myrank)
-        printf("%d: VEL MAX VALUE: %f VEL MAX DEPTH:%d\n",
-               myrank,
-               vel_max_value,
-               vel_max_depth);
-
-      double conc_max_value;
-      int conc_max_depth;
-      tbslas::GetMaxTreeValues<Tree_t>
-          (tconc_curr, conc_max_value, conc_max_depth);
-
-      if (!myrank)
-        printf("%d:CON MAX VALUE: %f CON MAX DEPTH:%d\n",
-               myrank,
-               conc_max_value,
-               conc_max_depth);
-
-      double cfl      = 1;
-      double dx_min   = pow(0.5, conc_max_depth);
-      sim_config->dt = (cfl * dx_min)/vel_max_value;
-    }
     // =========================================================================
-    // RUN
+    // compute error
     // =========================================================================
-    // Tree_t* result;
-    tbslas::RunSemilagSimulationInSitu(&tvel_curr,
-                                       &tconc_curr,
-                                       true,
-                                       true);
+    std::vector<double> grid_points;
+    // tbslas::CollectChebTreeGridPoints(tree, grid_points);
+
+    std::vector<double> node_pos = pvfmm::cheb_nodes<double>(q, 3);
+
+    // int grid_res = q*sim_config->cubic_upsampling_factor;
+
+    // std::vector<double> node_pos(grid_res*grid_res*grid_res*3);
+    // tbslas::get_reg_grid_points<double, 3>(grid_res,
+    //                                        node_pos.data());
+
+    tbslas::CollectTreeGridPoints(tree,
+                                  node_pos,
+                                  grid_points);
+
+    double l_inf_error, l_two_error;
+    tbslas::ComputeTreeError(tree,
+                             get_gaussian_field_cylinder_atT<double,3>,
+                             grid_points,
+                             l_inf_error,
+                             l_two_error);
+    int tnln = tbslas::CountNumLeafNodes(tree);
+
+    if(!myrank)
+      printf("TOL: %2.5e LTWO: %2.5e LINF = %2.5e TNLN: %d\n",
+             tol, l_two_error, l_inf_error, tnln);
 
     //Output Profiling results.
-    tbslas::Profile<double>::print(&comm);
+    // tbslas::Profile<double>::print(&comm);
   }
 
   // Shut down MPI

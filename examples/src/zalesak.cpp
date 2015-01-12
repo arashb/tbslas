@@ -98,11 +98,21 @@ int main (int argc, char **argv) {
   double dt =
       strtod(
           commandline_option(argc, argv,  "-dt",  "0.1e-2", false,
-                             "-tol <real> = (1e-5) : Temporal resolution." ), NULL);
+                             "-dt <real> = (0.1e-2) : Temporal resolution." ), NULL);
 
   bool cubic =
       (commandline_option(argc, argv, "-cubic", NULL, false,
                           "-cubic               : Cubic Interpolation  used to evaluate tree values.")!=NULL);
+
+  int cuf =
+      strtoul(
+          commandline_option(argc, argv, "-cuf", "4", false,
+                             "-cuf   <int> = (4)    : Upsampling factor used for cubic interpolation."),
+          NULL,10);
+
+  bool cubic_analytical =
+      (commandline_option(argc, argv, "-ca", NULL, false,
+                          "-ca                  : Analytical values used in cubic interpolation upsampling.")!=NULL);
 
   commandline_option_end(argc, argv);
 
@@ -114,15 +124,17 @@ int main (int argc, char **argv) {
     // =========================================================================
     // SIMULATION PARAMETERS
     // =========================================================================
-    tbslas::SimConfig* sim_config     = tbslas::SimConfigSingleton::Instance();
-    sim_config->cubic                 = cubic;
-    sim_config->total_num_timestep    = tn;
-    sim_config->dt                    = dt;
-    sim_config->num_rk_step           = 1;
-    sim_config->vtk_filename_format   = OUTPUT_FILE_FORMAT;
-    sim_config->vtk_filename_prefix   = OUTPUT_FILE_PREFIX;
-    sim_config->vtk_filename_variable = "conc";
-    sim_config->vtk_order             = q;
+    tbslas::SimConfig* sim_config       = tbslas::SimConfigSingleton::Instance();
+    sim_config->total_num_timestep      = tn;
+    sim_config->dt                      = dt;
+    sim_config->num_rk_step             = 1;
+    sim_config->vtk_filename_format     = OUTPUT_FILE_FORMAT;
+    sim_config->vtk_filename_prefix     = OUTPUT_FILE_PREFIX;
+    sim_config->vtk_filename_variable   = "conc";
+    sim_config->vtk_order               = q;
+    sim_config->use_cubic               = cubic;
+    sim_config->cubic_upsampling_factor = cuf;
+    sim_config->cubic_use_analytical    = cubic_analytical;
     // =========================================================================
     // PRINT METADATA
     // =========================================================================
@@ -156,13 +168,18 @@ int main (int argc, char **argv) {
     // =========================================================================
     double l_inf_error, l_two_error;
     tcurr = tn*dt;
+
+    std::vector<double> grid_points;
+    tbslas::CollectChebTreeGridPoints(tconc_curr, grid_points);
+
     tbslas::ComputeTreeError(tconc_curr,
                              get_gaussian_field_cylinder_atT<double,3>,
+                             grid_points,
                              l_inf_error,
                              l_two_error);
     int tnln = tbslas::CountNumLeafNodes(tconc_curr);
     if(!myrank)
-      printf("TOL: %2.10f LTWO: %2.10f LINF = %2.10f TNLN: %d\n",
+      printf("TOL: %2.5e LTWO: %2.5e LINF = %2.5e TNLN: %d\n",
              tol, l_two_error, l_inf_error, tnln);
 
     //Output Profiling results.

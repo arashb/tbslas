@@ -413,19 +413,71 @@ void CollectChebTreeGridPoints(TreeType& tree,
   tbslas::Profile<double>::Toc();
 }
 
+template<typename TreeType>
+void CollectTreeGridPoints(TreeType& tree,
+                           std::vector<typename TreeType::Real_t> node_pos,
+                           std::vector<typename TreeType::Real_t>& grid_points) {
+  typedef typename TreeType::Node_t NodeType;
+  typedef typename TreeType::Real_t RealType;
+
+  tbslas::Profile<double>::Tic("CollectTreeGridPoints",false,5);
+  int cheb_deg = tree.RootNode()->ChebDeg();
+  int sdim     = tree.Dim();
+
+  // compute chebychev points positions on the fly
+  // std::vector<RealType> node_pos = pvfmm::cheb_nodes<RealType>(cheb_deg, sdim);
+  int num_points_per_node        = node_pos.size()/sdim;
+
+  // compute total number of tree leaf nodes
+  NodeType* n_next = tree.PostorderFirst();
+  int num_leaf_nodes = 0;
+  while (n_next != NULL) {
+    if(!n_next->IsGhost() && n_next->IsLeaf())
+      num_leaf_nodes++;
+    n_next = tree.PostorderNxt(n_next);
+  }
+
+  // std::vector<RealType> grid_points;
+  grid_points.resize(node_pos.size()*num_leaf_nodes);
+
+  n_next = tree.PostorderFirst();
+  while (n_next != NULL) {
+    if(!n_next->IsGhost() && n_next->IsLeaf())
+      break;
+    n_next = tree.PostorderNxt(n_next);
+  }
+
+  int tree_node_counter = 0;
+  while (n_next != NULL) {
+    if (n_next->IsLeaf() && !n_next->IsGhost()) {
+      RealType length      = static_cast<RealType>(std::pow(0.5, n_next->Depth()));
+      RealType* node_coord = n_next->Coord();
+      // scale the cheb points
+      size_t shift = tree_node_counter*node_pos.size();
+      for (int i = 0; i < num_points_per_node; i++) {
+        grid_points[shift + i*sdim+0] = node_coord[0] + length * node_pos[i*sdim+0];
+        grid_points[shift + i*sdim+1] = node_coord[1] + length * node_pos[i*sdim+1];
+        grid_points[shift + i*sdim+2] = node_coord[2] + length * node_pos[i*sdim+2];
+      }
+      tree_node_counter++;
+    }
+    n_next = tree.PostorderNxt(n_next);
+  }
+  tbslas::Profile<double>::Toc();
+}
+
 template<typename TreeType,
          typename AnalyticalFunctor>
 void
 ComputeTreeError(TreeType& tree,
                  AnalyticalFunctor anal_func,
+                 std::vector<typename TreeType::Real_t> grid_points,
                  typename TreeType::Real_t& l_inf_error,
                  typename TreeType::Real_t& l_two_error) {
   typedef typename TreeType::Node_t NodeType;
   typedef typename TreeType::Real_t RealType;
 
   tbslas::Profile<double>::Tic("ComputeTreeError",false,5);
-  std::vector<RealType> grid_points;
-  tbslas::CollectChebTreeGridPoints(tree, grid_points);
 
   int data_dof = 1;
   int sdim     = tree.Dim();

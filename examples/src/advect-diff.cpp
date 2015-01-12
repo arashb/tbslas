@@ -36,7 +36,7 @@
 #include <tree/utils_tree.h>
 
 int NUM_TIME_STEPS = 1;
-const double TBSLAS_DT = 0.1;
+const double TBSLAS_DT = 0.001;
 const double TBSLAS_ALPHA = (1.0)/TBSLAS_DT;
 
 const double xc = 0.6;
@@ -335,7 +335,6 @@ int main (int argc, char **argv) {
   // SIMULATION PARAMETERS
   // =========================================================================
   tbslas::SimConfig* sim_config     = tbslas::SimConfigSingleton::Instance();
-  sim_config->cubic                 = cubic;
   sim_config->total_num_timestep    = 1;
   sim_config->dt                    = TBSLAS_DT;
   sim_config->num_rk_step           = 1;
@@ -343,7 +342,7 @@ int main (int argc, char **argv) {
   sim_config->vtk_filename_prefix   = OUTPUT_FILE_PREFIX;
   sim_config->vtk_filename_variable = OUTPUT_FILE_VARIABLE;
   sim_config->vtk_order             = q;
-
+  sim_config->use_cubic             = cubic;
   // =========================================================================
   // PRINT METADATA
   // =========================================================================

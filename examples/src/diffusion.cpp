@@ -19,7 +19,7 @@
 #include <diffusion/kernel.h>
 
 int NUM_TIME_STEPS = 1;
-const double TBSLAS_DT = 0.1;
+const double TBSLAS_DT = 0.001;
 const double TBSLAS_ALPHA = (1.0)/TBSLAS_DT;
 
 const char* OUTPUT_FILE_FORMAT = "%s/%s-VAR_%s-TS_%04d-RNK";

@@ -28,8 +28,9 @@ class SimConfig {
       vtk_filename_format("%s/%s-VAR_%s-TS_%04d-RNK"),
       vtk_filename_prefix("output"),
       vtk_filename_variable("vals"),
-      cubic(false),
-      upsampling_factor(4) {
+      use_cubic(false),
+      cubic_upsampling_factor(4),
+      cubic_use_analytical(false) {
   }
 
   // time stepping
@@ -46,8 +47,11 @@ class SimConfig {
   std::string vtk_filename_variable;
 
   // cubic interpolation
-  bool cubic;
-  int upsampling_factor;
+  bool use_cubic;
+  int cubic_upsampling_factor;
+  // use analytical funciton for upsampling
+  // instead of chebyshev evalutation
+  bool cubic_use_analytical;
 };
 
 }  // namespace tbslas
