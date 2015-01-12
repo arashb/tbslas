@@ -90,6 +90,11 @@ int main (int argc, char **argv) {
       (commandline_option(argc, argv, "-cubic", NULL, false,
                           "-cubic               : Cubic Interpolation  used to evaluate tree values.")!=NULL);
 
+  double dt =
+      strtod(
+          commandline_option(argc, argv,  "-dt",  "0", false,
+                             "-tol <real> = (1e-5) : Temporal resolution." ), NULL);
+
   commandline_option_end(argc, argv);
 
   {
@@ -103,7 +108,7 @@ int main (int argc, char **argv) {
     tbslas::SimConfig* sim_config     = tbslas::SimConfigSingleton::Instance();
     sim_config->cubic                 = cubic;
     sim_config->total_num_timestep    = tn;
-    sim_config->dt                    = 3.14/12;//(cfl * dx_min)/vel_max_value;
+    sim_config->dt                    = dt; //3.14/12;
     sim_config->num_rk_step           = 1;
     sim_config->vtk_filename_format   = OUTPUT_FILE_FORMAT;
     sim_config->vtk_filename_prefix   = OUTPUT_FILE_PREFIX;
@@ -137,17 +142,6 @@ int main (int argc, char **argv) {
              0);
     tvel_curr.Write2File(out_name_buffer, sim_config->vtk_order);
 
-    double vel_max_value;
-    int vel_max_depth;
-    tbslas::GetMaxTreeValues<Tree_t>
-        (tvel_curr, vel_max_value, vel_max_depth);
-
-    if (!myrank)
-      printf("%d: VEL MAX VALUE: %f VEL MAX DEPTH:%d\n",
-             myrank,
-             vel_max_value,
-             vel_max_depth);
-
     Tree_t tconc_curr(comm);
     tbslas::ConstructTree<Tree_t>(N, M, q, d, adap, tol, comm,
                                   get_gaussian_field_cylinder_atT<double,3>,
@@ -162,35 +156,41 @@ int main (int argc, char **argv) {
              0);
     tconc_curr.Write2File(out_name_buffer, q);
 
-    // clone tree
-    Tree_t tconc_next(comm);
-    tbslas::CloneTree<Tree_t>(tconc_curr, tconc_next, 1);
+    if (dt == 0) {
+      double vel_max_value;
+      int vel_max_depth;
+      tbslas::GetMaxTreeValues<Tree_t>
+          (tvel_curr, vel_max_value, vel_max_depth);
 
-    // double conc_max_value;
-    // int conc_max_depth;
-    // tbslas::GetMaxTreeValues<Tree_t>
-    //     (tconc_curr, conc_max_value, conc_max_depth);
+      if (!myrank)
+        printf("%d: VEL MAX VALUE: %f VEL MAX DEPTH:%d\n",
+               myrank,
+               vel_max_value,
+               vel_max_depth);
 
-    // if (!myrank)
-    //   printf("%d:CON MAX VALUE: %f CON MAX DEPTH:%d\n",
-    //          myrank,
-    //          conc_max_value,
-    //          conc_max_depth);
+      double conc_max_value;
+      int conc_max_depth;
+      tbslas::GetMaxTreeValues<Tree_t>
+          (tconc_curr, conc_max_value, conc_max_depth);
 
-    // simulation parameters
-    // double cfl      = 1;
-    // double dx_min   = pow(0.5, conc_max_depth);
+      if (!myrank)
+        printf("%d:CON MAX VALUE: %f CON MAX DEPTH:%d\n",
+               myrank,
+               conc_max_value,
+               conc_max_depth);
 
+      double cfl      = 1;
+      double dx_min   = pow(0.5, conc_max_depth);
+      sim_config->dt = (cfl * dx_min)/vel_max_value;
+    }
     // =========================================================================
     // RUN
     // =========================================================================
-    Tree_t* result;
-    tbslas::RunSemilagSimulation(&tvel_curr,
-                                 &tconc_curr,
-                                 &tconc_next,
-                                 &result,
-                                 true,
-                                 true);
+    // Tree_t* result;
+    tbslas::RunSemilagSimulationInSitu(&tvel_curr,
+                                       &tconc_curr,
+                                       true,
+                                       true);
 
     //Output Profiling results.
     tbslas::Profile<double>::print(&comm);

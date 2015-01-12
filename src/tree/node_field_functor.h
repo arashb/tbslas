@@ -29,7 +29,6 @@ void EvalTree(Tree_t* tree,
               size_t N,
               typename Tree_t::Real_t* trg_coord_,
               typename Tree_t::Real_t* value) {
-
   typedef typename Tree_t::Node_t Node_t;
   typedef typename Tree_t::Real_t Real_t;
   tbslas::SimConfig* sim_config = tbslas::SimConfigSingleton::Instance();
@@ -82,7 +81,10 @@ void EvalTree(Tree_t* tree,
       size_t b=((pid+1)*nodes.size())/omp_p;
 
       std::vector<Real_t> coord;
-      pvfmm::Vector<Real_t> tmp_out;
+      pvfmm::Vector<Real_t> tmp_out;    // buffer used in chebyshev evaluation
+      std::vector<Real_t> query_values; // buffer used in cubic interpolation
+      Real_t* output = NULL;
+
       for (size_t j=a;j<b;j++) {
         const size_t n_pts=part_indx[j+1]-part_indx[j];
         if(!n_pts) continue;
@@ -91,17 +93,16 @@ void EvalTree(Tree_t* tree,
         size_t d=nodes[j]->Depth();
         Real_t s=(Real_t)(1ULL<<d);
 
-        if (tmp_out.Dim()<n_pts*data_dof) {
-          tmp_out.ReInit(n_pts*data_dof);
-        }
-        tmp_out.SetZero();
-
         Real_t* coord_ptr=&trg_coord[0]+part_indx[j]*COORD_DIM;
 
         if (!sim_config->cubic) {
           //////////////////////////////////////////////////////////////
           // CHEBYSHEV INTERPOLATION
           //////////////////////////////////////////////////////////////
+          if (tmp_out.Dim()<n_pts*data_dof) {
+            tmp_out.ReInit(n_pts*data_dof);
+          }
+          tmp_out.SetZero();
           coord.resize(n_pts*COORD_DIM);
           for (size_t i=0;i<n_pts;i++) {
             // scale to [-1,1] -> used in cheb_eval
@@ -112,10 +113,12 @@ void EvalTree(Tree_t* tree,
 
           pvfmm::Vector<Real_t>& coeff=nodes[j]->ChebData();
           pvfmm::cheb_eval(coeff, nodes[j]->ChebDeg(), coord, tmp_out);
+          output = &tmp_out[0];
         } else {
           //////////////////////////////////////////////////////////////
           // CUBIC INTERPOLATION
           //////////////////////////////////////////////////////////////
+          query_values.resize(n_pts*data_dof);
           // ************************************************************
           // CONSTRUCT REGULAR GRID
           // ************************************************************
@@ -125,137 +128,42 @@ void EvalTree(Tree_t* tree,
           std::vector<Real_t> reg_grid_coord_1d(reg_grid_resolution);
           tbslas::get_reg_grid_points<Real_t, 1>(reg_grid_resolution,
                                                  reg_grid_coord_1d.data());
-
           // ************************************************************
           // EVALUATE AT THE REGULAR GRID
           // ************************************************************
           int reg_grid_num_points = std::pow(reg_grid_resolution, COORD_DIM);
           std::vector<Real_t> reg_grid_vals(reg_grid_num_points*data_dof);
-          // ************************************************************
-          // CHEB_EVAL
-          // ************************************************************
           // scale to [-1,1] -> used in cheb_eval
-          // std::vector<Real_t> x(reg_grid_resolution);
-          // std::vector<Real_t> y(reg_grid_resolution);
-          // std::vector<Real_t> z(reg_grid_resolution);
-          // for(size_t i=0;i<reg_grid_resolution;i++) {
-          //   x[i] = -1.0+2.0*reg_grid_coord_1d[i];
-          //   y[i] = -1.0+2.0*reg_grid_coord_1d[i];
-          //   z[i] = -1.0+2.0*reg_grid_coord_1d[i];
-          // }
-          // pvfmm::Vector<Real_t> reg_grid_vals_tmp(reg_grid_num_points*data_dof);
-          // pvfmm::Vector<Real_t>& coeff=nodes[j]->ChebData();
-          // pvfmm::cheb_eval(coeff, nodes[j]->ChebDeg(), x, y, z, reg_grid_vals_tmp);
-
-          // for(size_t i = 0; i < reg_grid_num_points;i++) {
-          //   for (int data_dof_cnt = 0; data_dof_cnt < data_dof; data_dof_cnt++) {
-          //     reg_grid_vals[i+data_dof_cnt*reg_grid_num_points] =
-          //         reg_grid_vals_tmp[i*data_dof+data_dof_cnt];
-          //   }
-          // }
-          // ************************************************************
-          // READ_EVAL
-          // ************************************************************
-          {
-            Real_t length = 1.0/s;
-            std::vector<Real_t> x(reg_grid_resolution);
-            std::vector<Real_t> y(reg_grid_resolution);
-            std::vector<Real_t> z(reg_grid_resolution);
-            // scale to global coordinates -> used in node->ReadVal
-            for(size_t i = 0; i < reg_grid_resolution; i++) {
-              x[i] = c[0] + length * reg_grid_coord_1d[i];
-              y[i] = c[1] + length * reg_grid_coord_1d[i];
-              z[i] = c[2] + length * reg_grid_coord_1d[i];
-            }
-            nodes[j]->ReadVal(x, y, z,
-                              reg_grid_vals.data());
+          std::vector<Real_t> x(reg_grid_resolution);
+          for(size_t i=0;i<reg_grid_resolution;i++) {
+            x[i] = -1.0+2.0*reg_grid_coord_1d[i];
           }
+          pvfmm::Vector<Real_t> reg_grid_vals_tmp(reg_grid_num_points*data_dof);
+          pvfmm::Vector<Real_t>& coeff=nodes[j]->ChebData();
+          pvfmm::cheb_eval(coeff, nodes[j]->ChebDeg(), x, x, x, reg_grid_vals_tmp);
 
+          for (int i = 0; i < reg_grid_vals.size(); i++) {
+            reg_grid_vals[i] = reg_grid_vals_tmp[i];
+          }
           // ************************************************************
           // 3D CUBIC INTERPOLATION
           // ************************************************************
-          for(int data_dim_cnt = 0; data_dim_cnt < data_dof; data_dim_cnt++) {
-            Real_t* reg_grid_vals_dim =
-                &reg_grid_vals[data_dim_cnt*reg_grid_num_points];
-            for ( int pi = 0; pi < n_pts; pi++) {
+          // scale to [0,1] in local node
+          std::vector<Real_t> query_points(n_pts*COORD_DIM);
+          for ( int pi = 0; pi < n_pts; pi++) {
+            query_points[pi*COORD_DIM+0] = (coord_ptr[pi*COORD_DIM+0]-c[0])*s;
+            query_points[pi*COORD_DIM+1] = (coord_ptr[pi*COORD_DIM+1]-c[1])*s;
+            query_points[pi*COORD_DIM+2] = (coord_ptr[pi*COORD_DIM+2]-c[2])*s;
+          }
+          tbslas::CubicInterpPolicy<Real_t>::interp(reg_grid_vals,
+                                                    data_dof,
+                                                    spacing,
+                                                    query_points,
+                                                    query_values);
+          output = &query_values[0];
+        } // end of cubic interpolation
 
-              //in case that target coordinate is outside the unit domain->set to 0
-              if ( coord_ptr[pi*COORD_DIM+0] < 0 || coord_ptr[pi*COORD_DIM+0] > 1.0 ||
-                   coord_ptr[pi*COORD_DIM+1] < 0 || coord_ptr[pi*COORD_DIM+1] > 1.0 ||
-                   coord_ptr[pi*COORD_DIM+2] < 0 || coord_ptr[pi*COORD_DIM+2] > 1.0
-                   ) {
-                tmp_out[pi*data_dof + data_dim_cnt] = 0;
-                continue;
-              }
-
-              // scale to [0,1] in local node
-              Real_t xq =(coord_ptr[pi*COORD_DIM+0]-c[0])*s;
-              Real_t yq =(coord_ptr[pi*COORD_DIM+1]-c[1])*s;
-              Real_t zq =(coord_ptr[pi*COORD_DIM+2]-c[2])*s;
-
-              Real_t dx(xq/spacing);
-              Real_t dy(yq/spacing);
-              Real_t dz(zq/spacing);
-
-              // Calculate the corresponding lower-bound grid indices.
-              int xi = static_cast<int>(std::floor(dx));
-              int yi = static_cast<int>(std::floor(dy));
-              int zi = static_cast<int>(std::floor(dz));
-              // printf("TAR. POINTS: [%f, %f, %f] -> INDEX:[%d, %d, %d]\n",
-              //        xq, yq, zq, xi, yi, zi);
-              assert(xi >= 0 && yi >= 0  && zi >= 0);
-              assert(xi < reg_grid_resolution &&
-                     yi < reg_grid_resolution &&
-                     zi < reg_grid_resolution);
-
-              int xshift, yshift, zshift;
-              if (xi == 0) xshift = 0;
-              else if (xi == reg_grid_resolution -2)
-                xshift = xi -2;
-              else xshift = xi - 1;
-
-              if (yi == 0) yshift = 0;
-              else if (yi == reg_grid_resolution -2)
-                yshift = yi -2;
-              else yshift = yi - 1;
-
-              if (zi == 0) zshift = 0;
-              else if (zi == reg_grid_resolution -2)
-                zshift = zi -2;
-              else zshift = zi - 1;
-
-              Real_t xx[4];
-              Real_t yy[4];
-              Real_t zz[4];
-              for (int i = 0; i < 4; i++) {
-                xx[i] = reg_grid_coord_1d[xshift + i];
-                yy[i] = reg_grid_coord_1d[yshift + i];
-                zz[i] = reg_grid_coord_1d[zshift + i];
-              }
-
-              int xli, yli, zli;
-              int index;
-              Real_t pp[4][4][4];
-              for(int i = 0; i < 4; i++) {
-                xli = xshift + i;
-                for ( int j = 0; j < 4; j++) {
-                  yli = yshift + j;
-                  for ( int k = 0; k < 4; k++) {
-                    zli = zshift + k;
-                    index = xli + yli*reg_grid_resolution + zli*reg_grid_resolution*reg_grid_resolution;
-                    pp[i][j][k] = reg_grid_vals_dim[index];
-                  }
-                }
-              }
-              tmp_out[pi*data_dof + data_dim_cnt] =
-                  tbslas::CubicInterpPolicy<Real_t>::InterpCubic3D(xq, yq, zq,
-                                                                   xx, yy, zz,
-                                                                   pp);
-            }  // for target point
-          }  // for data_dof
-        }
-
-        memcpy(&trg_value[0]+part_indx[j]*data_dof, &tmp_out[0], n_pts*data_dof*sizeof(Real_t));
+        memcpy(&trg_value[0]+part_indx[j]*data_dof, output, n_pts*data_dof*sizeof(Real_t));
       }
     }
   }

@@ -147,27 +147,20 @@ int main (int argc, char **argv) {
                                   1,
                                   tconc_curr);
 
-    // clone tree
-    Tree_t tconc_next(comm);
-    tbslas::CloneTree<Tree_t>(tconc_curr, tconc_next, 1);
-
-    Tree_t* tresult;
-    tbslas::RunSemilagSimulation(&tvel_curr,
-                                 &tconc_curr,
-                                 &tconc_next,
-                                 &tresult,
-                                 true,
-                                 true);
+    tbslas::RunSemilagSimulationInSitu(&tvel_curr,
+                                       &tconc_curr,
+                                       true,
+                                       true);
     // =========================================================================
     // compute error
     // =========================================================================
     double l_inf_error, l_two_error;
     tcurr = tn*dt;
-    tbslas::ComputeTreeError(*tresult,
+    tbslas::ComputeTreeError(tconc_curr,
                              get_gaussian_field_cylinder_atT<double,3>,
                              l_inf_error,
                              l_two_error);
-    int tnln = tbslas::CountNumLeafNodes(*tresult);
+    int tnln = tbslas::CountNumLeafNodes(tconc_curr);
     if(!myrank)
       printf("TOL: %2.10f LTWO: %2.10f LINF = %2.10f TNLN: %d\n",
              tol, l_two_error, l_inf_error, tnln);
