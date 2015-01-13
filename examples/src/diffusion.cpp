@@ -19,8 +19,9 @@
 #include <diffusion/kernel.h>
 
 int NUM_TIME_STEPS = 1;
-const double TBSLAS_DT = 0.001;
-const double TBSLAS_ALPHA = (1.0)/TBSLAS_DT;
+const double TBSLAS_DT = 0.01;
+const double TBSLAS_DIFF_COEFF = 0.01;
+const double TBSLAS_ALPHA = (1.0)/TBSLAS_DT/TBSLAS_DIFF_COEFF;
 
 const char* OUTPUT_FILE_FORMAT = "%s/%s-VAR_%s-TS_%04d-RNK";
 const char* OUTPUT_FILE_PREFIX = "diffusion";
@@ -42,7 +43,7 @@ void fn_input_t1(const Real_t* coord, int n, Real_t* out) { //Input function
     const Real_t* c=&coord[i*COORD_DIM];
     {
       Real_t r_2=(c[0]-0.5)*(c[0]-0.5)+(c[1]-0.5)*(c[1]-0.5)+(c[2]-0.5)*(c[2]-0.5);
-      out[i*dof+0]=-(2*a*r_2+3)*2*a*exp(a*r_2)+alpha*exp(a*r_2);
+      out[i*dof+0]=-(2*a*r_2+3)*2*a*exp(a*r_2)/alpha+exp(a*r_2);
     }
   }
 }

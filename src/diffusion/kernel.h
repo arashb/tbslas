@@ -18,12 +18,14 @@
 #include <string>
 
 extern const double TBSLAS_DT;
+extern const double TBSLAS_DIFF_COEFF;
 extern const double TBSLAS_ALPHA;
 
 char kernel_name[256];
 
 namespace tbslas {
 
+// alpha*u - \Delta u = alpha*f
 template <class Real_t>
 void modified_laplace_poten(Real_t* r_src,
                             int src_cnt,
@@ -48,7 +50,7 @@ void modified_laplace_poten(Real_t* r_src,
           R = sqrt(invR);
           invR = 1.0/R;
         }
-        p += v_src[s*dof+i]*invR*exp(-lambda*R);
+        p += v_src[s*dof+i]*invR*exp(-lambda*R)*TBSLAS_ALPHA;
       }
       k_out[t*dof+i] += p*OOFP;
     }

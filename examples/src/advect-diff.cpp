@@ -36,8 +36,9 @@
 #include <tree/utils_tree.h>
 
 int NUM_TIME_STEPS = 1;
-const double TBSLAS_DT = 0.001;
-const double TBSLAS_ALPHA = (1.0)/TBSLAS_DT;
+const double TBSLAS_DT = 0.01;
+const double TBSLAS_DIFF_COEFF = 0.1;
+const double TBSLAS_ALPHA = (1.0)/TBSLAS_DT/TBSLAS_DIFF_COEFF;
 
 const double xc = 0.6;
 const double yc = 0.5;
@@ -65,7 +66,8 @@ void fn_input_t1(const Real_t* coord, int n, Real_t* out) { //Input function
     const Real_t* c=&coord[i*COORD_DIM];
     {
       Real_t r_2=(c[0]-xc)*(c[0]-xc)+(c[1]-yc)*(c[1]-yc)+(c[2]-zc)*(c[2]-zc);
-      out[i*dof+0]=-(2*a*r_2+3)*2*a*exp(a*r_2)+alpha*exp(a*r_2);
+      out[i*dof+0]=-(2*a*r_2+3)*2*a*exp(a*r_2)/alpha+exp(a*r_2);
+
     }
   }
 }
