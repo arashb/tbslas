@@ -6,31 +6,44 @@
 #SBATCH -p normal     # queue (partition) -- normal, development, etc.
 #SBATCH -t 00:03:00        # run time (hh:mm:ss) - 1.5 hours
 
-MPI_NUM_PROCESSES=1
-OMP_NUM_THREADS=4
-TOL_NUM_DIGITS_INIT=3
-TOL_NUM_DIGITS_FINAL=8
-
 WORK_DIR=${PWD}
 cd ${TBSLAS_DIR}/examples
-# make clean
+make clean
 make -j
 cd ${WORK_DIR}
 
 case $HOSTNAME in
     *stampede*) #stampede.tacc.utexas.edu
-	module load fftw3
-	module load python
-	;;
+    module load fftw3
+    module load python
+    MPI_NUM_PROCESSES=2
+    OMP_NUM_THREADS=16
+    # TODO:
+    ;;
     *ronaldo*) #ronaldo.ices.utexas.edu
-	;;
+    ;;
     *zico*) #zico.ices.utexas.edu
-	module load fftw3
-	module load python
-	;;
+    module load fftw3
+    module load python
+    MPI_NUM_PROCESSES=2
+    OMP_NUM_THREADS=16
+    ;;
     *) # none of the known machines
+    MPI_NUM_PROCESSES=1
+    OMP_NUM_THREADS=4
 esac
+echo "######################################################################"
+echo "# ADVECTION "
+echo "######################################################################"
+python ./advection.py ${MPI_NUM_PROCESSES} ${OMP_NUM_THREADS}
 
+echo "######################################################################"
+echo "# DIFFUSION "
+echo "######################################################################"
+python ./diffusion.py ${MPI_NUM_PROCESSES} ${OMP_NUM_THREADS}
 
-python ./conv.py ${MPI_NUM_PROCESSES} ${OMP_NUM_THREADS} ${TOL_NUM_DIGITS_INIT} ${TOL_NUM_DIGITS_FINAL}
+echo "######################################################################"
+echo "# ADVECTION-DIFFUSION "
+echo "######################################################################"
+python ./advdiff.py ${MPI_NUM_PROCESSES} ${OMP_NUM_THREADS}
 ### End of script

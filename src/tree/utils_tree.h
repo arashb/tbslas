@@ -17,12 +17,13 @@
 #include <vector>
 #include <string>
 
-#include "utils/profile.h"
-#include "utils/common.h"
-
 #include <mortonid.hpp>
 #include <tree.hpp>
 #include <parUtils.h>
+#include <profile.hpp>
+
+#include "utils/common.h"
+#include "tree/node_field_functor.h"
 
 namespace tbslas {
 
@@ -33,8 +34,9 @@ void CloneTree(TreeType& tree_in,
                ) {
   typedef typename TreeType::Node_t NodeType;
   typedef typename TreeType::Real_t RealType;
+  tbslas::SimConfig* sim_config = tbslas::SimConfigSingleton::Instance();
 
-  Profile<double>::Tic("CloneTree",false,5);
+  pvfmm::Profile::Tic("CloneTree", &sim_config->comm, false, 5);
   typename NodeType::NodeData tree_data;
   tree_data.dim       = tree_in.Dim();
   tree_data.max_depth = MAX_DEPTH;
@@ -65,21 +67,21 @@ void CloneTree(TreeType& tree_in,
   tree_data.pt_coord=pt_coord;
 
   //Create Tree and initialize with input data.
-  Profile<double>::Tic("Initialize",false,5);
+  pvfmm::Profile::Tic("Initialize", &sim_config->comm, false,5);
   tree_out.Initialize(&tree_data);
-  Profile<double>::Toc();
+  pvfmm::Profile::Toc();
 
   //2:1 Balancing
-  Profile<double>::Tic("Balance21",false,5);
+  pvfmm::Profile::Tic("Balance21", &sim_config->comm, false,5);
   tree_out.Balance21(pvfmm::FreeSpace);
-  Profile<double>::Toc();
+  pvfmm::Profile::Toc();
 
   //Redistribute nodes.
-  Profile<double>::Tic("RedistNodes",false,5);
+  pvfmm::Profile::Tic("RedistNodes", &sim_config->comm, false,5);
   tree_out.RedistNodes();
-  Profile<double>::Toc();
+  pvfmm::Profile::Toc();
 
-  Profile<double>::Toc();
+  pvfmm::Profile::Toc();
 }
 
 template <typename TreeType,
@@ -96,8 +98,9 @@ void ConstructTree(const size_t N,
                    TreeType& tree) {
   typedef typename TreeType::Real_t RealType;
   typedef typename TreeType::Node_t NodeType;
+  tbslas::SimConfig* sim_config = tbslas::SimConfigSingleton::Instance();
 
-  Profile<double>::Tic("ConstructTree",false,5);
+  pvfmm::Profile::Tic("ConstructTree", &sim_config->comm, false,5);
   //Various parameters.
   typename NodeType::NodeData tree_data;
   tree_data.dim       = COORD_DIM;
@@ -116,23 +119,23 @@ void ConstructTree(const size_t N,
   tree_data.pt_coord = pt_coord;
 
   //initialize with input data.
-  Profile<double>::Tic("Initialize",false,5);
+  pvfmm::Profile::Tic("Initialize", &sim_config->comm, false, 5);
   tree.Initialize(&tree_data);
-  Profile<double>::Toc();
+  pvfmm::Profile::Toc();
 
-  Profile<double>::Tic("RefineTree",false,5);
+  pvfmm::Profile::Tic("RefineTree", &sim_config->comm, false, 5);
   tree.RefineTree();
-  Profile<double>::Toc();
+  pvfmm::Profile::Toc();
 
-  Profile<double>::Tic("Balance21",false,5);
+  pvfmm::Profile::Tic("Balance21", &sim_config->comm, false, 5);
   tree.Balance21(pvfmm::FreeSpace);
-  Profile<double>::Toc();
+  pvfmm::Profile::Toc();
 
-  Profile<double>::Tic("RedistNodes",false,5);
+  pvfmm::Profile::Tic("RedistNodes", &sim_config->comm, false, 5);
   tree.RedistNodes();
-  Profile<double>::Toc();
+  pvfmm::Profile::Toc();
 
-  Profile<double>::Toc();
+  pvfmm::Profile::Toc();
 }
 
 template<typename TreeType,
@@ -143,8 +146,9 @@ InitTree(TreeType& tree,
          int data_dof) {
   typedef typename TreeType::Node_t NodeType;
   typedef typename TreeType::Real_t RealType;
+  tbslas::SimConfig* sim_config = tbslas::SimConfigSingleton::Instance();
 
-  Profile<double>::Tic("InitTree",false,5);
+  pvfmm::Profile::Tic("InitTree", &sim_config->comm, false,5);
   NodeType* n_curr = tree.PostorderFirst();
   int cheb_deg     = n_curr->ChebDeg();
   int sdim         = tree.Dim();
@@ -183,7 +187,7 @@ InitTree(TreeType& tree,
     }
     n_curr = tree.PostorderNxt(n_curr);
   }
-  Profile<double>::Toc();
+  pvfmm::Profile::Toc();
 }
 
 // in case of the multi-dimensional values
@@ -196,6 +200,8 @@ GetMaxTreeValues(TreeType& tree,
                  int& max_depth) {
   typedef typename TreeType::Real_t RealType;
   typedef typename TreeType::Node_t NodeType;
+  tbslas::SimConfig* sim_config = tbslas::SimConfigSingleton::Instance();
+
   NodeType* n_curr = tree.PostorderFirst();
   int cheb_deg     = n_curr->ChebDeg();
   int sdim         = tree.Dim();
@@ -335,8 +341,9 @@ SyncTreeRefinement(TreeType& tree_in,
                    TreeType& tree_out) {
   typedef typename TreeType::Real_t RealType;
   typedef typename TreeType::Node_t NodeType;
+  tbslas::SimConfig* sim_config = tbslas::SimConfigSingleton::Instance();
 
-  tbslas::Profile<double>::Tic("SyncTreeRefinement",false,5);
+  pvfmm::Profile::Tic("SyncTreeRefinement", &sim_config->comm, false,5);
   int np, myrank;
   MPI_Comm_size(*tree_in.Comm(), &np);
   MPI_Comm_rank(*tree_in.Comm(), &myrank);
@@ -358,7 +365,7 @@ SyncTreeRefinement(TreeType& tree_in,
   NodeType* node_out = tree_out.PreorderFirst();
   SyncNodeRefinement<NodeType>(node_in, node_out);
 
-  tbslas::Profile<double>::Toc();
+  pvfmm::Profile::Toc();
 }
 
 template<typename TreeType>
@@ -366,8 +373,9 @@ void CollectChebTreeGridPoints(TreeType& tree,
                            std::vector<typename TreeType::Real_t>& grid_points) {
   typedef typename TreeType::Node_t NodeType;
   typedef typename TreeType::Real_t RealType;
+  tbslas::SimConfig* sim_config = tbslas::SimConfigSingleton::Instance();
 
-  tbslas::Profile<double>::Tic("CollectChebTreeGridPoints",false,5);
+  pvfmm::Profile::Tic("CollectChebTreeGridPoints", &sim_config->comm, false,5);
   int cheb_deg = tree.RootNode()->ChebDeg();
   int sdim     = tree.Dim();
 
@@ -410,7 +418,7 @@ void CollectChebTreeGridPoints(TreeType& tree,
     }
     n_next = tree.PostorderNxt(n_next);
   }
-  tbslas::Profile<double>::Toc();
+  pvfmm::Profile::Toc();
 }
 
 template<typename TreeType>
@@ -419,8 +427,9 @@ void CollectTreeGridPoints(TreeType& tree,
                            std::vector<typename TreeType::Real_t>& grid_points) {
   typedef typename TreeType::Node_t NodeType;
   typedef typename TreeType::Real_t RealType;
+  tbslas::SimConfig* sim_config = tbslas::SimConfigSingleton::Instance();
 
-  tbslas::Profile<double>::Tic("CollectTreeGridPoints",false,5);
+  pvfmm::Profile::Tic("CollectTreeGridPoints", &sim_config->comm, false,5);
   int cheb_deg = tree.RootNode()->ChebDeg();
   int sdim     = tree.Dim();
 
@@ -463,9 +472,8 @@ void CollectTreeGridPoints(TreeType& tree,
     }
     n_next = tree.PostorderNxt(n_next);
   }
-  tbslas::Profile<double>::Toc();
+  pvfmm::Profile::Toc();
 }
-
 template<typename TreeType,
          typename AnalyticalFunctor>
 void
@@ -476,9 +484,9 @@ ComputeTreeError(TreeType& tree,
                  typename TreeType::Real_t& l_two_error) {
   typedef typename TreeType::Node_t NodeType;
   typedef typename TreeType::Real_t RealType;
+  tbslas::SimConfig* sim_config = tbslas::SimConfigSingleton::Instance();
 
-  tbslas::Profile<double>::Tic("ComputeTreeError",false,5);
-
+  pvfmm::Profile::Tic("ComputeTreeError",&sim_config->comm, false,5);
   int data_dof = 1;
   int sdim     = tree.Dim();
   int num_points = grid_points.size()/sdim;
@@ -502,7 +510,10 @@ ComputeTreeError(TreeType& tree,
     if (abs_error[i] > local_max)
       local_max = abs_error[i];
   }
-
+  size_t lcl_num_points = grid_points.size()/sdim;
+  size_t glb_num_points = 0;
+  MPI_Allreduce(&lcl_num_points, &glb_num_points, 1,
+                MPI_INT, MPI_SUM, *(tree.Comm()));
   // compute the error vector's norm
   RealType global_max;
   MPI_Allreduce(&local_max, &global_max, 1,
@@ -510,10 +521,9 @@ ComputeTreeError(TreeType& tree,
   RealType global_sum_2;
   MPI_Allreduce(&local_sum_2, &global_sum_2, 1,
                 MPI_DOUBLE, MPI_SUM, *(tree.Comm()));
-
   l_inf_error = global_max;
-  l_two_error = sqrt(global_sum_2);
-  tbslas::Profile<double>::Toc();
+  l_two_error = sqrt(global_sum_2/glb_num_points);
+  pvfmm::Profile::Toc();
 }
 
 }  // namespace tbslas

@@ -17,9 +17,9 @@
 
 #include <pvfmm_common.hpp>
 #include <cheb_node.hpp>
+#include <profile.hpp>
 
 #include "utils/common.h"
-#include "utils/profile.h"
 #include "semilag/cubic_interp_policy.h"
 
 namespace tbslas {
@@ -208,9 +208,10 @@ class NodeFieldFunctor {
   void operator () (const real_t* points_pos,
                     int num_points,
                     real_t* out) {
-    Profile<double>::Tic("EvalTree", false, 5);
+    tbslas::SimConfig* sim_config = tbslas::SimConfigSingleton::Instance();
+    pvfmm::Profile::Tic("EvalTree", &sim_config->comm, false, 5);
     EvalTree(node_, num_points, const_cast<real_t*>(points_pos), out);
-    Profile<double>::Toc();
+    pvfmm::Profile::Toc();
   }
 
  private:

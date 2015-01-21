@@ -16,13 +16,12 @@
 #include <vector>
 #include <string>
 
-#include "semilag/semilag.h"
+#include <profile.hpp>
 
+#include "semilag/semilag.h"
 #include "tree/node_field_functor.h"
 #include "tree/utils_tree.h"
-
 #include "utils/common.h"
-#include "utils/profile.h"
 
 namespace tbslas {
 
@@ -35,8 +34,9 @@ void SolveSemilagTree(TreeType& tvel_curr,
                       int num_rk_step = 1) {
   typedef typename TreeType::Node_t NodeType;
   typedef typename TreeType::Real_t RealType;
+  tbslas::SimConfig* sim_config = tbslas::SimConfigSingleton::Instance();
 
-  Profile<double>::Tic("SolveSemilagTree",false,5);
+  pvfmm::Profile::Tic("SolveSemilagTree", &sim_config->comm, false,5);
   ////////////////////////////////////////////////////////////////////////
   // (1) collect the starting positions of the backward traj computation
   ////////////////////////////////////////////////////////////////////////
@@ -91,7 +91,7 @@ void SolveSemilagTree(TreeType& tvel_curr,
     }
     n_next = tree_next.PostorderNxt(n_next);
   }
-  Profile<double>::Toc();
+  pvfmm::Profile::Toc();
 }
 
 template <class TreeType>
@@ -102,8 +102,9 @@ void SolveSemilagInSitu(TreeType& tvel_curr,
                         int num_rk_step = 1) {
   typedef typename TreeType::Node_t NodeType;
   typedef typename TreeType::Real_t RealType;
+  tbslas::SimConfig* sim_config = tbslas::SimConfigSingleton::Instance();
 
-  Profile<double>::Tic("SolveSemilagTree",false,5);
+  pvfmm::Profile::Tic("SolveSemilagTree", &sim_config->comm, false,5);
   ////////////////////////////////////////////////////////////////////////
   // (1) collect the starting positions of the backward traj computation
   ////////////////////////////////////////////////////////////////////////
@@ -158,7 +159,7 @@ void SolveSemilagInSitu(TreeType& tvel_curr,
     }
     n_next = tree_curr.PostorderNxt(n_next);
   }
-  Profile<double>::Toc();
+  pvfmm::Profile::Toc();
 }
 
 template <class TreeType>
@@ -167,10 +168,14 @@ RunSemilagSimulation(TreeType* vel_tree,
                      TreeType* con_tree_curr,
                      TreeType* con_tree_next,
                      TreeType** result,
+                     int tn,
+                     typename TreeType::Real_t dt,
+                     int num_rk_step = 1,
                      bool adaptive = true,
                      bool save = true) {
   typedef typename TreeType::Node_t NodeType;
   typedef typename TreeType::Real_t RealType;
+  tbslas::SimConfig* sim_config = tbslas::SimConfigSingleton::Instance();
 
   int myrank;
   MPI_Comm comm=MPI_COMM_WORLD;
@@ -178,9 +183,9 @@ RunSemilagSimulation(TreeType* vel_tree,
 
   // simulation parameters
   SimConfig* sim_param = tbslas::SimConfigSingleton::Instance();
-  int tn          = sim_param->total_num_timestep;
-  RealType dt     = sim_param->dt;
-  int num_rk_step = sim_param->num_rk_step;
+  // int tn          = sim_param->total_num_timestep;
+  // RealType dt     = sim_param->dt;
+  // int num_rk_step = sim_param->num_rk_step;
 
   //////////////////////////////////////////////////////////////////////
   // NEXT STEP TREE
@@ -230,9 +235,9 @@ RunSemilagSimulation(TreeType* vel_tree,
 
     if (adaptive) {
       // refine the tree according to the computed values
-      tbslas::Profile<double>::Tic("RefineTree",false,5);
+      pvfmm::Profile::Tic("RefineTree", &sim_config->comm, false,5);
       tconc_next->RefineTree();
-      tbslas::Profile<double>::Toc();
+      pvfmm::Profile::Toc();
 
       // prepare the next step tree
       tbslas::SyncTreeRefinement(*tconc_next, *tconc_curr);
@@ -259,10 +264,14 @@ template <class TreeType>
 void
 RunSemilagSimulationInSitu(TreeType* vel_tree,
                            TreeType* con_tree_curr,
+                           int tn,
+                           typename TreeType::Real_t dt,
+                           int num_rk_step = 1,
                            bool adaptive = true,
                            bool save     = true) {
   typedef typename TreeType::Node_t NodeType;
   typedef typename TreeType::Real_t RealType;
+  tbslas::SimConfig* sim_config = tbslas::SimConfigSingleton::Instance();
 
   int myrank;
   MPI_Comm comm=MPI_COMM_WORLD;
@@ -271,9 +280,9 @@ RunSemilagSimulationInSitu(TreeType* vel_tree,
   // simulation parameters
     // simulation parameters
   SimConfig* sim_param = tbslas::SimConfigSingleton::Instance();
-  int tn          = sim_param->total_num_timestep;
-  RealType dt     = sim_param->dt;
-  int num_rk_step = sim_param->num_rk_step;
+  // int tn          = sim_param->total_num_timestep;
+  // RealType dt     = sim_param->dt;
+  // int num_rk_step = sim_param->num_rk_step;
 
   // set the input_fn to NULL -> needed for adaptive refinement
   std::vector<NodeType*>  ncurr_list = con_tree_curr->GetNodeList();
@@ -313,9 +322,9 @@ RunSemilagSimulationInSitu(TreeType* vel_tree,
 
     if (adaptive) {
       // refine the tree according to the computed values
-      tbslas::Profile<double>::Tic("RefineTree",false,5);
+      pvfmm::Profile::Tic("RefineTree", &sim_config->comm, false, 5);
       tconc_curr->RefineTree();
-      tbslas::Profile<double>::Toc();
+      pvfmm::Profile::Toc();
     }
 
     // save current time step data

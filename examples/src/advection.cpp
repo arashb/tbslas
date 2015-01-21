@@ -30,8 +30,6 @@
 
 #include <utils/common.h>
 #include <utils/metadata.h>
-
-// #include <utils/profile.h>
 #include <tree/semilag_tree.h>
 #include <tree/utils_tree.h>
 
@@ -44,28 +42,25 @@ typedef tbslas::MetaData<std::string,
 double tcurr = 0;
 
 const char* OUTPUT_FILE_FORMAT = "%s/%s-VAR_%s-TS_%04d-RNK";
-const char* OUTPUT_FILE_PREFIX = "cubic";
+const char* OUTPUT_FILE_PREFIX = "advection";
 
 int main (int argc, char **argv) {
   MPI_Init(&argc, &argv);
   MPI_Comm comm=MPI_COMM_WORLD;
+  int myrank;
+  MPI_Comm_rank(comm, &myrank);
 
-  // commandline_option_end(argc, argv);
   parse_command_line_options(argc, argv);
 
   {
-    int myrank;
-    MPI_Comm_rank(comm, &myrank);
+    tbslas::SimConfig* sim_config       = tbslas::SimConfigSingleton::Instance();
+    pvfmm::Profile::Enable(sim_config->profile);
     // =========================================================================
     // SIMULATION PARAMETERS
     // =========================================================================
-    tbslas::SimConfig* sim_config       = tbslas::SimConfigSingleton::Instance();
     sim_config->vtk_filename_format     = OUTPUT_FILE_FORMAT;
     sim_config->vtk_filename_prefix     = OUTPUT_FILE_PREFIX;
     sim_config->vtk_filename_variable   = "conc";
-    // sim_config->use_cubic = true;
-    // sim_config->cubic_use_analytical = true;
-    pvfmm::Profile::Enable(sim_config->profile);
     // =========================================================================
     // PRINT METADATA
     // =========================================================================
@@ -73,10 +68,24 @@ int main (int argc, char **argv) {
       MetaData_t::Print();
     }
     // =========================================================================
-    // CONSTRUCT TREE
+    // INIT THE VELOCITY TREE
+    // =========================================================================    
+    Tree_t tvel_curr(comm);
+    tbslas::ConstructTree<Tree_t>(sim_config->tree_num_point_sources,
+                                  sim_config->tree_num_points_per_octanct,
+                                  sim_config->tree_chebyshev_order,
+                                  sim_config->tree_max_depth,
+                                  sim_config->tree_adap,
+                                  sim_config->tree_tolerance,
+                                  comm,
+                                  tbslas::get_vorticity_field<double,3>,
+                                  3,
+                                  tvel_curr);
+    // =========================================================================
+    // INIT THE CONCENTRATION TREE
     // =========================================================================
     tcurr = 0;
-    Tree_t tree(comm);
+    Tree_t tconc_curr(comm);
     tbslas::ConstructTree<Tree_t>(sim_config->tree_num_point_sources,
                                   sim_config->tree_num_points_per_octanct,
                                   sim_config->tree_chebyshev_order,
@@ -86,49 +95,49 @@ int main (int argc, char **argv) {
                                   comm,
                                   get_gaussian_field_cylinder_atT<double,3>,
                                   1,
-                                  tree);
+                                  tconc_curr);
+    // =========================================================================
+    // RUN
+    // =========================================================================
+    tbslas::RunSemilagSimulationInSitu(&tvel_curr,
+                                       &tconc_curr,
+                                       sim_config->total_num_timestep,
+                                       sim_config->dt,
+                                       sim_config->num_rk_step,
+                                       true,
+                                       true);
     // =========================================================================
     // COMPUTE ERROR
     // =========================================================================
-    double rli, rl2;
-    double ali, al2;
-    CheckChebOutput<Tree_t>(&tree,
+    tcurr = sim_config->total_num_timestep*sim_config->dt;
+    double al2,rl2,ali,rli;
+    CheckChebOutput<Tree_t>(&tconc_curr,
                             get_gaussian_field_cylinder_atT<double,3>,
                             1,
                             al2,rl2,ali,rli,
                             std::string("Output"));
-
-    std::vector<double> grid_points;
-    std::vector<double> node_pos = pvfmm::cheb_nodes<double>(sim_config->tree_chebyshev_order, 3);
-    tbslas::CollectTreeGridPoints(tree,
-                                  node_pos,
-                                  grid_points);
-
-    tbslas::ComputeTreeError(tree,
-                             get_gaussian_field_cylinder_atT<double,3>,
-                             grid_points,
-                             ali,
-                             al2);
-    int num_leaves = tbslas::CountNumLeafNodes(tree);
+    int num_leaves = tbslas::CountNumLeafNodes(tconc_curr);
     // =========================================================================
     // REPORT RESULTS
     // =========================================================================
     if(!myrank) {
-      printf("#TBSLAS-HEADER: %-15s %-15s %-15s %-15s %-15s %-15s %-15s\n",
+      printf("#TBSLAS-HEADER: %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s\n",
              "TOL",
-             "CUBIC",
-             "CUF",
-             "ANAL",
+             "DT",
+             "TN",
              "AL2",
+             "RL2",
              "ALINF",
+             "RLINF",
              "NOCT");
-      printf("#TBSLAS-RESULT: %-15.5e %-15d %-15d %-15d %-15.5e %-15.5e %-15d\n",
+      printf("#TBSLAS-RESULT: %-15.5e %-15.5e %-15d %-15.5e %-15.5e %-15.5e %-15.5e %-15d\n",
              sim_config->tree_tolerance,
-             sim_config->use_cubic,
-             sim_config->cubic_upsampling_factor,
-             sim_config->cubic_use_analytical,
+             sim_config->dt,
+             sim_config->total_num_timestep,
              al2,
+             rl2,
              ali,
+             rli,
              num_leaves
              );
     }

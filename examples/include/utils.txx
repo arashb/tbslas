@@ -1,10 +1,11 @@
 /**
- * \file mat_utils.txx
  * \author Dhairya Malhotra, dhairya.malhotra@gmail.com
- * \date 1-1-2013
+ * \author Arash Bakhtiari
  */
 
 #include <utils/metadata.h>
+#include <utils/sim_config.h>
+
 typedef tbslas::MetaData<std::string,
                          std::string,
                          std::string> MetaData_t;
@@ -114,8 +115,16 @@ void CheckFMMOutput(pvfmm::FMM_Tree<FMM_Mat_t>* mytree, const pvfmm::Kernel<type
 }
 
 
-template <class FMMTree_t>
-void CheckChebOutput(FMMTree_t* mytree, typename TestFn<typename FMMTree_t::Real_t>::Fn_t fn_poten, int fn_dof, std::string t_name){
+template <class FMMTree_t,
+          class Functor_t>
+void CheckChebOutput(FMMTree_t* mytree,
+                     Functor_t fn_poten,
+                     int fn_dof,
+                     typename FMMTree_t::Real_t& al2,
+                     typename FMMTree_t::Real_t& rl2,
+                     typename FMMTree_t::Real_t& ali,
+                     typename FMMTree_t::Real_t& rli,
+                     std::string t_name) {
   typedef typename FMMTree_t::Node_t FMMNode_t;
   typedef typename FMMTree_t::Real_t Real_t;
 
@@ -135,6 +144,10 @@ void CheckChebOutput(FMMTree_t* mytree, typename TestFn<typename FMMTree_t::Real
     if(nodes.size()==0) return;
   }
 
+  int lcl_nodes_size = nodes.size();
+  int glb_nodes_size = 0;
+  MPI_Allreduce(&lcl_nodes_size, &glb_nodes_size, 1,
+                MPI_INT, MPI_SUM, c1);
   int cheb_deg=nodes[0]->ChebDeg();
   std::vector<Real_t> cheb_nds=pvfmm::cheb_nodes<Real_t>(cheb_deg/3+1, 1);
   for(size_t i=0;i<cheb_nds.size();i++) cheb_nds[i]=2.0*cheb_nds[i]-1.0;
@@ -269,6 +282,11 @@ void CheckChebOutput(FMMTree_t* mytree, typename TestFn<typename FMMTree_t::Real
   MPI_Reduce(&l2_err [0], &global_l2_err , 1, pvfmm::par::Mpi_datatype<Real_t>::value(), pvfmm::par::Mpi_datatype<Real_t>::sum(), 0, c1);
   MPI_Reduce(&max    [0], &global_max    , 1, pvfmm::par::Mpi_datatype<Real_t>::value(), pvfmm::par::Mpi_datatype<Real_t>::max(), 0, c1);
   MPI_Reduce(&max_err[0], &global_max_err, 1, pvfmm::par::Mpi_datatype<Real_t>::value(), pvfmm::par::Mpi_datatype<Real_t>::max(), 0, c1);
+  al2 = sqrt(global_l2_err);
+  rl2 = sqrt(global_l2_err/global_l2);
+  ali = global_max_err;
+  rli = global_max_err/global_max;
+
   if(!myrank){
     std::cout<<"Absolute L2 Error ["<<t_name<<"]     :  "<<std::scientific<<sqrt(global_l2_err)<<'\n';
     std::cout<<"Relative L2 Error ["<<t_name<<"]     :  "<<std::scientific<<sqrt(global_l2_err/global_l2)<<'\n';
@@ -328,4 +346,102 @@ void commandline_option_end(int argc, char** argv){
       exit(0);
     }
   }
+}
+
+void parse_command_line_options(int argc, char** argv) {
+  // Read command line options.
+  commandline_option_start(argc, argv);
+  int omp =
+      atoi(
+          commandline_option(argc, argv, "-omp", "1", false,
+                             "-omp  <int> = (1)    : Number of OpenMP threads."));
+
+  size_t N =
+      (size_t)strtod(
+          commandline_option(argc, argv, "-N", "1", true,
+                             "-N    <int>          : Number of point sources."),
+          NULL);
+
+  size_t M =
+      (size_t)strtod(
+          commandline_option(argc, argv, "-M", "1", false,
+                             "-M    <int>          : Number of points per octant."),
+          NULL);
+
+  int q =
+      strtoul(
+          commandline_option(argc, argv, "-q", "14", false,
+                             "-q    <int> = (14)   : Chebyshev order (+ve integer)."),
+          NULL,10);
+
+  int d =
+      strtoul(
+          commandline_option(argc, argv, "-d", "15", false,
+                             "-d    <int> = (15)   : Maximum tree depth."),
+          NULL,10);
+
+  double tol =
+      strtod(
+          commandline_option(argc, argv, "-tol", "1e-5", false,
+                             "-tol <real> = (1e-5) : Tolerance for adaptive refinement.")
+          ,NULL);
+  bool adap =
+      (commandline_option(argc, argv, "-adap", NULL, false,
+                          "-adap                : Adaptive tree refinement." )!=NULL);
+
+  int tn =
+      strtoul(
+          commandline_option(argc, argv, "-tn", "1", false,
+                             "-tn   <int> = (1)    : Number of time steps."),
+          NULL,10);
+
+  double dt =
+      strtod(
+          commandline_option(argc, argv,  "-dt",  "1e-2", false,
+                             "-dt <real> = (0.1e-2) : Temporal resolution." ), NULL);
+
+  bool cubic =
+      (commandline_option(argc, argv, "-cubic", NULL, false,
+                          "-cubic               : Cubic Interpolation  used to evaluate tree values.")!=NULL);
+
+  int cuf =
+      strtoul(
+          commandline_option(argc, argv, "-cuf", "4", false,
+                             "-cuf   <int> = (4)    : Upsampling factor used for cubic interpolation."),
+          NULL,10);
+
+  bool cubic_analytical =
+      (commandline_option(argc, argv, "-ca", NULL, false,
+                          "-ca                  : Analytical values used in cubic interpolation upsampling.")!=NULL);
+
+  bool profile =
+      (commandline_option(argc, argv, "-p", NULL, false,
+                          "-p                  : Analytical values used in cubic interpolation upsampling.")==NULL);
+
+  commandline_option_end(argc, argv);
+  // =========================================================================
+  // SIMULATION PARAMETERS
+  // =========================================================================
+  tbslas::SimConfig* sim_config       = tbslas::SimConfigSingleton::Instance();
+  sim_config->total_num_timestep      = tn;
+  sim_config->dt                      = dt;
+  sim_config->vtk_order               = q;
+  sim_config->use_cubic               = cubic;
+  sim_config->cubic_upsampling_factor = cuf;
+  sim_config->cubic_use_analytical    = cubic_analytical;
+  sim_config->num_omp_threads         = omp;
+  omp_set_num_threads(omp);
+  // *************************************************************************
+  // chebyshev tree
+  // *************************************************************************
+  sim_config->tree_num_point_sources      = N;
+  sim_config->tree_num_points_per_octanct = M;
+  sim_config->tree_chebyshev_order        = q;
+  sim_config->tree_max_depth              = d;
+  sim_config->tree_tolerance              = tol;
+  sim_config->tree_adap                   = adap;
+  // *************************************************************************
+  // MISC
+  // *************************************************************************
+  sim_config->profile = profile;
 }

@@ -1,6 +1,6 @@
 #!/bin/bash
 # define file array
-output_file=conv-cubic-tst1-$(date +%s).out
+output_file=conv-cubic-tst1-$(date +%Y%m%d-%H%M%S).out
 cuf=(2 4 8 16)
 omp=4
 EXAMPLES_DIR=../examples/;

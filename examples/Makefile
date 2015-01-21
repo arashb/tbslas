@@ -27,12 +27,10 @@ INCDIR = ./include
 
 TARGET_BIN = \
        $(BINDIR)/semilag_tree \
-       $(BINDIR)/zalesak \
+       $(BINDIR)/advection  \
        $(BINDIR)/diffusion \
-       $(BINDIR)/advect-diff \
+       $(BINDIR)/advdiff \
        $(BINDIR)/cubic
-
-
 
 all : $(TARGET_BIN)
 

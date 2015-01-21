@@ -15,7 +15,6 @@
 #define SRC_SEMILAG_CUBIC_INTERP_POLICY_H_
 
 #include <vector>
-#include <utils/profile.h>
 
 namespace tbslas {
 
@@ -66,9 +65,9 @@ class CubicInterpPolicy {
       for ( int pi = 0; pi < n_pts; pi++) {
 
         //in case that target coordinate is outside the unit domain->set to 0
-        if ( coord_ptr[pi*COORD_DIM+0] < 0 || coord_ptr[pi*COORD_DIM+0] > 1.0 ||
-             coord_ptr[pi*COORD_DIM+1] < 0 || coord_ptr[pi*COORD_DIM+1] > 1.0 ||
-             coord_ptr[pi*COORD_DIM+2] < 0 || coord_ptr[pi*COORD_DIM+2] > 1.0
+        if ( coord_ptr[pi*3+0] < 0 || coord_ptr[pi*3+0] > 1.0 ||
+             coord_ptr[pi*3+1] < 0 || coord_ptr[pi*3+1] > 1.0 ||
+             coord_ptr[pi*3+2] < 0 || coord_ptr[pi*3+2] > 1.0
              ) {
           query_values[pi*data_dof + data_dim_cnt] = 0;
           continue;
@@ -77,11 +76,6 @@ class CubicInterpPolicy {
         real_t xq = coord_ptr[pi*COORD_DIM+0];
         real_t yq = coord_ptr[pi*COORD_DIM+1];
         real_t zq = coord_ptr[pi*COORD_DIM+2];
-
-        // scale to [0,1] in local node
-        // Real_t xq =(coord_ptr[pi*COORD_DIM+0]-c[0])*s;
-        // Real_t yq =(coord_ptr[pi*COORD_DIM+1]-c[1])*s;
-        // Real_t zq =(coord_ptr[pi*COORD_DIM+2]-c[2])*s;
 
         real_t dx(xq/spacing);
         real_t dy(yq/spacing);
@@ -116,9 +110,6 @@ class CubicInterpPolicy {
         real_t yy[4];
         real_t zz[4];
         for (int i = 0; i < 4; i++) {
-          // xx[i] = reg_grid_coord_1d[xshift + i];
-          // yy[i] = reg_grid_coord_1d[yshift + i];
-          // zz[i] = reg_grid_coord_1d[zshift + i];
           xx[i] = (xshift + i)*spacing;
           yy[i] = (yshift + i)*spacing;
           zz[i] = (zshift + i)*spacing;

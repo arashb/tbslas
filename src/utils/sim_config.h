@@ -13,6 +13,7 @@
 #ifndef SRC_UTILS_SIM_CONFIG_H_
 #define SRC_UTILS_SIM_CONFIG_H_
 
+#include <mpi.h>
 #include <string>
 
 namespace tbslas {
@@ -30,28 +31,56 @@ class SimConfig {
       vtk_filename_variable("vals"),
       use_cubic(false),
       cubic_upsampling_factor(4),
-      cubic_use_analytical(false) {
+      cubic_use_analytical(false),
+      comm(MPI_COMM_WORLD),
+      num_omp_threads(1),
+      tree_num_point_sources(1),
+      tree_num_points_per_octanct(1),
+      tree_chebyshev_order(14),
+      tree_max_depth(15),
+      tree_adap(false),
+      profile(false) {
   }
-
+  // *************************************************************************
   // time stepping
+  // *************************************************************************
   int total_num_timestep;
   double dt;
-
+  // *************************************************************************
   // semi-lagrangian solver
+  // *************************************************************************
   int num_rk_step;
-
+  // *************************************************************************
   // output
+  // *************************************************************************
   int vtk_order;
   std::string vtk_filename_format;
   std::string vtk_filename_prefix;
   std::string vtk_filename_variable;
-
+  // *************************************************************************
   // cubic interpolation
+  // *************************************************************************
   bool use_cubic;
   int cubic_upsampling_factor;
-  // use analytical funciton for upsampling
-  // instead of chebyshev evalutation
   bool cubic_use_analytical;
+  // *************************************************************************
+  // parallelization
+  // *************************************************************************
+  MPI_Comm comm;
+  int num_omp_threads;
+  // *************************************************************************
+  // chebyshev tree
+  // *************************************************************************
+  size_t tree_num_point_sources;
+  size_t tree_num_points_per_octanct;
+  int tree_chebyshev_order;
+  int tree_max_depth;
+  double tree_tolerance;
+  bool tree_adap;
+  // *************************************************************************
+  // MISC
+  // *************************************************************************
+  bool profile;
 };
 
 }  // namespace tbslas
