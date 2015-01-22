@@ -1,0 +1,95 @@
+#*************************************************************************
+#Copyright (C) 2015 by Arash Bakhtiari
+#You may not use this file except in compliance with the License.
+#You obtain a copy of the License in the LICENSE file.
+
+#Unless required by applicable law or agreed to in writing, software
+#distributed under the License is distributed on an "AS IS" BASIS,
+#WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#See the License for the specific language governing permissions and
+#limitations under the License.
+#*************************************************************************
+import os
+import subprocess
+import math
+import sys
+from collections import OrderedDict
+from utils import *
+
+################################################################################
+# EXECUTION COMMAND
+################################################################################
+PROGRAM       = "cubic"
+OUTPUT_PREFIX = PROGRAM+'-'+TIMESTR
+EXEC          = os.path.join(TBSLAS_EXAMPLES_BIN_DIR, PROGRAM)
+
+def generate_command_args(tl_init, tl_factor, cuf_init, cuf_factor, use_cubic, \
+                          use_anal, num_steps):
+    tl_list = [tl_init*math.pow(tl_factor,float(cnt)) for cnt in range(0,num_steps)]
+    uf_list = [cuf_init*math.pow(cuf_factor,float(cnt)) for cnt in range(0,num_steps)]
+    # generate a dictionary data type of commands
+    cmd_args = OrderedDict()
+    cmd_id = 1;
+    for counter in range(0,num_steps):
+        ARGS    = ['-N', '8',                      \
+                   '-tol' , str(tl_list[counter]), \
+                   '-cuf'  , str(uf_list[counter]), \
+                   '-omp' , str(OMP_NUM_THREADS)]
+        if use_cubic:
+            ARGS = ARGS + ['-cubic', '1']
+        if use_anal:
+            ARGS = ARGS + ['-ca','1']
+        cmd_args[cmd_id] = [EXEC] + ARGS
+        cmd_id = cmd_id + 1
+    return cmd_args
+
+################################################################################
+# MAIN
+################################################################################
+if __name__ == '__main__':
+    prepare_environment(OUTPUT_PREFIX)
+    TOL_NUM_STEPS = 8
+    if len(sys.argv) >= 4:
+        TOL_NUM_STEPS   = int(sys.argv[3])
+    ############################################################################
+    # TEST 1:
+    ############################################################################
+    tl_factor  = 1
+    tl_init    = 1e-8
+    cuf_factor = 2
+    cuf_init   = 2
+    use_cubic  = True
+    use_anal   = True
+    cmd_args = generate_command_args(tl_init, tl_factor, \
+                                     cuf_init, cuf_factor, \
+                                     use_cubic, use_anal, \
+                                     TOL_NUM_STEPS)
+    execute_commands(cmd_args, PROGRAM+'-'+'table1')
+    ############################################################################
+    # TEST 2:
+    ############################################################################
+    tl_factor  = 0.1
+    tl_init    = 1e-0
+    cuf_factor = 2
+    cuf_init   = 2
+    use_cubic  = False
+    use_anal   = False
+    cmd_args = generate_command_args(tl_init, tl_factor, \
+                                     cuf_init, cuf_factor, \
+                                     use_cubic, use_anal, \
+                                     TOL_NUM_STEPS)
+    execute_commands(cmd_args, PROGRAM+'-'+'table2')
+    ############################################################################
+    # TEST 3:
+    ############################################################################
+    tl_factor  = 0.1
+    tl_init    = 1e-0
+    cuf_factor = 2
+    cuf_init   = 2
+    use_cubic  = True
+    use_anal   = False
+    cmd_args = generate_command_args(tl_init, tl_factor, \
+                                     cuf_init, cuf_factor, \
+                                     use_cubic, use_anal, \
+                                     TOL_NUM_STEPS)
+    execute_commands(cmd_args, PROGRAM+'-'+'table3')

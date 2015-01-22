@@ -240,6 +240,32 @@ get_vel_field_hom(const real_t* points_pos,
 
 template<typename real_t, int sdim>
 void
+get_slotted_cylinder(const real_t* points_pos,
+                     int num_points,
+                     real_t* out,
+                     const real_t xc = 0.5,
+                     const real_t yc = 0.5,
+                     const real_t R  = 0.3,
+                     const real_t w  = 0.1,
+                     const real_t a  = 0.0) {
+  for (int i = 0; i < num_points; i++) {
+    out[i] = 0;
+    real_t r_2 = (points_pos[i*sdim+0]-xc) * (points_pos[i*sdim+0]-xc) +
+        (points_pos[i*sdim+1]-yc) * (points_pos[i*sdim+1]-yc);
+    if ( r_2 < R*R) {
+      out[i] = 1;
+      real_t d = cos(a)*(points_pos[i*sdim+1]-yc) - sin(a)*(points_pos[i*sdim+0]-xc);
+      if ( fabs(d) <  w) {
+        real_t x = sin(a)*(points_pos[i*sdim+1]-yc) + cos(a)*(points_pos[i*sdim+0]-xc);
+        if( x > 0)
+          out[i]  = 0;
+      }
+    }
+  }
+}
+
+template<typename real_t, int sdim>
+void
 get_gaussian_field_cylinder(const real_t* points_pos,
                             int num_points,
                             real_t* out,
@@ -271,6 +297,7 @@ get_gaussian_field_cylinder(const real_t* points_pos,
               );
   }
 }
+
 
 template<typename real_t, int sdim>
 void

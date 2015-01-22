@@ -52,6 +52,9 @@ int main (int argc, char **argv) {
 
   parse_command_line_options(argc, argv);
 
+    int   test = strtoul(commandline_option(argc, argv, "-test",     "1", false,
+                                          "-test <int> = (1)    : 1) Gaussian profile 2) Zalesak disk"),NULL,10);
+
   {
     tbslas::SimConfig* sim_config       = tbslas::SimConfigSingleton::Instance();
     pvfmm::Profile::Enable(sim_config->profile);
@@ -93,7 +96,8 @@ int main (int argc, char **argv) {
                                   sim_config->tree_adap,
                                   sim_config->tree_tolerance,
                                   comm,
-                                  get_gaussian_field_cylinder_atT<double,3>,
+                                  (test==1)?get_gaussian_field_cylinder_atT<double,3>:
+                                  get_slotted_cylinder_atT<double,3>,
                                   1,
                                   tconc_curr);
     // =========================================================================
@@ -112,7 +116,8 @@ int main (int argc, char **argv) {
     tcurr = sim_config->total_num_timestep*sim_config->dt;
     double al2,rl2,ali,rli;
     CheckChebOutput<Tree_t>(&tconc_curr,
-                            get_gaussian_field_cylinder_atT<double,3>,
+                            (test==1)?get_gaussian_field_cylinder_atT<double,3>:
+                            get_slotted_cylinder_atT<double,3>,
                             1,
                             al2,rl2,ali,rli,
                             std::string("Output"));

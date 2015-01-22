@@ -44,6 +44,26 @@ get_gaussian_field_cylinder_atT(const real_t* points_pos,
                                                     A);
 }
 
+template<typename real_t, int sdim>
+void
+get_slotted_cylinder_atT(const real_t* points_pos,
+                         int num_points,
+                         real_t* out) {
+  real_t xc = 0.5;
+  real_t yc = 0.5;
+  real_t R  = 0.3;
+  real_t w  = 0.1;
+  real_t a  = tcurr;
+  tbslas::get_slotted_cylinder<real_t, sdim>(points_pos,
+                                             num_points,
+                                             out,
+                                             xc,
+                                             yc,
+                                             R,
+                                             w,
+                                             a);
+}
+
 template <class FMM_Mat_t>
 void CheckFMMOutput(pvfmm::FMM_Tree<FMM_Mat_t>* mytree, const pvfmm::Kernel<typename FMM_Mat_t::Real_t>* mykernel);
 
