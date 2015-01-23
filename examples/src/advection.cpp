@@ -100,6 +100,13 @@ int main (int argc, char **argv) {
                                   get_slotted_cylinder_atT<double,3>,
                                   1,
                                   tconc_curr);
+    double in_al2,in_rl2,in_ali,in_rli;
+    CheckChebOutput<Tree_t>(&tconc_curr,
+                            (test==1)?get_gaussian_field_cylinder_atT<double,3>:
+                            get_slotted_cylinder_atT<double,3>,
+                            1,
+                            in_al2,in_rl2,in_ali,in_rli,
+                            std::string("Input"));
     // =========================================================================
     // RUN
     // =========================================================================
@@ -126,25 +133,33 @@ int main (int argc, char **argv) {
     // REPORT RESULTS
     // =========================================================================
     if(!myrank) {
-      printf("#TBSLAS-HEADER: %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s\n",
-             "TOL",
-             "DT",
-             "TN",
-             "AL2",
-             "RL2",
-             "ALINF",
-             "RLINF",
-             "NOCT");
-      printf("#TBSLAS-RESULT: %-15.5e %-15.5e %-15d %-15.5e %-15.5e %-15.5e %-15.5e %-15d\n",
-             sim_config->tree_tolerance,
-             sim_config->dt,
-             sim_config->total_num_timestep,
-             al2,
-             rl2,
-             ali,
-             rli,
-             num_leaves
-             );
+          printf("#TBSLAS-HEADER: %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s\n",
+           "TOL",
+           "DT",
+           "TN",
+           "InAL2",
+           "OutAL2",
+           "InRL2",
+           "OutRL2",
+           "InALI",
+           "OutALI",
+           "InRLI",
+           "OutRLI",
+           "NOCT");
+          printf("#TBSLAS-RESULT: %-15.5e %-15.5e %-15d  %-15.5e %-15.5e %-15.5e %-15.5e %-15.5e %-15.5e %-15.5e %-15.5e %-15d\n",
+                 sim_config->tree_tolerance,
+                 sim_config->dt,
+                 sim_config->total_num_timestep,
+                 in_al2,
+                 al2,
+                 in_rl2,
+                 rl2,
+                 in_ali,
+                 ali,
+                 in_rli,
+                 rli,
+                 num_leaves
+                 );
     }
     //Output Profiling results.
     pvfmm::Profile::print(&comm);

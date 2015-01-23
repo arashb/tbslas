@@ -139,6 +139,7 @@ void RunDiffusion(int test_case, size_t N, size_t M, bool unif, int mult_order,
   // ======================================================================
   FMM_Tree_t* tree=new FMM_Tree_t(comm);
   tree->Initialize(&tree_data);
+  tree->RefineTree();
   // ======================================================================
   // SETUP FMM
   // ======================================================================
@@ -155,9 +156,19 @@ void RunDiffusion(int test_case, size_t N, size_t M, bool unif, int mult_order,
   // ======================================================================
   char out_name_buffer[300];
   double al2,rl2,ali,rli;
+  double in_al2,in_rl2,in_ali,in_rli;
   for (int ts_counter = 1; ts_counter < NUM_TIME_STEPS+1; ts_counter++) {
     // Setup FMM
     tree->InitFMM_Tree(false,bndry);
+        //Find error in FMM output.
+    if (ts_counter == 1) {
+      CheckChebOutput<FMM_Tree_t>(tree,
+                                  fn_input_,
+                                  mykernel->ker_dim[1],
+                                  in_al2,in_rl2,in_ali,in_rli,
+                                  std::string("Input"));
+    }
+
     tree->SetupFMM(fmm_mat);
     tree->RunFMM();
     tree->Copy_FMMOutput(); //Copy FMM output to tree Data.
@@ -185,28 +196,36 @@ void RunDiffusion(int test_case, size_t N, size_t M, bool unif, int mult_order,
   // REPORT RESULTS
   // =========================================================================
   int num_leaves = tbslas::CountNumLeafNodes(*tree);
-  tbslas::SimConfig* sim_config       = tbslas::SimConfigSingleton::Instance();
+  tbslas::SimConfig* sim_config = tbslas::SimConfigSingleton::Instance();
   if(!myrank) {
-    printf("#TBSLAS-HEADER: %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s\n",
+    printf("#TBSLAS-HEADER: %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s\n",
            "TOL",
            "DT",
            "TN",
            "DIFF",
            "ALPHA",
-           "AL2",
-           "RL2",
-           "ALINF",
-           "RLINF",
+           "InAL2",
+           "OutAL2",
+           "InRL2",
+           "OutRL2",
+           "InALI",
+           "OutALI",
+           "InRLI",
+           "OutRLI",
            "NOCT");
-    printf("#TBSLAS-RESULT: %-15.5e %-15.5e %-15d %-15.5e %-15.5e %-15.5e %-15.5e %-15.5e %-15.5e %-15d\n",
+    printf("#TBSLAS-RESULT: %-15.5e %-15.5e %-15d %-15.5e %-15.5e %-15.5e %-15.5e %-15.5e %-15.5e %-15.5e %-15.5e %-15.5e %-15.5e %-15d\n",
            sim_config->tree_tolerance,
            sim_config->dt,
            sim_config->total_num_timestep,
            TBSLAS_DIFF_COEFF,
            TBSLAS_ALPHA,
+           in_al2,
            al2,
+           in_rl2,
            rl2,
+           in_ali,
            ali,
+           in_rli,
            rli,
            num_leaves
            );
