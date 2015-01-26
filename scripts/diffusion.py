@@ -35,6 +35,7 @@ def generate_command_args(tl_init, tl_factor, dt_init, dt_factor, tn_init, tn_fa
                    '-tol' , str(tl_list[counter]), \
                    '-dt'  , str(dt_list[counter]), \
                    '-tn'  , str(tn_list[counter]), \
+                   '-test'  , str(2), \
                    '-omp' , str(OMP_NUM_THREADS)]
         cmd_args[cmd_id] = [EXEC] + ARGS
         cmd_id = cmd_id + 1
@@ -45,7 +46,7 @@ def generate_command_args(tl_init, tl_factor, dt_init, dt_factor, tn_init, tn_fa
 ################################################################################
 if __name__ == '__main__':
     prepare_environment(OUTPUT_PREFIX)
-    TOL_NUM_STEPS = 8
+    TOL_NUM_STEPS = 10
     if len(sys.argv) >= 4:
         TOL_NUM_STEPS   = int(sys.argv[3])
     T_END = 1.0
@@ -55,7 +56,7 @@ if __name__ == '__main__':
     tl_factor = 1#0.1
     tl_init   = 1e-5
     dt_factor = 0.5
-    dt_init   = 1
+    dt_init   = T_END
     tn_factor = 1.0/dt_factor
     tn_init   = T_END/dt_init
     cmd_args = generate_command_args(tl_init, tl_factor, \
@@ -63,15 +64,15 @@ if __name__ == '__main__':
                                      tn_init, tn_factor, \
                                      TOL_NUM_STEPS)
     execute_commands(cmd_args, PROGRAM+'-'+'table1')
-    ############################################################################
-    # TEST 2: SPATIAL ERROR
-    ############################################################################
+    # ############################################################################
+    # # TEST 2: SPATIAL ERROR
+    # ############################################################################
     tl_factor = 0.1
-    tl_init   = 1e-1
+    tl_init   = 1
     dt_factor = 1
-    dt_init   = 1e-3
+    dt_init   = 0.01
     tn_factor = 1.0/dt_factor
-    tn_init   = 1#T_END/dt_init
+    tn_init   = 1
     cmd_args = generate_command_args(tl_init, tl_factor, \
                                      dt_init, dt_factor, \
                                      tn_init, tn_factor, \
@@ -81,9 +82,9 @@ if __name__ == '__main__':
     # TEST 3: TEMPORAL/SPATIAL ERROR
     ############################################################################
     tl_factor = 0.1
-    tl_init   = 1e-1
+    tl_init   = 1
     dt_factor = 0.5
-    dt_init   = 1
+    dt_init   = T_END
     tn_factor = 1.0/dt_factor
     tn_init   = T_END/dt_init
     cmd_args = generate_command_args(tl_init, tl_factor, \

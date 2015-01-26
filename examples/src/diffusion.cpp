@@ -1,5 +1,7 @@
 #include <mpi.h>
-#include <pvfmm_common.hpp>
+// used to define constant PI
+#define _USE_MATH_DEFINES
+#include <math.h>
 #include <cstdlib>
 #include <iostream>
 #include <omp.h>
@@ -8,6 +10,7 @@
 #include <utility>
 #include <vector>
 
+#include <pvfmm_common.hpp>
 #include <profile.hpp>
 #include <fmm_cheb.hpp>
 #include <fmm_node.hpp>
@@ -18,13 +21,16 @@
 // TBSLAS
 #include <utils/common.h>
 #include <diffusion/kernel.h>
-// #include <tree/>
 
 int NUM_TIME_STEPS = 1;
 
+// parameters used in the diffusion kernel
 double TBSLAS_DT;
 double TBSLAS_DIFF_COEFF;
 double TBSLAS_ALPHA;
+
+// current simulation time
+double tcurr = 0.25;
 
 const char* OUTPUT_FILE_FORMAT = "%s/%s-VAR_%s-TS_%04d-RNK";
 const char* OUTPUT_FILE_PREFIX = "diffusion";
@@ -36,6 +42,9 @@ typedef tbslas::MetaData<std::string,
 //////////////////////////////////////////////////////////////////////////////
 // Test1: Laplace problem, Smooth Gaussian, Free Space Boundary
 ///////////////////////////////////////////////////////////////////////////////
+const double xc = 0.5;
+const double yc = 0.5;
+const double zc = 0.5;
 const double a = -160;  // -beta
 template <class Real_t>
 void fn_input_t1(const Real_t* coord, int n, Real_t* out) { //Input function
@@ -44,7 +53,7 @@ void fn_input_t1(const Real_t* coord, int n, Real_t* out) { //Input function
   for(int i=0;i<n;i++) {
     const Real_t* c=&coord[i*COORD_DIM];
     {
-      Real_t r_2=(c[0]-0.5)*(c[0]-0.5)+(c[1]-0.5)*(c[1]-0.5)+(c[2]-0.5)*(c[2]-0.5);
+      Real_t r_2=(c[0]-xc)*(c[0]-xc)+(c[1]-yc)*(c[1]-yc)+(c[2]-yc)*(c[2]-yc);
       out[i*dof+0]=-(2*a*r_2+3)*2*a*exp(a*r_2)/alpha+exp(a*r_2);
     }
   }
@@ -56,8 +65,26 @@ void fn_poten_t1(const Real_t* coord, int n, Real_t* out) { //Output potential
   for(int i=0;i<n;i++) {
     const Real_t* c=&coord[i*COORD_DIM];
     {
-      Real_t r_2=(c[0]-0.5)*(c[0]-0.5)+(c[1]-0.5)*(c[1]-0.5)+(c[2]-0.5)*(c[2]-0.5);
+      Real_t r_2=(c[0]-xc)*(c[0]-xc)+(c[1]-yc)*(c[1]-yc)+(c[2]-yc)*(c[2]-yc);
       out[i*dof+0]=exp(a*r_2);
+    }
+  }
+}
+
+template <class Real_t>
+void fn_input_t2(const Real_t* coord, int n, Real_t* out) { //Input function
+  assert(tcurr!=0);
+  Real_t amp = 1e-2;
+  int dof        = 1;
+  Real_t alpha   = TBSLAS_ALPHA;
+  Real_t dt4     = 4*TBSLAS_DIFF_COEFF*tcurr;
+  Real_t pidt4_3 = std::pow(M_PI*dt4, 3);
+  Real_t nn      = 1.0/sqrt(pidt4_3);
+  for(int i=0;i<n;i++) {
+    const Real_t* c=&coord[i*COORD_DIM];
+    {
+      Real_t r_2   = (c[0]-xc)*(c[0]-xc)+(c[1]-yc)*(c[1]-yc)+(c[2]-zc)*(c[2]-zc);
+      out[i*dof+0] = amp* nn * exp(-r_2/dt4);
     }
   }
 }
@@ -84,6 +111,12 @@ void RunDiffusion(int test_case, size_t N, size_t M, bool unif, int mult_order,
     case 1:
       fn_input_ = fn_input_t1<Real_t>;
       fn_poten_ = fn_poten_t1<Real_t>;
+      mykernel  = &modified_laplace_kernel_d;
+      bndry = pvfmm::FreeSpace;
+      break;
+    case 2:
+      fn_input_ = fn_input_t2<Real_t>;
+      fn_poten_ = fn_input_t2<Real_t>;
       mykernel  = &modified_laplace_kernel_d;
       bndry = pvfmm::FreeSpace;
       break;
@@ -162,6 +195,16 @@ void RunDiffusion(int test_case, size_t N, size_t M, bool unif, int mult_order,
     tree->InitFMM_Tree(false,bndry);
         //Find error in FMM output.
     if (ts_counter == 1) {
+      snprintf(out_name_buffer,
+               sizeof(out_name_buffer),
+               OUTPUT_FILE_FORMAT,
+               tbslas::get_result_dir().c_str(),
+               OUTPUT_FILE_PREFIX,
+               "diff",
+               0);
+      //Write2File
+      tree->Write2File(out_name_buffer,tree_data.cheb_deg);
+
       CheckChebOutput<FMM_Tree_t>(tree,
                                   fn_input_,
                                   mykernel->ker_dim[1],
@@ -173,6 +216,7 @@ void RunDiffusion(int test_case, size_t N, size_t M, bool unif, int mult_order,
     tree->RunFMM();
     tree->Copy_FMMOutput(); //Copy FMM output to tree Data.
 
+    tcurr += TBSLAS_DT;
     //Find error in FMM output.
     if (ts_counter == 1) {
       CheckChebOutput<FMM_Tree_t>(tree,
