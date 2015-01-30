@@ -44,7 +44,7 @@ const double yc = 0.5;
 const double zc = 0.5;
 const double a = -160;  // -beta
 template <class Real_t>
-void fn_input_t1(const Real_t* coord, int n, Real_t* out) { //Input function
+void fn_input_t2(const Real_t* coord, int n, Real_t* out) { //Input function
   int dof=1;
   Real_t alpha = TBSLAS_ALPHA;
   for(int i=0;i<n;i++) {
@@ -57,7 +57,7 @@ void fn_input_t1(const Real_t* coord, int n, Real_t* out) { //Input function
 }
 
 template <class Real_t>
-void fn_poten_t1(const Real_t* coord, int n, Real_t* out) { //Output potential
+void fn_poten_t2(const Real_t* coord, int n, Real_t* out) { //Output potential
   int dof=1;
   for(int i=0;i<n;i++) {
     const Real_t* c=&coord[i*COORD_DIM];
@@ -69,7 +69,7 @@ void fn_poten_t1(const Real_t* coord, int n, Real_t* out) { //Output potential
 }
 
 template <class Real_t>
-void fn_input_t2(const Real_t* coord, int n, Real_t* out) { //Input function
+void fn_input_t1(const Real_t* coord, int n, Real_t* out) { //Input function
   assert(tcurr!=0);
   Real_t amp = 1e-2;
   int dof        = 1;
@@ -106,15 +106,15 @@ void RunDiffusion(int test_case, size_t N, size_t M, bool unif, int mult_order,
       (tbslas::GetModfiedLaplaceKernelName<double>(TBSLAS_ALPHA), 3, std::pair<int,int>(1,1));
 
   switch (test_case) {
-    case 1:
-      fn_input_ = fn_input_t1<Real_t>;
-      fn_poten_ = fn_poten_t1<Real_t>;
+    case 2:
+      fn_input_ = fn_input_t2<Real_t>;
+      fn_poten_ = fn_poten_t2<Real_t>;
       mykernel  = &modified_laplace_kernel_d;
       bndry = pvfmm::FreeSpace;
       break;
-    case 2:
-      fn_input_ = fn_input_t2<Real_t>;
-      fn_poten_ = fn_input_t2<Real_t>;
+    case 1:
+      fn_input_ = fn_input_t1<Real_t>;
+      fn_poten_ = fn_input_t1<Real_t>;
       mykernel  = &modified_laplace_kernel_d;
       bndry = pvfmm::FreeSpace;
       break;
@@ -186,12 +186,11 @@ void RunDiffusion(int test_case, size_t N, size_t M, bool unif, int mult_order,
   // DIFFUSUION SOLVER
   // ======================================================================
   char out_name_buffer[300];
-  double al2,rl2,ali,rli;
   double in_al2,in_rl2,in_ali,in_rli;
   for (int ts_counter = 1; ts_counter < NUM_TIME_STEPS+1; ts_counter++) {
     // Setup FMM
     tree->InitFMM_Tree(false,bndry);
-        //Find error in FMM output.
+    //Find error in FMM input.
     if (ts_counter == 1) {
       snprintf(out_name_buffer,
                sizeof(out_name_buffer),
@@ -215,14 +214,6 @@ void RunDiffusion(int test_case, size_t N, size_t M, bool unif, int mult_order,
     tree->Copy_FMMOutput(); //Copy FMM output to tree Data.
 
     tcurr += TBSLAS_DT;
-    //Find error in FMM output.
-    if (ts_counter == 1) {
-      CheckChebOutput<FMM_Tree_t>(tree,
-                                  fn_poten_,
-                                  mykernel->ker_dim[1],
-                                  al2,rl2,ali,rli,
-                                  std::string("Output"));
-    }
     snprintf(out_name_buffer,
              sizeof(out_name_buffer),
              sim_config->vtk_filename_format.c_str(),
@@ -237,6 +228,13 @@ void RunDiffusion(int test_case, size_t N, size_t M, bool unif, int mult_order,
   // =========================================================================
   // REPORT RESULTS
   // =========================================================================
+  //Find error in FMM output.
+  double al2,rl2,ali,rli;
+  CheckChebOutput<FMM_Tree_t>(tree,
+			      fn_poten_,
+			      mykernel->ker_dim[1],
+			      al2,rl2,ali,rli,
+			      std::string("Output"));
   int num_leaves = tbslas::CountNumLeafNodes(*tree);
   if(!myrank) {
     printf("#TBSLAS-HEADER: %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s\n",

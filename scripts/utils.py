@@ -95,8 +95,8 @@ def execute_commands(cmd_args, id):
     revision = subprocess.check_output(["git", "describe"])
     file_dat.write('# REVISION: '+ revision)
     for counter, args in cmd_args.iteritems():
-        out_file_name = os.path.join(TBSLAS_RESULT_DIR_PREFIX,'{i}-cmd{x}.out'.format(i=id,x=counter))
-        out_dir_name = os.path.join(TBSLAS_RESULT_DIR_PREFIX,'{i}-cmd{x}'.format(i=id,x=counter))
+        out_dir_name = os.path.join(TBSLAS_RESULT_DIR_PREFIX,'{0}-cmd{1:03}'.format(id,counter))
+        out_file_name = out_dir_name+'.out'
         file_out = open(out_file_name, 'w')
         command_message = "COMMAND: " +  str(args) + '\n'
         #sys.stdout.write(command_message)

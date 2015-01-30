@@ -30,12 +30,11 @@ def generate_command_args(tl_init, tl_factor, dt_init, dt_factor, tn_init, tn_fa
                    '-tol' , str(tl_list[counter]), \
                    '-dt'  , str(dt_list[counter]), \
                    '-tn'  , str(tn_list[counter]), \
-                   '-test'  , str(2), \
+                   '-test'  , str(1), \
                    '-omp' , str(OMP_NUM_THREADS)]
         cmd_args[cmd_id] = [EXEC] + ARGS
         cmd_id = cmd_id + 1
     return cmd_args
-
 ################################################################################
 # MAIN
 ################################################################################
@@ -65,7 +64,7 @@ if __name__ == '__main__':
     tl_factor = 0.1
     tl_init   = 1
     dt_factor = 1
-    dt_init   = 1e-5
+    dt_init   = T_END/2**20
     tn_factor = 1.0/dt_factor
     tn_init   = 1
     cmd_args = generate_command_args(tl_init, tl_factor, \
