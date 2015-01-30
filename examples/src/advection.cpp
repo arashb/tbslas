@@ -41,9 +41,6 @@ typedef tbslas::MetaData<std::string,
                          std::string> MetaData_t;
 double tcurr = 0;
 
-const char* OUTPUT_FILE_FORMAT = "%s/%s-VAR_%s-TS_%04d-RNK";
-const char* OUTPUT_FILE_PREFIX = "advection";
-
 int main (int argc, char **argv) {
   MPI_Init(&argc, &argv);
   MPI_Comm comm=MPI_COMM_WORLD;
@@ -61,8 +58,7 @@ int main (int argc, char **argv) {
     // =========================================================================
     // SIMULATION PARAMETERS
     // =========================================================================
-    sim_config->vtk_filename_format     = OUTPUT_FILE_FORMAT;
-    sim_config->vtk_filename_prefix     = OUTPUT_FILE_PREFIX;
+    sim_config->vtk_filename_prefix     = "advection";
     sim_config->vtk_filename_variable   = "conc";
     // =========================================================================
     // PRINT METADATA
@@ -133,8 +129,9 @@ int main (int argc, char **argv) {
     // REPORT RESULTS
     // =========================================================================
     if(!myrank) {
-          printf("#TBSLAS-HEADER: %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s\n",
+          printf("#TBSLAS-HEADER: %-15s %-15s %-15s %-8s %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-8s\n",
            "TOL",
+	   "MaxDEPTH",
            "DT",
            "TN",
            "InAL2",
@@ -146,8 +143,9 @@ int main (int argc, char **argv) {
            "InRLI",
            "OutRLI",
            "NOCT");
-          printf("#TBSLAS-RESULT: %-15.5e %-15.5e %-15d  %-15.5e %-15.5e %-15.5e %-15.5e %-15.5e %-15.5e %-15.5e %-15.5e %-15d\n",
+          printf("#TBSLAS-RESULT: %-15.5e %-8d %-15.5e %-8d  %-15.5e %-15.5e %-15.5e %-15.5e %-15.5e %-15.5e %-15.5e %-15.5e %-8d\n",
                  sim_config->tree_tolerance,
+		 sim_config->tree_max_depth,
                  sim_config->dt,
                  sim_config->total_num_timestep,
                  in_al2,

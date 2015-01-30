@@ -175,17 +175,12 @@ RunSemilagSimulation(TreeType* vel_tree,
                      bool save = true) {
   typedef typename TreeType::Node_t NodeType;
   typedef typename TreeType::Real_t RealType;
-  tbslas::SimConfig* sim_config = tbslas::SimConfigSingleton::Instance();
-
   int myrank;
   MPI_Comm comm=MPI_COMM_WORLD;
   MPI_Comm_rank(comm, &myrank);
 
   // simulation parameters
   SimConfig* sim_param = tbslas::SimConfigSingleton::Instance();
-  // int tn          = sim_param->total_num_timestep;
-  // RealType dt     = sim_param->dt;
-  // int num_rk_step = sim_param->num_rk_step;
 
   //////////////////////////////////////////////////////////////////////
   // NEXT STEP TREE
@@ -235,7 +230,7 @@ RunSemilagSimulation(TreeType* vel_tree,
 
     if (adaptive) {
       // refine the tree according to the computed values
-      pvfmm::Profile::Tic("RefineTree", &sim_config->comm, false,5);
+      pvfmm::Profile::Tic("RefineTree", &sim_param->comm, false,5);
       tconc_next->RefineTree();
       pvfmm::Profile::Toc();
 
@@ -271,18 +266,13 @@ RunSemilagSimulationInSitu(TreeType* vel_tree,
                            bool save     = true) {
   typedef typename TreeType::Node_t NodeType;
   typedef typename TreeType::Real_t RealType;
-  tbslas::SimConfig* sim_config = tbslas::SimConfigSingleton::Instance();
 
   int myrank;
   MPI_Comm comm=MPI_COMM_WORLD;
   MPI_Comm_rank(comm, &myrank);
 
-  // simulation parameters
     // simulation parameters
   SimConfig* sim_param = tbslas::SimConfigSingleton::Instance();
-  // int tn          = sim_param->total_num_timestep;
-  // RealType dt     = sim_param->dt;
-  // int num_rk_step = sim_param->num_rk_step;
 
   // set the input_fn to NULL -> needed for adaptive refinement
   std::vector<NodeType*>  ncurr_list = con_tree_curr->GetNodeList();
@@ -322,7 +312,7 @@ RunSemilagSimulationInSitu(TreeType* vel_tree,
 
     if (adaptive) {
       // refine the tree according to the computed values
-      pvfmm::Profile::Tic("RefineTree", &sim_config->comm, false, 5);
+      pvfmm::Profile::Tic("RefineTree", &sim_param->comm, false, 5);
       tconc_curr->RefineTree();
       pvfmm::Profile::Toc();
     }

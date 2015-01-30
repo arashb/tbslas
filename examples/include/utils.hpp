@@ -51,6 +51,7 @@ get_slotted_cylinder_atT(const real_t* points_pos,
                          real_t* out) {
   real_t xc = 0.5;
   real_t yc = 0.5;
+  real_t zc = 0.5;
   real_t R  = 0.3;
   real_t w  = 0.1;
   real_t a  = tcurr;
@@ -59,6 +60,7 @@ get_slotted_cylinder_atT(const real_t* points_pos,
                                              out,
                                              xc,
                                              yc,
+					     zc,
                                              R,
                                              w,
                                              a);

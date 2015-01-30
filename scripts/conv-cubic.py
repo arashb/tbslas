@@ -1,3 +1,4 @@
+#!/bin/env python
 #*************************************************************************
 #Copyright (C) 2015 by Arash Bakhtiari
 #You may not use this file except in compliance with the License.
@@ -16,15 +17,9 @@ import sys
 from collections import OrderedDict
 from utils import *
 
-################################################################################
-# EXECUTION COMMAND
-################################################################################
-PROGRAM       = "cubic"
-OUTPUT_PREFIX = PROGRAM+'-'+TIMESTR
-EXEC          = os.path.join(TBSLAS_EXAMPLES_BIN_DIR, PROGRAM)
-
 def generate_command_args(tl_init, tl_factor, cuf_init, cuf_factor, use_cubic, \
                           use_anal, num_steps):
+    EXEC = os.path.join(TBSLAS_EXAMPLES_BIN_DIR, "cubic")
     tl_list = [tl_init*math.pow(tl_factor,float(cnt)) for cnt in range(0,num_steps)]
     uf_list = [cuf_init*math.pow(cuf_factor,float(cnt)) for cnt in range(0,num_steps)]
     # generate a dictionary data type of commands
@@ -64,13 +59,13 @@ if __name__ == '__main__':
                                      cuf_init, cuf_factor, \
                                      use_cubic, use_anal, \
                                      TOL_NUM_STEPS)
-    execute_commands(cmd_args, PROGRAM+'-'+'table1')
+    execute_commands(cmd_args, 'table1')
     ############################################################################
     # TEST 2:
     ############################################################################
     tl_factor  = 0.1
-    tl_init    = 1e-0
-    cuf_factor = 2
+    tl_init    = 1e-6
+    cuf_factor = 1
     cuf_init   = 2
     use_cubic  = False
     use_anal   = False
@@ -78,12 +73,12 @@ if __name__ == '__main__':
                                      cuf_init, cuf_factor, \
                                      use_cubic, use_anal, \
                                      TOL_NUM_STEPS)
-    execute_commands(cmd_args, PROGRAM+'-'+'table2')
+    execute_commands(cmd_args, 'table2')
     ############################################################################
     # TEST 3:
     ############################################################################
     tl_factor  = 0.1
-    tl_init    = 1e-0
+    tl_init    = 1e-3
     cuf_factor = 2
     cuf_init   = 2
     use_cubic  = True
@@ -92,4 +87,4 @@ if __name__ == '__main__':
                                      cuf_init, cuf_factor, \
                                      use_cubic, use_anal, \
                                      TOL_NUM_STEPS)
-    execute_commands(cmd_args, PROGRAM+'-'+'table3')
+    execute_commands(cmd_args, 'table3')

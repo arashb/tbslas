@@ -1,3 +1,5 @@
+#!/bin/env python
+
 #*************************************************************************
 #Copyright (C) 2015 by Arash Bakhtiari
 #You may not use this file except in compliance with the License.
@@ -16,14 +18,8 @@ import sys
 from collections import OrderedDict
 from utils import *
 
-################################################################################
-# EXECUTION COMMAND
-################################################################################
-PROGRAM       = "advection"
-OUTPUT_PREFIX = PROGRAM+'-'+TIMESTR
-EXEC          = os.path.join(TBSLAS_EXAMPLES_BIN_DIR, PROGRAM)
-
 def generate_command_args(tl_init, tl_factor, dt_init, dt_factor, tn_init, tn_factor,num_steps):
+    EXEC = os.path.join(TBSLAS_EXAMPLES_BIN_DIR, "advection")
     tl_list = [tl_init*math.pow(tl_factor,float(cnt)) for cnt in range(0,TOL_NUM_STEPS)]
     dt_list = [dt_init*math.pow(dt_factor,float(cnt)) for cnt in range(0,TOL_NUM_STEPS)]
     tn_list = [tn_init*math.pow(tn_factor,float(cnt)) for cnt in range(0,TOL_NUM_STEPS)]
@@ -62,7 +58,7 @@ if __name__ == '__main__':
                                      dt_init, dt_factor, \
                                      tn_init, tn_factor, \
                                      TOL_NUM_STEPS)
-    execute_commands(cmd_args, PROGRAM+'-'+'table1')
+    execute_commands(cmd_args, 'table1')
     ############################################################################
     # TEST 2: SPATIAL ERROR
     ############################################################################
@@ -76,7 +72,7 @@ if __name__ == '__main__':
                                      dt_init, dt_factor, \
                                      tn_init, tn_factor, \
                                      TOL_NUM_STEPS)
-    execute_commands(cmd_args,PROGRAM+'-'+'table2')
+    execute_commands(cmd_args, 'table2')
     ############################################################################
     # TEST 3: TEMPORAL/SPATIAL ERROR
     ############################################################################
@@ -90,4 +86,4 @@ if __name__ == '__main__':
                                      dt_init, dt_factor, \
                                      tn_init, tn_factor, \
                                      TOL_NUM_STEPS)
-    execute_commands(cmd_args,PROGRAM+'-'+'table3')
+    execute_commands(cmd_args, 'table3')

@@ -26,7 +26,7 @@ class SimConfig {
       dt(0.1),
       num_rk_step(1),
       vtk_order(14),
-      vtk_filename_format("%s/%s-VAR_%s-TS_%04d-RNK"),
+      vtk_filename_format("%s/%s_V%s_T%04d_P"),
       vtk_filename_prefix("output"),
       vtk_filename_variable("vals"),
       use_cubic(false),

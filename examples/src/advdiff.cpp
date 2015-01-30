@@ -39,10 +39,6 @@ double TBSLAS_DT;
 double TBSLAS_DIFF_COEFF;
 double TBSLAS_ALPHA;
 
-const char* OUTPUT_FILE_FORMAT   = "%s/%s-VAR_%s-TS_%04d-RNK";
-const char* OUTPUT_FILE_PREFIX   = "advdiff";
-const char* OUTPUT_FILE_VARIABLE = "conc";
-
 typedef tbslas::MetaData<std::string,
                          std::string,
                          std::string> MetaData_t;
@@ -109,7 +105,7 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
   typedef pvfmm::FMM_Node<pvfmm::Cheb_Node<Real_t> > FMMNode_t;
   typedef pvfmm::FMM_Cheb<FMMNode_t> FMM_Mat_t;
   typedef pvfmm::FMM_Tree<FMM_Mat_t> FMM_Tree_t;
-
+  tbslas::SimConfig* sim_config = tbslas::SimConfigSingleton::Instance();
   char out_name_buffer[300];
   // Find out number of OMP thereads.
   int omp_p=omp_get_max_threads();
@@ -204,16 +200,15 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
                                     tvel_curr);
   snprintf(out_name_buffer,
            sizeof(out_name_buffer),
-           OUTPUT_FILE_FORMAT,
+           sim_config->vtk_filename_format.c_str(),
            tbslas::get_result_dir().c_str(),
-           OUTPUT_FILE_PREFIX,
+           sim_config->vtk_filename_prefix.c_str(),
            "velocity",
            0);
   tvel_curr.Write2File(out_name_buffer, cheb_deg);
   // =========================================================================
   // SIMULATION PARAMETERS
   // =========================================================================
-  tbslas::SimConfig* sim_config = tbslas::SimConfigSingleton::Instance();
   int timestep = 1;
   double al2,rl2,ali,rli;
   for (; timestep < 2*NUM_TIME_STEPS+1; timestep +=2) {
@@ -306,9 +301,8 @@ int main (int argc, char **argv) {
 
   pvfmm::Profile::Enable(sim_config->profile);
 
-  sim_config->vtk_filename_format   = OUTPUT_FILE_FORMAT;
-  sim_config->vtk_filename_prefix   = OUTPUT_FILE_PREFIX;
-  sim_config->vtk_filename_variable = OUTPUT_FILE_VARIABLE;
+  sim_config->vtk_filename_prefix   = "advdiff";
+  sim_config->vtk_filename_variable = "conc";
 
   NUM_TIME_STEPS    = sim_config->total_num_timestep;
   TBSLAS_DT         = sim_config->dt;

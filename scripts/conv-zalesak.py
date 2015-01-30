@@ -1,3 +1,5 @@
+#!/bin/env python
+
 #*************************************************************************
 #Copyright (C) 2015 by Arash Bakhtiari
 #You may not use this file except in compliance with the License.
@@ -16,26 +18,23 @@ import sys
 from collections import OrderedDict
 from utils import *
 
-################################################################################
-# EXECUTION COMMAND
-################################################################################
-PROGRAM       = "advdiff"
-OUTPUT_PREFIX = PROGRAM+'-'+TIMESTR
-EXEC          = os.path.join(TBSLAS_EXAMPLES_BIN_DIR, PROGRAM)
-
-def generate_command_args(tl_init, tl_factor, dt_init, dt_factor, tn_init, tn_factor,num_steps):
-    tl_list = [tl_init*math.pow(tl_factor,float(cnt)) for cnt in range(0,TOL_NUM_STEPS)]
-    dt_list = [dt_init*math.pow(dt_factor,float(cnt)) for cnt in range(0,TOL_NUM_STEPS)]
-    tn_list = [tn_init*math.pow(tn_factor,float(cnt)) for cnt in range(0,TOL_NUM_STEPS)]
+def generate_command_args(tl_init, tl_factor, dt_init, dt_factor, tn_init, tn_factor, de_init, de_factor, num_steps):
+    EXEC = os.path.join(TBSLAS_EXAMPLES_BIN_DIR, "advection")
+    tl_list = [tl_init*math.pow(tl_factor,float(cnt)) for cnt in range(0, num_steps)]
+    dt_list = [dt_init*math.pow(dt_factor,float(cnt)) for cnt in range(0, num_steps)]
+    tn_list = [tn_init*math.pow(tn_factor,float(cnt)) for cnt in range(0, num_steps)]
+    de_list = [de_init+cnt*dt_factor                  for cnt in range(0, num_steps)]
     # generate a dictionary data type of commands
     cmd_args = OrderedDict()
     cmd_id = 1;
     for counter in range(0,num_steps):
-        ARGS    = ['-N', '8',                      \
+        ARGS    = ['-N', '4096',                   \
                    '-tol' , str(tl_list[counter]), \
                    '-dt'  , str(dt_list[counter]), \
                    '-tn'  , str(tn_list[counter]), \
-                   '-omp' , str(OMP_NUM_THREADS)]
+                   '-d'   , str(de_list[counter]), \
+                   '-omp' , str(OMP_NUM_THREADS),  \
+                   '-test', '2']
         cmd_args[cmd_id] = [EXEC] + ARGS
         cmd_id = cmd_id + 1
     return cmd_args
@@ -52,22 +51,27 @@ if __name__ == '__main__':
     ############################################################################
     # TEST 1: TEMPORAL ERROR
     ############################################################################
-    tl_factor = 1#0.1
-    tl_init   = 1e-5
-    dt_factor = 0.5
-    dt_init   = 1
-    tn_factor = 1.0/dt_factor
-    tn_init   = T_END/dt_init
-    cmd_args = generate_command_args(tl_init, tl_factor, \
-                                     dt_init, dt_factor, \
-                                     tn_init, tn_factor, \
-                                     TOL_NUM_STEPS)
-    execute_commands(cmd_args, PROGRAM+'-'+'table1')
+    # tl_factor = 1
+    # tl_init   = 1e-10
+    # de_factor = 0
+    # de_init   = 8;
+    # dt_factor = 0.5
+    # dt_init   = 1
+    # tn_factor = 1.0/dt_factor
+    # tn_init   = T_END/dt_init
+    # cmd_args  = generate_command_args(tl_init, tl_factor, \
+    #                                   dt_init, dt_factor, \
+    #                                   tn_init, tn_factor, \
+    #                                   de_init, de_factor, \
+    #                                   TOL_NUM_STEPS)
+    # execute_commands(cmd_args, 'table1')
     ############################################################################
     # TEST 2: SPATIAL ERROR
     ############################################################################
     tl_factor = 0.1
-    tl_init   = 1e-1
+    tl_init   = 1e-10
+    de_factor = 1
+    de_init   = 1;
     dt_factor = 1
     dt_init   = 1e-3
     tn_factor = 1.0/dt_factor
@@ -75,19 +79,21 @@ if __name__ == '__main__':
     cmd_args = generate_command_args(tl_init, tl_factor, \
                                      dt_init, dt_factor, \
                                      tn_init, tn_factor, \
+                                     de_init, de_factor, \
                                      TOL_NUM_STEPS)
-    execute_commands(cmd_args,PROGRAM+'-'+'table2')
+    execute_commands(cmd_args,'table2')
     ############################################################################
     # TEST 3: TEMPORAL/SPATIAL ERROR
     ############################################################################
-    tl_factor = 0.1
-    tl_init   = 1e-1
-    dt_factor = 0.5
-    dt_init   = 1
-    tn_factor = 1.0/dt_factor
-    tn_init   = T_END/dt_init
-    cmd_args = generate_command_args(tl_init, tl_factor, \
-                                     dt_init, dt_factor, \
-                                     tn_init, tn_factor, \
-                                     TOL_NUM_STEPS)
-    execute_commands(cmd_args,PROGRAM+'-'+'table3')
+    # tl_factor = 0.1
+    # tl_init   = 1e-10
+    # dt_factor = 0.5
+    # dt_init   = 1
+    # tn_factor = 1.0/dt_factor
+    # tn_init   = T_END/dt_init
+    # cmd_args = generate_command_args(tl_init, tl_factor, \
+    #                                  dt_init, dt_factor, \
+    #                                  tn_init, tn_factor, \
+    #                                  de_init, de_factor, \
+    #                                  TOL_NUM_STEPS)
+    # execute_commands(cmd_args,'table3')

@@ -32,9 +32,6 @@ double TBSLAS_ALPHA;
 // current simulation time
 double tcurr = 0.25;
 
-const char* OUTPUT_FILE_FORMAT = "%s/%s-VAR_%s-TS_%04d-RNK";
-const char* OUTPUT_FILE_PREFIX = "diffusion";
-
 typedef tbslas::MetaData<std::string,
                          std::string,
                          std::string> MetaData_t;
@@ -96,6 +93,7 @@ void RunDiffusion(int test_case, size_t N, size_t M, bool unif, int mult_order,
   typedef pvfmm::FMM_Node<pvfmm::Cheb_Node<Real_t> > FMMNode_t;
   typedef pvfmm::FMM_Cheb<FMMNode_t> FMM_Mat_t;
   typedef pvfmm::FMM_Tree<FMM_Mat_t> FMM_Tree_t;
+  tbslas::SimConfig* sim_config       = tbslas::SimConfigSingleton::Instance();
 
   void (*fn_input_)(const Real_t* , int , Real_t*)=NULL;
   void (*fn_poten_)(const Real_t* , int , Real_t*)=NULL;
@@ -197,10 +195,10 @@ void RunDiffusion(int test_case, size_t N, size_t M, bool unif, int mult_order,
     if (ts_counter == 1) {
       snprintf(out_name_buffer,
                sizeof(out_name_buffer),
-               OUTPUT_FILE_FORMAT,
+               sim_config->vtk_filename_format.c_str(),
                tbslas::get_result_dir().c_str(),
-               OUTPUT_FILE_PREFIX,
-               "diff",
+               sim_config->vtk_filename_prefix.c_str(),
+               sim_config->vtk_filename_variable.c_str(),
                0);
       //Write2File
       tree->Write2File(out_name_buffer,tree_data.cheb_deg);
@@ -227,10 +225,10 @@ void RunDiffusion(int test_case, size_t N, size_t M, bool unif, int mult_order,
     }
     snprintf(out_name_buffer,
              sizeof(out_name_buffer),
-             OUTPUT_FILE_FORMAT,
+             sim_config->vtk_filename_format.c_str(),
              tbslas::get_result_dir().c_str(),
-             OUTPUT_FILE_PREFIX,
-             "diff",
+             sim_config->vtk_filename_prefix.c_str(),
+	     sim_config->vtk_filename_variable.c_str(),
              ts_counter);
 
     //Write2File
@@ -240,7 +238,6 @@ void RunDiffusion(int test_case, size_t N, size_t M, bool unif, int mult_order,
   // REPORT RESULTS
   // =========================================================================
   int num_leaves = tbslas::CountNumLeafNodes(*tree);
-  tbslas::SimConfig* sim_config = tbslas::SimConfigSingleton::Instance();
   if(!myrank) {
     printf("#TBSLAS-HEADER: %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s\n",
            "TOL",
@@ -299,6 +296,8 @@ int main (int argc, char **argv) {
                                           "-test <int> = (1)    : 1) Modified Laplace, Smooth Gaussian, FreeSpace Boundary"),NULL,10);
 
   tbslas::SimConfig* sim_config       = tbslas::SimConfigSingleton::Instance();
+  sim_config->vtk_filename_prefix     = "diffusion";
+  sim_config->vtk_filename_variable   = "conc";
 
   NUM_TIME_STEPS    = sim_config->total_num_timestep;
   TBSLAS_DT         = sim_config->dt;
