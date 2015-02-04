@@ -17,7 +17,6 @@
 
 // LOCAL
 #include <utils.hpp>
-#include <common.hpp>
 
 // TBSLAS
 #include <utils/common.h>

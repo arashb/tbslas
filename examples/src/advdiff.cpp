@@ -27,7 +27,7 @@
 #include <cheb_node.hpp>
 // LOCAL
 #include <utils.hpp>
-#include <common.hpp>
+
 // TBSLAS
 #include <utils/common.h>
 #include <utils/reporter.h>
