@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH -J TBSLAS
 #SBATCH --export=ALL
-#SBATCH -n 32              # total number of mpi tasks requested
-#SBATCH -N 32              # nodes
+#SBATCH -n 128              # total number of mpi tasks requested
+#SBATCH -N 128              # nodes
 #SBATCH -p normal     # queue (partition) -- normal, development, etc.
 #SBATCH -t 05:00:00        # run time (hh:mm:ss) - 1.5 hours
 #SBATCH --mail-user=arash@ices.utexas.edu
@@ -16,6 +16,6 @@ module load fftw3
 export TBSLAS_RESULT_DIR=${SCRATCH}/vis-zalesak-$(date +%Y%m%d-%H%M%S)
 mkdir -p ${TBSLAS_RESULT_DIR};
 EXEC=../examples/bin/advection
-ibrun tacc_affinity ${EXEC} -N 4096 -tol 1e-8 -d 6 -omp 16 -dt 0.0628 -tn 100 -test 2
+ibrun tacc_affinity ${EXEC} -N 4096 -tol 1e-8 -d 7 -omp 16 -dt 0.0628 -tn 100 -test 2
 
 ### End of script

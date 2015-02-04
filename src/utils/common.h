@@ -193,7 +193,6 @@ std::vector<Real_t> point_distrib(DistribType dist_type, size_t N, MPI_Comm comm
   return coord;
 }
 
-
 template <typename real_t, int sdim>
 void
 get_reg_grid_points(const size_t N,
@@ -313,13 +312,78 @@ get_gaussian_field_3d(const real_t* points_pos,
                       const real_t sigma_x = 0.06,
                       const real_t sigma_y = 0.35,
                       const real_t sigma_z = 0.35) {
-
   for (int i = 0; i < num_points; i++) {
     out[i]  = A*exp(-(((points_pos[i*sdim+0]-xc) * (points_pos[i*sdim+0]-xc))/(2*sigma_x*sigma_x) +
                       ((points_pos[i*sdim+1]-yc) * (points_pos[i*sdim+1]-yc))/(2*sigma_y*sigma_y) +
                       ((points_pos[i*sdim+2]-zc) * (points_pos[i*sdim+2]-zc))/(2*sigma_z*sigma_z)
                       )
                     );
+  }
+}
+
+template <class Real_t>
+void gaussian_kernel_diffusion_input(const Real_t* coord,
+			   int n,
+			   Real_t* out,
+			   const Real_t alpha,
+			   const Real_t xc = 0.5,
+			   const Real_t yc = 0.5,
+			   const Real_t zc = 0.5,
+			   const int a  = -160,
+			   const Real_t amp = 1.0) { //Input function
+  int dof=1;
+  for(int i=0;i<n;i++) {
+    const Real_t* c=&coord[i*COORD_DIM];
+    {
+      Real_t r_2=(c[0]-xc)*(c[0]-xc)+(c[1]-yc)*(c[1]-yc)+(c[2]-yc)*(c[2]-yc);
+      out[i*dof+0]=-amp*(2*a*r_2+3)*2*a*exp(a*r_2)/alpha+exp(a*r_2);
+    }
+  }
+}
+
+// out = amp * exp(a*R^2)
+template <class Real_t>
+void gaussian_kernel(const Real_t* coord, 
+		     int n,
+		     Real_t* out,
+		     const Real_t xc = 0.5,
+		     const Real_t yc = 0.5,
+		     const Real_t zc = 0.5,
+		     const int a  = -160,
+		     const Real_t amp = 1.0) { //Output potential
+  int dof=1;
+  for(int i=0;i<n;i++) {
+    const Real_t* c=&coord[i*COORD_DIM];
+    {
+      Real_t r_2=(c[0]-xc)*(c[0]-xc)+(c[1]-yc)*(c[1]-yc)+(c[2]-yc)*(c[2]-yc);
+      out[i*dof+0]=amp*exp(a*r_2);
+    }
+  }
+}
+
+// 1/(4*pi*t)^(3/2)*exp(-r^2/4*d*t)
+template <class Real_t>
+void diffusion_kernel(const Real_t* coord,
+		 int n,
+		 Real_t* out,
+		 const Real_t diff_coeff,
+		 const Real_t t,
+		 const Real_t amp = 1e-2,
+		 const Real_t xc = 0.5,
+		 const Real_t yc = 0.5,
+		 const Real_t zc = 0.5) { //Input function
+  assert(t!=0);
+  const Real_t PI = 3.141592653589;
+  int dof        = 1;
+  Real_t dt4     = 4*diff_coeff*t;
+  Real_t pidt4_3 = std::pow(PI*dt4, 3);
+  Real_t nn      = 1.0/sqrt(pidt4_3);
+  for(int i=0;i<n;i++) {
+    const Real_t* c=&coord[i*COORD_DIM];
+    {
+      Real_t r_2   = (c[0]-xc)*(c[0]-xc)+(c[1]-yc)*(c[1]-yc)+(c[2]-zc)*(c[2]-zc);
+      out[i*dof+0] = amp*nn*exp(-r_2/dt4);
+    }
   }
 }
 

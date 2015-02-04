@@ -30,6 +30,7 @@
 
 #include <utils/common.h>
 #include <utils/metadata.h>
+#include <utils/reporter.h>
 #include <tree/semilag_tree.h>
 #include <tree/utils_tree.h>
 
@@ -80,6 +81,15 @@ int main (int argc, char **argv) {
                                   tbslas::get_vorticity_field<double,3>,
                                   3,
                                   tvel_curr);
+    char out_name_buffer[300];
+    snprintf(out_name_buffer,
+	     sizeof(out_name_buffer),
+	     sim_config->vtk_filename_format.c_str(),
+	     tbslas::get_result_dir().c_str(),
+	     sim_config->vtk_filename_prefix.c_str(),
+	     "vel",
+	     0);
+    tvel_curr.Write2File(out_name_buffer, sim_config->vtk_order);
     // =========================================================================
     // INIT THE CONCENTRATION TREE
     // =========================================================================
@@ -128,37 +138,29 @@ int main (int argc, char **argv) {
     // =========================================================================
     // REPORT RESULTS
     // =========================================================================
-    if(!myrank) {
-          printf("#TBSLAS-HEADER: %-15s %-15s %-15s %-8s %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-8s\n",
-           "TOL",
-	   "MaxDEPTH",
-           "DT",
-           "TN",
-           "InAL2",
-           "OutAL2",
-           "InRL2",
-           "OutRL2",
-           "InALI",
-           "OutALI",
-           "InRLI",
-           "OutRLI",
-           "NOCT");
-          printf("#TBSLAS-RESULT: %-15.5e %-8d %-15.5e %-8d  %-15.5e %-15.5e %-15.5e %-15.5e %-15.5e %-15.5e %-15.5e %-15.5e %-8d\n",
-                 sim_config->tree_tolerance,
-		 sim_config->tree_max_depth,
-                 sim_config->dt,
-                 sim_config->total_num_timestep,
-                 in_al2,
-                 al2,
-                 in_rl2,
-                 rl2,
-                 in_ali,
-                 ali,
-                 in_rli,
-                 rli,
-                 num_leaves
-                 );
-    }
+  typedef tbslas::Reporter<double> Rep;
+  if(!myrank) {
+    Rep::AddData("TOL", sim_config->tree_tolerance);
+    Rep::AddData("MaxDEPTH", sim_config->tree_max_depth);
+
+    Rep::AddData("DT", sim_config->dt);
+    Rep::AddData("TN", sim_config->total_num_timestep);
+
+    Rep::AddData("InAL2", in_al2);
+    Rep::AddData("OutAL2", al2);
+
+    Rep::AddData("InRL2", in_rl2);
+    Rep::AddData("OutRL2", rl2);
+
+    Rep::AddData("InALINF", in_ali);
+    Rep::AddData("OutALINF", ali);
+
+    Rep::AddData("InRLINF", in_rli);
+    Rep::AddData("OutRLINF", rli);
+
+    Rep::AddData("NOCT", num_leaves);
+    Rep::Report();
+  }
     //Output Profiling results.
     pvfmm::Profile::print(&comm);
   }

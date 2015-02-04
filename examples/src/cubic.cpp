@@ -30,6 +30,7 @@
 
 #include <utils/common.h>
 #include <utils/metadata.h>
+#include <utils/reporter.h>
 
 // #include <utils/profile.h>
 #include <tree/semilag_tree.h>
@@ -113,25 +114,20 @@ int main (int argc, char **argv) {
     // =========================================================================
     // REPORT RESULTS
     // =========================================================================
-    if(!myrank) {
-      printf("#TBSLAS-HEADER: %-15s %-15s %-15s %-15s %-15s %-15s %-15s\n",
-             "TOL",
-             "CUBIC",
-             "CUF",
-             "ANAL",
-             "AL2",
-             "ALINF",
-             "NOCT");
-      printf("#TBSLAS-RESULT: %-15.5e %-15d %-15d %-15d %-15.5e %-15.5e %-15d\n",
-             sim_config->tree_tolerance,
-             sim_config->use_cubic,
-             sim_config->cubic_upsampling_factor,
-             sim_config->cubic_use_analytical,
-             al2,
-             ali,
-             num_leaves
-             );
-    }
+  typedef tbslas::Reporter<double> Rep;
+  if(!myrank) {
+    Rep::AddData("TOL", sim_config->tree_tolerance);
+
+    Rep::AddData("CUBIC", sim_config->use_cubic);
+    Rep::AddData("CUF", sim_config->cubic_upsampling_factor);
+    Rep::AddData("ANAL", sim_config->cubic_use_analytical);
+
+    Rep::AddData("OutAL2", al2);
+    Rep::AddData("OutALINF", ali);
+
+    Rep::AddData("NOCT", num_leaves);
+    Rep::Report();
+  }
     //Output Profiling results.
     pvfmm::Profile::print(&comm);
   }

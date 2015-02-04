@@ -9,7 +9,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // *************************************************************************
-
+// SYSTEM
 #include <mpi.h>
 #include <pvfmm_common.hpp>
 #include <cstdlib>
@@ -19,60 +19,69 @@
 #include <string>
 #include <vector>
 #include <utility>
-
+// PVFMM
 #include <profile.hpp>
 #include <fmm_cheb.hpp>
 #include <fmm_node.hpp>
 #include <fmm_tree.hpp>
 #include <cheb_node.hpp>
+// LOCAL
 #include <utils.hpp>
-
+#include <common.hpp>
 // TBSLAS
 #include <utils/common.h>
+#include <utils/reporter.h>
 #include <diffusion/kernel.h>
 #include <tree/semilag_tree.h>
 #include <tree/utils_tree.h>
 
 int NUM_TIME_STEPS = 1;
-
 double TBSLAS_DT;
 double TBSLAS_DIFF_COEFF;
 double TBSLAS_ALPHA;
+// current simulation time
+double tcurr = 0.25;
 
 typedef tbslas::MetaData<std::string,
                          std::string,
                          std::string> MetaData_t;
 
-//////////////////////////////////////////////////////////////////////////////
-// Test1: Laplace problem, Smooth Gaussian (exp(-beta*r^2)), FreeSpace Boundary
-///////////////////////////////////////////////////////////////////////////////
-const double xc = 0.5;
-const double yc = 0.5;
-const double zc = 0.5;
-const double a = -160;  // -beta
 template <class Real_t>
-void fn_input_t1(const Real_t* coord, int n, Real_t* out) { //Input function
-  int dof=1;
-  Real_t alpha = TBSLAS_ALPHA;
-  for(int i=0;i<n;i++) {
-    const Real_t* c=&coord[i*COORD_DIM];
-    {
-      Real_t r_2=(c[0]-xc)*(c[0]-xc)+(c[1]-yc)*(c[1]-yc)+(c[2]-zc)*(c[2]-zc);
-      out[i*dof+0]=-(2*a*r_2+3)*2*a*exp(a*r_2)/alpha+exp(a*r_2);
-    }
-  }
+void fn_input_t1(const Real_t* coord,
+		 int n,
+		 Real_t* out) {
+  const Real_t amp = 1e-2;
+  const Real_t xc = 0.5;
+  const Real_t yc = 0.5;
+  const Real_t zc = 0.5;
+  tbslas::diffusion_kernel(coord,
+			   n,
+			   out,
+			   TBSLAS_DIFF_COEFF,
+			   tcurr,
+			   amp,
+			   xc,
+			   yc,
+			   zc);
 }
 
 template <class Real_t>
-void fn_poten_t1(const Real_t* coord, int n, Real_t* out) { //Output potential
-  int dof=1;
-  for(int i=0;i<n;i++) {
-    const Real_t* c=&coord[i*COORD_DIM];
-    {
-      Real_t r_2=(c[0]-xc)*(c[0]-xc)+(c[1]-yc)*(c[1]-yc)+(c[2]-yc)*(c[2]-yc);
-      out[i*dof+0]=exp(a*r_2);
-    }
-  }
+void fn_input_t2(const Real_t* coord,
+		 int n,
+		 Real_t* out) {
+  tbslas::gaussian_kernel_diffusion_input(coord,
+					  n,
+					  out,
+					  TBSLAS_ALPHA);
+}
+
+template <class Real_t>
+void fn_poten_t2(const Real_t* coord, 
+		 int n,
+		 Real_t* out) {
+  tbslas::gaussian_kernel(coord, 
+			  n,
+			  out);
 }
 
 template<class _FMM_Tree_Type,
@@ -98,7 +107,7 @@ GetVTKFileName(char (*buffer)[300], int timestep) {
            sim_config->vtk_filename_variable.c_str(),
            timestep);
 }
-///////////////////////////////////////////////////////////////////////////////
+
 template <class Real_t>
 void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
                    int cheb_deg, int depth, bool adap, Real_t tol, MPI_Comm comm) {
@@ -109,22 +118,32 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
   char out_name_buffer[300];
   // Find out number of OMP thereads.
   int omp_p=omp_get_max_threads();
+
   // **********************************************************************
   // SETUP FMM KERNEL
   // **********************************************************************
-  void (*fn_input_)(const Real_t* , int , Real_t*)=NULL;
-  void (*fn_poten_)(const Real_t* , int , Real_t*)=NULL;
-  void (*fn_grad_ )(const Real_t* , int , Real_t*)=NULL;
   const pvfmm::Kernel<Real_t>* mykernel=NULL;
   pvfmm::BoundaryType bndry;
   const pvfmm::Kernel<double> modified_laplace_kernel_d =
       pvfmm::BuildKernel<double, tbslas::modified_laplace_poten>
       (tbslas::GetModfiedLaplaceKernelName<double>(TBSLAS_ALPHA), 3, std::pair<int,int>(1,1));
 
+  // **********************************************************************
+  // SETUP TEST CASE
+  // **********************************************************************
+  void (*fn_input_)(const Real_t* , int , Real_t*)=NULL;
+  void (*fn_poten_)(const Real_t* , int , Real_t*)=NULL;
+  void (*fn_grad_ )(const Real_t* , int , Real_t*)=NULL;
   switch (test_case) {
+    case 2:
+      fn_input_ = fn_input_t2<Real_t>;
+      fn_poten_ = fn_poten_t2<Real_t>;
+      mykernel  = &modified_laplace_kernel_d;
+      bndry = pvfmm::FreeSpace;
+      break;
     case 1:
       fn_input_ = fn_input_t1<Real_t>;
-      fn_poten_ = fn_poten_t1<Real_t>;
+      fn_poten_ = fn_input_t1<Real_t>;
       mykernel  = &modified_laplace_kernel_d;
       bndry = pvfmm::FreeSpace;
       break;
@@ -138,6 +157,7 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
   int myrank, p;
   MPI_Comm_rank(comm, &myrank);
   MPI_Comm_size(comm,&p);
+
   // **********************************************************************
   // SETUP TREE
   // **********************************************************************
@@ -172,6 +192,7 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
   //Create Tree and initialize with input data.
   FMM_Tree_t* tree = new FMM_Tree_t(comm);
   tree->Initialize(&tree_data);
+
   // **********************************************************************
   // SETUP FMM
   // **********************************************************************
@@ -184,6 +205,7 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
                         comm,
                         mykernel);
   }
+
   // **********************************************************************
   // VELOCITY FIELD
   // **********************************************************************
@@ -206,19 +228,47 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
            "velocity",
            0);
   tvel_curr.Write2File(out_name_buffer, cheb_deg);
+
   // =========================================================================
-  // SIMULATION PARAMETERS
+  // RUN
   // =========================================================================
-  int timestep = 1;
+  double in_al2,in_rl2,in_ali,in_rli;
+  double di_al2,di_rl2,di_ali,di_rli;
+  double ad_al2,ad_rl2,ad_ali,ad_rli;
   double al2,rl2,ali,rli;
+  int timestep = 1;
   for (; timestep < 2*NUM_TIME_STEPS+1; timestep +=2) {
     // **********************************************************************
     // SOLVE DIFFUSION: FMM
     // **********************************************************************
-    RunFMM(tree, fmm_mat, bndry);
+    // RunFMM(tree, fmm_mat, bndry);
+    tree->InitFMM_Tree(false,bndry);
+    if (timestep==1)
+      CheckChebOutput<FMM_Tree_t>(tree,
+				  fn_poten_,
+				  mykernel->ker_dim[1],
+				  in_al2,
+				  in_rl2,
+				  in_ali,
+				  in_rli,
+				  std::string("Input"));
+
+    tree->SetupFMM(fmm_mat);
+    tree->RunFMM();
+    tree->Copy_FMMOutput(); //Copy FMM output to tree Data.
     // Write2File
     GetVTKFileName(&out_name_buffer, timestep);
     tree->Write2File(out_name_buffer, sim_config->vtk_order);
+    tcurr += TBSLAS_DT;
+    CheckChebOutput<FMM_Tree_t>(tree,
+				fn_poten_,
+				mykernel->ker_dim[1],
+				di_al2,
+				di_rl2,
+				di_ali,
+				di_rli,
+				std::string("Diffusion"));
+
     // **********************************************************************
     // SOLVE ADVECTION: SEMI-LAGRANGIAN
     // **********************************************************************
@@ -228,47 +278,43 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
                                        sim_config->dt,
                                        sim_config->num_rk_step,
                                        true,
-                                       false);
-    //Find error in FMM output.
-    if (timestep == 1) {
-      CheckChebOutput<FMM_Tree_t>(tree,
-                                  fn_poten_,
-                                  mykernel->ker_dim[1],
-                                  al2,rl2,ali,rli,
-                                  std::string("Output"));
-    }
+                                       true);
     //Write2File
     GetVTKFileName(&out_name_buffer, timestep+1);
     tree->Write2File(out_name_buffer, sim_config->vtk_order);
+    // tcurr += TBSLAS_DT;
+    CheckChebOutput<FMM_Tree_t>(tree,
+				fn_poten_,
+				mykernel->ker_dim[1],
+				ad_al2,
+				ad_rl2,
+				ad_ali,
+				ad_rli,
+				std::string("Advection"));
   }
+
   // =========================================================================
   // REPORT RESULTS
   // =========================================================================
   int num_leaves = tbslas::CountNumLeafNodes(*tree);
+  CheckChebOutput<FMM_Tree_t>(tree,
+			      fn_poten_,
+			      mykernel->ker_dim[1],
+			      al2,rl2,ali,rli,
+			      std::string("Output"));
+  typedef tbslas::Reporter<Real_t> Rep;
   if(!myrank) {
-    printf("#TBSLAS-HEADER: %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s\n",
-           "TOL",
-           "DT",
-           "TN",
-           "DIFF",
-           "ALPHA",
-           "AL2",
-           "RL2",
-           "ALINF",
-           "RLINF",
-           "NOCT");
-    printf("#TBSLAS-RESULT: %-15.5e %-15.5e %-15d %-15.5e %-15.5e %-15.5e %-15.5e %-15.5e %-15.5e %-15d\n",
-           sim_config->tree_tolerance,
-           sim_config->dt,
-           sim_config->total_num_timestep,
-           TBSLAS_DIFF_COEFF,
-           TBSLAS_ALPHA,
-           al2,
-           rl2,
-           ali,
-           rli,
-           num_leaves
-           );
+    Rep::AddData("TOL", sim_config->tree_tolerance);
+    Rep::AddData("DT", sim_config->dt);
+    Rep::AddData("TN", sim_config->total_num_timestep);
+    Rep::AddData("DIFF", TBSLAS_DIFF_COEFF);
+    Rep::AddData("ALPHA", TBSLAS_ALPHA);
+    Rep::AddData("AL2", al2);
+    Rep::AddData("RL2", rl2);
+    Rep::AddData("ALINF", ali);
+    Rep::AddData("RLINF", rli);
+    Rep::AddData("NOCT", num_leaves);
+    Rep::Report();
   }
   // **********************************************************************
   // CLEAN UP MEMORY
@@ -300,12 +346,11 @@ int main (int argc, char **argv) {
   tbslas::SimConfig* sim_config     = tbslas::SimConfigSingleton::Instance();
 
   pvfmm::Profile::Enable(sim_config->profile);
-
   sim_config->vtk_filename_prefix   = "advdiff";
   sim_config->vtk_filename_variable = "conc";
 
   NUM_TIME_STEPS    = sim_config->total_num_timestep;
-  TBSLAS_DT         = sim_config->dt;
+  TBSLAS_DT         = sim_config->dt*0.5; // dt/2 advection + dt/2 diffsuion
   TBSLAS_DIFF_COEFF = 0.01;
   TBSLAS_ALPHA      = (1.0)/TBSLAS_DT/TBSLAS_DIFF_COEFF;
   // =========================================================================

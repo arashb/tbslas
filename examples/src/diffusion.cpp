@@ -1,7 +1,4 @@
 #include <mpi.h>
-// used to define constant PI
-#define _USE_MATH_DEFINES
-#include <math.h>
 #include <cstdlib>
 #include <iostream>
 #include <omp.h>
@@ -10,83 +7,72 @@
 #include <utility>
 #include <vector>
 
+// PVFMM
 #include <pvfmm_common.hpp>
 #include <profile.hpp>
 #include <fmm_cheb.hpp>
 #include <fmm_node.hpp>
 #include <fmm_tree.hpp>
 #include <cheb_node.hpp>
+
+// LOCAL
 #include <utils.hpp>
+#include <common.hpp>
 
 // TBSLAS
 #include <utils/common.h>
+#include <utils/reporter.h>
 #include <diffusion/kernel.h>
 
 int NUM_TIME_STEPS = 1;
-
-// parameters used in the diffusion kernel
 double TBSLAS_DT;
 double TBSLAS_DIFF_COEFF;
 double TBSLAS_ALPHA;
-
 // current simulation time
 double tcurr = 0.25;
+
+template <class Real_t>
+void fn_input_t1(const Real_t* coord,
+		 int n,
+		 Real_t* out) {
+  const Real_t amp = 1e-2;
+  const Real_t xc = 0.5;
+  const Real_t yc = 0.5;
+  const Real_t zc = 0.5;
+  tbslas::diffusion_kernel(coord,
+			   n,
+			   out,
+			   TBSLAS_DIFF_COEFF,
+			   tcurr,
+			   amp,
+			   xc,
+			   yc,
+			   zc);
+}
+
+template <class Real_t>
+void fn_input_t2(const Real_t* coord,
+		 int n,
+		 Real_t* out) {
+  tbslas::gaussian_kernel_diffusion_input(coord,
+					  n,
+					  out,
+					  TBSLAS_ALPHA);
+}
+
+template <class Real_t>
+void fn_poten_t2(const Real_t* coord, 
+		 int n,
+		 Real_t* out) {
+  tbslas::gaussian_kernel(coord, 
+			  n,
+			  out);
+}
 
 typedef tbslas::MetaData<std::string,
                          std::string,
                          std::string> MetaData_t;
 
-//////////////////////////////////////////////////////////////////////////////
-// Test1: Laplace problem, Smooth Gaussian, Free Space Boundary
-///////////////////////////////////////////////////////////////////////////////
-const double xc = 0.5;
-const double yc = 0.5;
-const double zc = 0.5;
-const double a = -160;  // -beta
-template <class Real_t>
-void fn_input_t2(const Real_t* coord, int n, Real_t* out) { //Input function
-  int dof=1;
-  Real_t alpha = TBSLAS_ALPHA;
-  for(int i=0;i<n;i++) {
-    const Real_t* c=&coord[i*COORD_DIM];
-    {
-      Real_t r_2=(c[0]-xc)*(c[0]-xc)+(c[1]-yc)*(c[1]-yc)+(c[2]-yc)*(c[2]-yc);
-      out[i*dof+0]=-(2*a*r_2+3)*2*a*exp(a*r_2)/alpha+exp(a*r_2);
-    }
-  }
-}
-
-template <class Real_t>
-void fn_poten_t2(const Real_t* coord, int n, Real_t* out) { //Output potential
-  int dof=1;
-  for(int i=0;i<n;i++) {
-    const Real_t* c=&coord[i*COORD_DIM];
-    {
-      Real_t r_2=(c[0]-xc)*(c[0]-xc)+(c[1]-yc)*(c[1]-yc)+(c[2]-yc)*(c[2]-yc);
-      out[i*dof+0]=exp(a*r_2);
-    }
-  }
-}
-
-template <class Real_t>
-void fn_input_t1(const Real_t* coord, int n, Real_t* out) { //Input function
-  assert(tcurr!=0);
-  Real_t amp = 1e-2;
-  int dof        = 1;
-  Real_t alpha   = TBSLAS_ALPHA;
-  Real_t dt4     = 4*TBSLAS_DIFF_COEFF*tcurr;
-  Real_t pidt4_3 = std::pow(M_PI*dt4, 3);
-  Real_t nn      = 1.0/sqrt(pidt4_3);
-  for(int i=0;i<n;i++) {
-    const Real_t* c=&coord[i*COORD_DIM];
-    {
-      Real_t r_2   = (c[0]-xc)*(c[0]-xc)+(c[1]-yc)*(c[1]-yc)+(c[2]-zc)*(c[2]-zc);
-      out[i*dof+0] = amp* nn * exp(-r_2/dt4);
-    }
-  }
-}
-
-///////////////////////////////////////////////////////////////////////////////
 template <class Real_t>
 void RunDiffusion(int test_case, size_t N, size_t M, bool unif, int mult_order,
               int cheb_deg, int depth, bool adap, Real_t tol, MPI_Comm comm) {
@@ -94,6 +80,12 @@ void RunDiffusion(int test_case, size_t N, size_t M, bool unif, int mult_order,
   typedef pvfmm::FMM_Cheb<FMMNode_t> FMM_Mat_t;
   typedef pvfmm::FMM_Tree<FMM_Mat_t> FMM_Tree_t;
   tbslas::SimConfig* sim_config       = tbslas::SimConfigSingleton::Instance();
+  // Find out my identity in the default communicator
+  int myrank, p;
+  MPI_Comm_rank(comm, &myrank);
+  MPI_Comm_size(comm,&p);
+  // Find out number of OMP thereads.
+  int omp_p=omp_get_max_threads();
 
   void (*fn_input_)(const Real_t* , int , Real_t*)=NULL;
   void (*fn_poten_)(const Real_t* , int , Real_t*)=NULL;
@@ -124,15 +116,6 @@ void RunDiffusion(int test_case, size_t N, size_t M, bool unif, int mult_order,
       fn_grad_ =NULL;
       break;
   }
-
-  // Find out number of OMP thereads.
-  int omp_p=omp_get_max_threads();
-
-  // Find out my identity in the default communicator
-  int myrank, p;
-  MPI_Comm_rank(comm, &myrank);
-  MPI_Comm_size(comm,&p);
-
   // ======================================================================
   // TREE DATA
   // ======================================================================
@@ -236,40 +219,31 @@ void RunDiffusion(int test_case, size_t N, size_t M, bool unif, int mult_order,
 			      al2,rl2,ali,rli,
 			      std::string("Output"));
   int num_leaves = tbslas::CountNumLeafNodes(*tree);
+  typedef tbslas::Reporter<Real_t> Rep;
   if(!myrank) {
-    printf("#TBSLAS-HEADER: %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s\n",
-           "TOL",
-           "DT",
-           "TN",
-           "DIFF",
-           "ALPHA",
-           "InAL2",
-           "OutAL2",
-           "InRL2",
-           "OutRL2",
-           "InALI",
-           "OutALI",
-           "InRLI",
-           "OutRLI",
-           "NOCT");
-    printf("#TBSLAS-RESULT: %-15.5e %-15.5e %-15d %-15.5e %-15.5e %-15.5e %-15.5e %-15.5e %-15.5e %-15.5e %-15.5e %-15.5e %-15.5e %-15d\n",
-           sim_config->tree_tolerance,
-           sim_config->dt,
-           sim_config->total_num_timestep,
-           TBSLAS_DIFF_COEFF,
-           TBSLAS_ALPHA,
-           in_al2,
-           al2,
-           in_rl2,
-           rl2,
-           in_ali,
-           ali,
-           in_rli,
-           rli,
-           num_leaves
-           );
-  }
+    Rep::AddData("TOL", sim_config->tree_tolerance);
 
+    Rep::AddData("DT", sim_config->dt);
+    Rep::AddData("TN", sim_config->total_num_timestep);
+
+    Rep::AddData("DIFF", TBSLAS_DIFF_COEFF);
+    Rep::AddData("ALPHA", TBSLAS_ALPHA);
+
+    Rep::AddData("InAL2", in_al2);
+    Rep::AddData("OutAL2", al2);
+
+    Rep::AddData("InRL2", in_rl2);
+    Rep::AddData("OutRL2", rl2);
+
+    Rep::AddData("InALINF", in_ali);
+    Rep::AddData("OutALINF", ali);
+
+    Rep::AddData("InRLINF", in_rli);
+    Rep::AddData("OutRLINF", rli);
+
+    Rep::AddData("NOCT", num_leaves);
+    Rep::Report();
+  }
   //Delete matrices.
   if(fmm_mat)
     delete fmm_mat;
