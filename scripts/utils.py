@@ -59,6 +59,8 @@ def prepare_environment(output_prefix):
     RESULT_DIR = PWD
     if 'stampede' in HOSTNAME:
         RESULT_DIR = os.environ['SCRATCH']
+    elif 'maverick' in HOSTNAME:
+        RESULT_DIR = os.environ['WORK']
     print "STORING OUTPUT IN: " + RESULT_DIR
     TBSLAS_RESULT_DIR_PREFIX = os.path.join(RESULT_DIR, output_prefix)
 
@@ -67,11 +69,15 @@ def determine_command_prefix():
     global MPI_NUM_PROCESS
     if 'stampede' in HOSTNAME:
         return ['ibrun', 'tacc_affinity']
+    elif 'maverick' in HOSTNAME:
+        return ['ibrun', 'tacc_affinity']
     else:
         return ['mpirun', '-n', str(MPI_NUM_PROCESS)]
 
 def analyse_command_output(output, file_dat, file_out, PRINT_HEADER):
+    lincnt = 0
     for line in output:
+        # sys.stdout.write("analyse ouput line: "+str(lincnt))
         file_out.write(line)
         if line.startswith(HEADER_TAG) and PRINT_HEADER:
             li = line.replace(HEADER_TAG, '')
@@ -81,6 +87,7 @@ def analyse_command_output(output, file_dat, file_out, PRINT_HEADER):
             li = line.replace(RESULT_TAG, '')
             file_dat.write(li)
             sys.stdout.write(li)
+        lincnt +=1
 
 def execute_commands(cmd_args, id):
     id = SCRIPT_ID+'-'+id
@@ -99,7 +106,7 @@ def execute_commands(cmd_args, id):
         out_file_name = out_dir_name+'.out'
         file_out = open(out_file_name, 'w')
         command_message = "COMMAND: " +  str(args) + '\n'
-        #sys.stdout.write(command_message)
+        sys.stdout.write(command_message)
         os.environ['TBSLAS_RESULT_DIR'] = out_dir_name
         os.makedirs(out_dir_name)
         # execute command
