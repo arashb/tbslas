@@ -215,6 +215,7 @@ RunSemilagSimulation(TreeType* vel_tree,
     tconc_curr->Write2File(out_name_buffer, sim_param->vtk_order);
   }
 
+  pvfmm::Profile::Tic("RunSemilag", &sim_param->comm, false,5);
   for (tstep = 1; tstep < tn+1; tstep++) {
     if(!myrank) {
       printf("============================\n");
@@ -253,6 +254,7 @@ RunSemilagSimulation(TreeType* vel_tree,
       (*result)->Write2File(out_name_buffer, sim_param->vtk_order);
     }
   }  // end of for
+  pvfmm::Profile::Toc();
 }
 
 template <class TreeType>
@@ -298,6 +300,7 @@ RunSemilagSimulationInSitu(TreeType* vel_tree,
     tconc_curr->Write2File(out_name_buffer, sim_param->vtk_order);
   }
 
+  pvfmm::Profile::Tic("RunSemilag", &sim_param->comm, false,5);
   for (tstep = 1; tstep < tn+1; tstep++) {
     if(!myrank) {
       printf("============================\n");
@@ -329,6 +332,7 @@ RunSemilagSimulationInSitu(TreeType* vel_tree,
       tconc_curr->Write2File(out_name_buffer, sim_param->vtk_order);
     }
   }  // end of for
+  pvfmm::Profile::Toc();
 }
 
 }  // namespace tbslas

@@ -21,8 +21,10 @@ import os
 ################################################################################
 HOSTNAME      = socket.gethostname()
 TIMESTR       = time.strftime("%Y%m%d-%H%M%S")
-HEADER_TAG    = '#TBSLAS-HEADER: '
-RESULT_TAG    = '#TBSLAS-RESULT: '
+RESULT_TAG_HEADER  = '#TBSLAS-HEADER: '
+RESULT_TAG_LIST    = ['#TBSLAS-RESULT: ']
+PROFILE_TAG_HEADER = 't_min'
+PROFILE_TAG_LIST   = ['+-RunSemilag', '+-RunFMM']
 ################################################################################
 # COMMANDLINE ARGUMENTS
 ################################################################################
@@ -65,8 +67,6 @@ def prepare_environment(output_prefix):
     TBSLAS_RESULT_DIR_PREFIX = os.path.join(RESULT_DIR, output_prefix)
 
 def determine_command_prefix():
-    global HOSTNAME
-    global MPI_NUM_PROCESS
     if 'stampede' in HOSTNAME:
         return ['ibrun', 'tacc_affinity']
     elif 'maverick' in HOSTNAME:
@@ -74,35 +74,55 @@ def determine_command_prefix():
     else:
         return ['mpirun', '-n', str(MPI_NUM_PROCESS)]
 
-def analyse_command_output(output, file_dat, file_out, PRINT_HEADER):
-    lincnt = 0
+def analyse_command_output(output, \
+                           file_dat, file_prf, file_out, \
+                           PRINT_RSLT_HEADER, PRINT_PRFL_HEADER):
     for line in output:
-        # sys.stdout.write("analyse ouput line: "+str(lincnt))
         file_out.write(line)
-        if line.startswith(HEADER_TAG) and PRINT_HEADER:
-            li = line.replace(HEADER_TAG, '')
+        # CATCH RESULTS HEADER
+        if line.startswith(RESULT_TAG_HEADER) and PRINT_RSLT_HEADER:
+            li = line.replace(RESULT_TAG_HEADER, '')
             file_dat.write(li)
             sys.stdout.write(li)
-        elif line.startswith(RESULT_TAG):
-            li = line.replace(RESULT_TAG, '')
-            file_dat.write(li)
+        # CATCH RESULTS DATA
+        for result_tag in RESULT_TAG_LIST:
+            if line.startswith(result_tag):
+                li = line.replace(result_tag, '')
+                file_dat.write(li)
+                sys.stdout.write(li)
+        # CATCH PROFILE HEADER
+        if PROFILE_TAG_HEADER in line and PRINT_PRFL_HEADER:
+            li = 'MODULE' + line[6:]
             sys.stdout.write(li)
-        lincnt +=1
+            file_prf.write('# ======================================================================\n')
+            file_prf.write(li)
+            file_prf.write('# ======================================================================\n')
+        # CATCH PROFILE DATA
+        for profile_tag in PROFILE_TAG_LIST:
+            if profile_tag in line:
+                li = line.replace("+-", '')
+                sys.stdout.write(li)
+                file_prf.write(li)
+                file_prf.write('# ----------------------------------------------------------------------\n')
 
 def execute_commands(cmd_args, id):
     id = SCRIPT_ID+'-'+id
     sys.stdout.write("##############################\n")
     sys.stdout.write("# "+id+"\n")
     sys.stdout.write("##############################\n")
-    PRINT_HEADER = True
+    PRINT_RSLT_HEADER = True
+    PRINT_PRFL_HEADER = True
     # metadata and convergence results
     if not os.path.exists(TBSLAS_RESULT_DIR_PREFIX):
         os.makedirs(TBSLAS_RESULT_DIR_PREFIX)
     file_dat = open(os.path.join(TBSLAS_RESULT_DIR_PREFIX, id+'.dat'), 'w')
+    file_prf = open(os.path.join(TBSLAS_RESULT_DIR_PREFIX, id+'.prf'), 'w')
     revision = subprocess.check_output(["git", "describe"])
     file_dat.write('# REVISION: '+ revision)
+    file_prf.write('# REVISION: '+ revision)
     for counter, args in cmd_args.iteritems():
-        out_dir_name = os.path.join(TBSLAS_RESULT_DIR_PREFIX,'{0}-cmd{1:03}'.format(id,counter))
+        out_dir_name = \
+          os.path.join(TBSLAS_RESULT_DIR_PREFIX,'{0}-cmd{1:03}'.format(id,counter))
         out_file_name = out_dir_name+'.out'
         file_out = open(out_file_name, 'w')
         command_message = "COMMAND: " +  str(args) + '\n'
@@ -114,8 +134,13 @@ def execute_commands(cmd_args, id):
                              shell=False,                       \
                              stdout=subprocess.PIPE,            \
                              stderr=subprocess.STDOUT)
-        analyse_command_output(p.stdout.readlines(), file_dat, file_out, PRINT_HEADER)
-        PRINT_HEADER = False
+        analyse_command_output(p.stdout.readlines(), \
+                               file_dat, file_prf, file_out, \
+                               PRINT_RSLT_HEADER, PRINT_PRFL_HEADER)
+        PRINT_RSLT_HEADER = False
+        PRINT_PRFL_HEADER = False
         file_dat.flush()
+        file_prf.flush()
         file_out.close()
     file_dat.close()
+    file_prf.close()

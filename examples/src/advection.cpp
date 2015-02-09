@@ -83,12 +83,12 @@ int main (int argc, char **argv) {
                                   tvel_curr);
     char out_name_buffer[300];
     snprintf(out_name_buffer,
-	     sizeof(out_name_buffer),
-	     sim_config->vtk_filename_format.c_str(),
-	     tbslas::get_result_dir().c_str(),
-	     sim_config->vtk_filename_prefix.c_str(),
-	     "vel",
-	     0);
+         sizeof(out_name_buffer),
+         sim_config->vtk_filename_format.c_str(),
+         tbslas::get_result_dir().c_str(),
+         sim_config->vtk_filename_prefix.c_str(),
+         "vel",
+         0);
     tvel_curr.Write2File(out_name_buffer, sim_config->vtk_order);
     // =========================================================================
     // INIT THE CONCENTRATION TREE
@@ -142,6 +142,7 @@ int main (int argc, char **argv) {
   if(!myrank) {
     Rep::AddData("TOL", sim_config->tree_tolerance);
     Rep::AddData("MaxDEPTH", sim_config->tree_max_depth);
+    Rep::AddData("NOCT", num_leaves);
 
     Rep::AddData("DT", sim_config->dt);
     Rep::AddData("TN", sim_config->total_num_timestep);
@@ -157,8 +158,6 @@ int main (int argc, char **argv) {
 
     Rep::AddData("InRLINF", in_rli);
     Rep::AddData("OutRLINF", rli);
-
-    Rep::AddData("NOCT", num_leaves);
     Rep::Report();
   }
     //Output Profiling results.

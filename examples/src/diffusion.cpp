@@ -32,40 +32,40 @@ double tcurr = 0.25;
 
 template <class Real_t>
 void fn_input_t1(const Real_t* coord,
-		 int n,
-		 Real_t* out) {
+         int n,
+         Real_t* out) {
   const Real_t amp = 1e-2;
   const Real_t xc = 0.5;
   const Real_t yc = 0.5;
   const Real_t zc = 0.5;
   tbslas::diffusion_kernel(coord,
-			   n,
-			   out,
-			   TBSLAS_DIFF_COEFF,
-			   tcurr,
-			   amp,
-			   xc,
-			   yc,
-			   zc);
+               n,
+               out,
+               TBSLAS_DIFF_COEFF,
+               tcurr,
+               amp,
+               xc,
+               yc,
+               zc);
 }
 
 template <class Real_t>
 void fn_input_t2(const Real_t* coord,
-		 int n,
-		 Real_t* out) {
+         int n,
+         Real_t* out) {
   tbslas::gaussian_kernel_diffusion_input(coord,
-					  n,
-					  out,
-					  TBSLAS_ALPHA);
+                      n,
+                      out,
+                      TBSLAS_ALPHA);
 }
 
 template <class Real_t>
 void fn_poten_t2(const Real_t* coord, 
-		 int n,
-		 Real_t* out) {
+         int n,
+         Real_t* out) {
   tbslas::gaussian_kernel(coord, 
-			  n,
-			  out);
+              n,
+              out);
 }
 
 typedef tbslas::MetaData<std::string,
@@ -201,7 +201,7 @@ void RunDiffusion(int test_case, size_t N, size_t M, bool unif, int mult_order,
              sim_config->vtk_filename_format.c_str(),
              tbslas::get_result_dir().c_str(),
              sim_config->vtk_filename_prefix.c_str(),
-	     sim_config->vtk_filename_variable.c_str(),
+         sim_config->vtk_filename_variable.c_str(),
              ts_counter);
 
     //Write2File
@@ -213,14 +213,15 @@ void RunDiffusion(int test_case, size_t N, size_t M, bool unif, int mult_order,
   //Find error in FMM output.
   double al2,rl2,ali,rli;
   CheckChebOutput<FMM_Tree_t>(tree,
-			      fn_poten_,
-			      mykernel->ker_dim[1],
-			      al2,rl2,ali,rli,
-			      std::string("Output"));
+                  fn_poten_,
+                  mykernel->ker_dim[1],
+                  al2,rl2,ali,rli,
+                  std::string("Output"));
   int num_leaves = tbslas::CountNumLeafNodes(*tree);
   typedef tbslas::Reporter<Real_t> Rep;
   if(!myrank) {
     Rep::AddData("TOL", sim_config->tree_tolerance);
+    Rep::AddData("NOCT", num_leaves);
 
     Rep::AddData("DT", sim_config->dt);
     Rep::AddData("TN", sim_config->total_num_timestep);
@@ -240,7 +241,6 @@ void RunDiffusion(int test_case, size_t N, size_t M, bool unif, int mult_order,
     Rep::AddData("InRLINF", in_rli);
     Rep::AddData("OutRLINF", rli);
 
-    Rep::AddData("NOCT", num_leaves);
     Rep::Report();
   }
   //Delete matrices.

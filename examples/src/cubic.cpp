@@ -117,6 +117,7 @@ int main (int argc, char **argv) {
   typedef tbslas::Reporter<double> Rep;
   if(!myrank) {
     Rep::AddData("TOL", sim_config->tree_tolerance);
+    Rep::AddData("NOCT", num_leaves);
 
     Rep::AddData("CUBIC", sim_config->use_cubic);
     Rep::AddData("CUF", sim_config->cubic_upsampling_factor);
@@ -125,7 +126,6 @@ int main (int argc, char **argv) {
     Rep::AddData("OutAL2", al2);
     Rep::AddData("OutALINF", ali);
 
-    Rep::AddData("NOCT", num_leaves);
     Rep::Report();
   }
     //Output Profiling results.

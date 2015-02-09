@@ -48,40 +48,40 @@ typedef tbslas::MetaData<std::string,
 
 template <class Real_t>
 void fn_input_t1(const Real_t* coord,
-		 int n,
-		 Real_t* out) {
+                 int n,
+                 Real_t* out) {
   const Real_t amp = 1e-2;
   const Real_t xc = 0.5;
   const Real_t yc = 0.5;
   const Real_t zc = 0.5;
   tbslas::diffusion_kernel(coord,
-			   n,
-			   out,
-			   TBSLAS_DIFF_COEFF,
-			   tcurr,
-			   amp,
-			   xc,
-			   yc,
-			   zc);
+                           n,
+                           out,
+                           TBSLAS_DIFF_COEFF,
+                           tcurr,
+                           amp,
+                           xc,
+                           yc,
+                           zc);
 }
 
 template <class Real_t>
 void fn_input_t2(const Real_t* coord,
-		 int n,
-		 Real_t* out) {
+                 int n,
+                 Real_t* out) {
   tbslas::gaussian_kernel_diffusion_input(coord,
-					  n,
-					  out,
-					  TBSLAS_ALPHA);
+                                          n,
+                                          out,
+                                          TBSLAS_ALPHA);
 }
 
 template <class Real_t>
-void fn_poten_t2(const Real_t* coord, 
-		 int n,
-		 Real_t* out) {
-  tbslas::gaussian_kernel(coord, 
-			  n,
-			  out);
+void fn_poten_t2(const Real_t* coord,
+                 int n,
+                 Real_t* out) {
+  tbslas::gaussian_kernel(coord,
+                          n,
+                          out);
 }
 
 template<class _FMM_Tree_Type,
@@ -245,13 +245,13 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
     tree->InitFMM_Tree(false,bndry);
     if (timestep==1)
       CheckChebOutput<FMM_Tree_t>(tree,
-				  fn_poten_,
-				  mykernel->ker_dim[1],
-				  in_al2,
-				  in_rl2,
-				  in_ali,
-				  in_rli,
-				  std::string("Input"));
+                                  fn_poten_,
+                                  mykernel->ker_dim[1],
+                                  in_al2,
+                                  in_rl2,
+                                  in_ali,
+                                  in_rli,
+                                  std::string("Input"));
 
     tree->SetupFMM(fmm_mat);
     tree->RunFMM();
@@ -261,13 +261,13 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
     tree->Write2File(out_name_buffer, sim_config->vtk_order);
     tcurr += TBSLAS_DT;
     CheckChebOutput<FMM_Tree_t>(tree,
-				fn_poten_,
-				mykernel->ker_dim[1],
-				di_al2,
-				di_rl2,
-				di_ali,
-				di_rli,
-				std::string("Diffusion"));
+                                fn_poten_,
+                                mykernel->ker_dim[1],
+                                di_al2,
+                                di_rl2,
+                                di_ali,
+                                di_rli,
+                                std::string("Diffusion"));
 
     // **********************************************************************
     // SOLVE ADVECTION: SEMI-LAGRANGIAN
@@ -284,13 +284,13 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
     tree->Write2File(out_name_buffer, sim_config->vtk_order);
     // tcurr += TBSLAS_DT;
     CheckChebOutput<FMM_Tree_t>(tree,
-				fn_poten_,
-				mykernel->ker_dim[1],
-				ad_al2,
-				ad_rl2,
-				ad_ali,
-				ad_rli,
-				std::string("Advection"));
+                                fn_poten_,
+                                mykernel->ker_dim[1],
+                                ad_al2,
+                                ad_rl2,
+                                ad_ali,
+                                ad_rli,
+                                std::string("Advection"));
   }
 
   // =========================================================================
@@ -298,22 +298,34 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
   // =========================================================================
   int num_leaves = tbslas::CountNumLeafNodes(*tree);
   CheckChebOutput<FMM_Tree_t>(tree,
-			      fn_poten_,
-			      mykernel->ker_dim[1],
-			      al2,rl2,ali,rli,
-			      std::string("Output"));
+                              fn_poten_,
+                              mykernel->ker_dim[1],
+                              al2,rl2,ali,rli,
+                              std::string("Output"));
   typedef tbslas::Reporter<Real_t> Rep;
   if(!myrank) {
     Rep::AddData("TOL", sim_config->tree_tolerance);
+    Rep::AddData("MaxDEPTH", sim_config->tree_max_depth);
+    Rep::AddData("NOCT", num_leaves);
+
     Rep::AddData("DT", sim_config->dt);
     Rep::AddData("TN", sim_config->total_num_timestep);
+
     Rep::AddData("DIFF", TBSLAS_DIFF_COEFF);
     Rep::AddData("ALPHA", TBSLAS_ALPHA);
-    Rep::AddData("AL2", al2);
-    Rep::AddData("RL2", rl2);
-    Rep::AddData("ALINF", ali);
-    Rep::AddData("RLINF", rli);
-    Rep::AddData("NOCT", num_leaves);
+
+    Rep::AddData("InAL2", in_al2);
+    Rep::AddData("OutAL2", al2);
+
+    Rep::AddData("InRL2", in_rl2);
+    Rep::AddData("OutRL2", rl2);
+
+    Rep::AddData("InALINF", in_ali);
+    Rep::AddData("OutALINF", ali);
+
+    Rep::AddData("InRLINF", in_rli);
+    Rep::AddData("OutRLINF", rli);
+
     Rep::Report();
   }
   // **********************************************************************
@@ -338,7 +350,7 @@ int main (int argc, char **argv) {
   bool  unif=              (commandline_option(argc, argv, "-unif",    NULL, false, "-unif                : Uniform point distribution."        )!=NULL);
   int      m=       strtoul(commandline_option(argc, argv,    "-m",    "10", false, "-m    <int> = (10)   : Multipole order (+ve even integer)."),NULL,10);
   int   test=       strtoul(commandline_option(argc, argv, "-test",     "1", false,
-       "-test <int> = (1)    : 1) Laplace, Smooth Gaussian, Periodic Boundary"),NULL,10);
+                                               "-test <int> = (1)    : 1) Laplace, Smooth Gaussian, Periodic Boundary"),NULL,10);
 
   // =========================================================================
   // SIMULATION PARAMETERS
