@@ -28,7 +28,7 @@ def generate_command_args(tl_init, tl_factor, dt_init, dt_factor, tn_init, tn_fa
     cmd_args = OrderedDict()
     cmd_id = 1;
     for counter in range(0,num_steps):
-        ARGS    = ['-N'   , str(MPI_NUM_PROCESS if MPI_NUM_PROCESS > 8 else 8), \
+        ARGS    = ['-N'   , str(8**math.ceil(math.log(MPI_NUM_PROCESS,8))), \
                    '-tol' , str(tl_list[counter]),                              \
                    '-dt'  , str(dt_list[counter]),                              \
                    '-tn'  , str(tn_list[counter]),                              \

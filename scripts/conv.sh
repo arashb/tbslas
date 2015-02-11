@@ -12,7 +12,6 @@ TOTAL_TIME=$4
 
 JOB_LIST=(advection diffusion advdiff zalesak cubic)
 
-# EXEC=./bin/cubic                                                                                                                                       
 for job in "${JOB_LIST[@]}"
 do
 
@@ -22,6 +21,13 @@ case $HOSTNAME in
     module load python
     sbatch -N${NODES}  -n${MPI_NUM_PROCESSES} \
 	-p normal \
+        --time=${TOTAL_TIME} -J ${job} \
+	./.run_python.sh ./conv-${job}.py ${MPI_NUM_PROCESSES} ${OMP_NUM_THREADS}
+    ;;
+    *maverick*) #maverick.tacc.utexas.edu
+    module load python
+    sbatch -N${NODES}  -n${MPI_NUM_PROCESSES} \
+	-p vis \
         --time=${TOTAL_TIME} -J ${job} \
 	./.run_python.sh ./conv-${job}.py ${MPI_NUM_PROCESSES} ${OMP_NUM_THREADS}
     ;;
