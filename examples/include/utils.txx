@@ -418,6 +418,10 @@ void parse_command_line_options(int argc, char** argv) {
       (commandline_option(argc, argv, "-p", NULL, false,
                           "-p                  : Analytical values used in cubic interpolation upsampling.")==NULL);
 
+  bool vtk_save =
+      (commandline_option(argc, argv, "-vs", NULL, false,
+                          "-vs                  : Save VTK files")!=NULL);
+
   commandline_option_end(argc, argv);
   // =========================================================================
   // SIMULATION PARAMETERS
@@ -426,6 +430,7 @@ void parse_command_line_options(int argc, char** argv) {
   sim_config->total_num_timestep      = tn;
   sim_config->dt                      = dt;
   sim_config->vtk_order               = q;
+  sim_config->vtk_save                = vtk_save;
   sim_config->use_cubic               = cubic;
   sim_config->cubic_upsampling_factor = cuf;
   sim_config->cubic_use_analytical    = cubic_analytical;

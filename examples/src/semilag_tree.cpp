@@ -73,15 +73,16 @@ int main (int argc, char **argv) {
     tvel_curr.ConstructLET(pvfmm::FreeSpace);
 
     char out_name_buffer[300];
-    snprintf(out_name_buffer,
-             sizeof(out_name_buffer),
-             sim_config->vtk_filename_format.c_str(),
-             tbslas::get_result_dir().c_str(),
-             sim_config->vtk_filename_prefix.c_str(),
-             "vel",
-             0);
-    tvel_curr.Write2File(out_name_buffer, sim_config->vtk_order);
-
+    if (sim_config->vtk_save) {
+      snprintf(out_name_buffer,
+	       sizeof(out_name_buffer),
+	       sim_config->vtk_filename_format.c_str(),
+	       tbslas::get_result_dir().c_str(),
+	       sim_config->vtk_filename_prefix.c_str(),
+	       "vel",
+	       0);
+      tvel_curr.Write2File(out_name_buffer, sim_config->vtk_order);
+    }
     Tree_t tconc_curr(comm);
     tbslas::ConstructTree<Tree_t>(sim_config->tree_num_point_sources,
                                   sim_config->tree_num_points_per_octanct,
@@ -93,15 +94,16 @@ int main (int argc, char **argv) {
                                   get_gaussian_field_cylinder_atT<double,3>,
                                   1,
                                   tconc_curr);
-    snprintf(out_name_buffer,
-             sizeof(out_name_buffer),
-             sim_config->vtk_filename_format.c_str(),
-             tbslas::get_result_dir().c_str(),
-             sim_config->vtk_filename_prefix.c_str(),
-             sim_config->vtk_filename_variable.c_str(),
-             0);
-    tconc_curr.Write2File(out_name_buffer, sim_config->vtk_order);
-
+    if (sim_config->vtk_save) {
+      snprintf(out_name_buffer,
+	       sizeof(out_name_buffer),
+	       sim_config->vtk_filename_format.c_str(),
+	       tbslas::get_result_dir().c_str(),
+	       sim_config->vtk_filename_prefix.c_str(),
+	       sim_config->vtk_filename_variable.c_str(),
+	       0);
+      tconc_curr.Write2File(out_name_buffer, sim_config->vtk_order);
+    }
     if (sim_config->dt == 0) {
       double vel_max_value;
       int vel_max_depth;

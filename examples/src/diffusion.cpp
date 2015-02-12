@@ -174,16 +174,17 @@ void RunDiffusion(int test_case, size_t N, size_t M, bool unif, int mult_order,
     tree->InitFMM_Tree(false,bndry);
     //Find error in FMM input.
     if (ts_counter == 1) {
-      snprintf(out_name_buffer,
-               sizeof(out_name_buffer),
-               sim_config->vtk_filename_format.c_str(),
-               tbslas::get_result_dir().c_str(),
-               sim_config->vtk_filename_prefix.c_str(),
-               sim_config->vtk_filename_variable.c_str(),
-               0);
-      //Write2File
-      tree->Write2File(out_name_buffer,tree_data.cheb_deg);
-
+      //Writee2File
+      if (sim_config->vtk_save) {
+	snprintf(out_name_buffer,
+		 sizeof(out_name_buffer),
+		 sim_config->vtk_filename_format.c_str(),
+		 tbslas::get_result_dir().c_str(),
+		 sim_config->vtk_filename_prefix.c_str(),
+		 sim_config->vtk_filename_variable.c_str(),
+		 0);
+	tree->Write2File(out_name_buffer,tree_data.cheb_deg);
+      }
       CheckChebOutput<FMM_Tree_t>(tree,
                                   fn_input_,
                                   mykernel->ker_dim[1],
@@ -196,16 +197,17 @@ void RunDiffusion(int test_case, size_t N, size_t M, bool unif, int mult_order,
     tree->Copy_FMMOutput(); //Copy FMM output to tree Data.
 
     tcurr += TBSLAS_DT;
-    snprintf(out_name_buffer,
-             sizeof(out_name_buffer),
-             sim_config->vtk_filename_format.c_str(),
-             tbslas::get_result_dir().c_str(),
-             sim_config->vtk_filename_prefix.c_str(),
-         sim_config->vtk_filename_variable.c_str(),
-             ts_counter);
-
-    //Write2File
-    tree->Write2File(out_name_buffer,tree_data.cheb_deg);
+    if (sim_config->vtk_save) {
+      snprintf(out_name_buffer,
+	       sizeof(out_name_buffer),
+	       sim_config->vtk_filename_format.c_str(),
+	       tbslas::get_result_dir().c_str(),
+	       sim_config->vtk_filename_prefix.c_str(),
+	       sim_config->vtk_filename_variable.c_str(),
+	       ts_counter);
+      //Write2File
+      tree->Write2File(out_name_buffer,tree_data.cheb_deg);
+    }
   }
   // =========================================================================
   // REPORT RESULTS

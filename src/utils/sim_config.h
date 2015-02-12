@@ -26,6 +26,7 @@ class SimConfig {
       dt(0.1),
       num_rk_step(1),
       vtk_order(14),
+      vtk_save(false),
       vtk_filename_format("%s/%s_V%s_T%04d_P"),
       vtk_filename_prefix("output"),
       vtk_filename_variable("vals"),
@@ -54,6 +55,7 @@ class SimConfig {
   // output
   // *************************************************************************
   int vtk_order;
+  bool vtk_save;
   std::string vtk_filename_format;
   std::string vtk_filename_prefix;
   std::string vtk_filename_variable;

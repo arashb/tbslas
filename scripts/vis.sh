@@ -10,9 +10,9 @@ MPI_NUM_PROCESSES=$2
 OMP_NUM_THREADS=$3
 TOTAL_TIME=$4
 
-JOB_LIST=(advection diffusion advdiff zalesak cubic)
+JOB_LIST=(zalesak)
 
 for job in "${JOB_LIST[@]}"
 do
-./.submit_python_job.sh conv-${job}.py $NODES $MPI_NUM_PROCESSES $OMP_NUM_THREADS $TOTAL_TIME
+./.submit_python_job.sh vis-${job}.py $NODES $MPI_NUM_PROCESSES $OMP_NUM_THREADS $TOTAL_TIME
 done

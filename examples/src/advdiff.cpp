@@ -220,15 +220,16 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
                                     tbslas::get_vorticity_field<double,3>,
                                     3,
                                     tvel_curr);
-  snprintf(out_name_buffer,
-           sizeof(out_name_buffer),
-           sim_config->vtk_filename_format.c_str(),
-           tbslas::get_result_dir().c_str(),
-           sim_config->vtk_filename_prefix.c_str(),
-           "velocity",
-           0);
-  tvel_curr.Write2File(out_name_buffer, cheb_deg);
-
+  if (sim_config->vtk_save) {
+    snprintf(out_name_buffer,
+	     sizeof(out_name_buffer),
+	     sim_config->vtk_filename_format.c_str(),
+	     tbslas::get_result_dir().c_str(),
+	     sim_config->vtk_filename_prefix.c_str(),
+	     "velocity",
+	     0);
+    tvel_curr.Write2File(out_name_buffer, cheb_deg);
+  }
   // =========================================================================
   // RUN
   // =========================================================================
@@ -257,8 +258,10 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
     tree->RunFMM();
     tree->Copy_FMMOutput(); //Copy FMM output to tree Data.
     // Write2File
-    GetVTKFileName(&out_name_buffer, timestep);
-    tree->Write2File(out_name_buffer, sim_config->vtk_order);
+    if (sim_config->vtk_save) {
+      GetVTKFileName(&out_name_buffer, timestep);
+      tree->Write2File(out_name_buffer, sim_config->vtk_order);
+    }
     tcurr += TBSLAS_DT;
     CheckChebOutput<FMM_Tree_t>(tree,
                                 fn_poten_,
@@ -278,10 +281,12 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
                                        sim_config->dt,
                                        sim_config->num_rk_step,
                                        true,
-                                       true);
+                                       sim_config->vtk_save);
     //Write2File
-    GetVTKFileName(&out_name_buffer, timestep+1);
-    tree->Write2File(out_name_buffer, sim_config->vtk_order);
+    if (sim_config->vtk_save) {
+      GetVTKFileName(&out_name_buffer, timestep+1);
+      tree->Write2File(out_name_buffer, sim_config->vtk_order);
+    }
     // tcurr += TBSLAS_DT;
     CheckChebOutput<FMM_Tree_t>(tree,
                                 fn_poten_,

@@ -82,14 +82,16 @@ int main (int argc, char **argv) {
                                   3,
                                   tvel_curr);
     char out_name_buffer[300];
-    snprintf(out_name_buffer,
-         sizeof(out_name_buffer),
-         sim_config->vtk_filename_format.c_str(),
-         tbslas::get_result_dir().c_str(),
-         sim_config->vtk_filename_prefix.c_str(),
-         "vel",
-         0);
-    tvel_curr.Write2File(out_name_buffer, sim_config->vtk_order);
+    if (sim_config->vtk_save) {
+      snprintf(out_name_buffer,
+	       sizeof(out_name_buffer),
+	       sim_config->vtk_filename_format.c_str(),
+	       tbslas::get_result_dir().c_str(),
+	       sim_config->vtk_filename_prefix.c_str(),
+	       "vel",
+	       0);
+      tvel_curr.Write2File(out_name_buffer, sim_config->vtk_order);
+    }
     // =========================================================================
     // INIT THE CONCENTRATION TREE
     // =========================================================================
@@ -122,7 +124,7 @@ int main (int argc, char **argv) {
                                        sim_config->dt,
                                        sim_config->num_rk_step,
                                        true,
-                                       true);
+                                       sim_config->vtk_save);
     // =========================================================================
     // COMPUTE ERROR
     // =========================================================================
