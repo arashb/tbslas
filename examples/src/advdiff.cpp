@@ -118,7 +118,6 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
   char out_name_buffer[300];
   // Find out number of OMP thereads.
   int omp_p=omp_get_max_threads();
-
   // **********************************************************************
   // SETUP FMM KERNEL
   // **********************************************************************
@@ -133,30 +132,38 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
   // **********************************************************************
   void (*fn_input_)(const Real_t* , int , Real_t*)=NULL;
   void (*fn_poten_)(const Real_t* , int , Real_t*)=NULL;
-  void (*fn_grad_ )(const Real_t* , int , Real_t*)=NULL;
+  void (*fn_veloc_)(const Real_t* , int , Real_t*)=NULL;
   switch (test_case) {
     case 2:
       fn_input_ = fn_input_t2<Real_t>;
       fn_poten_ = fn_poten_t2<Real_t>;
+      fn_veloc_ = tbslas::get_vorticity_field<double,3>,
       mykernel  = &modified_laplace_kernel_d;
       bndry = pvfmm::FreeSpace;
       break;
     case 1:
       fn_input_ = fn_input_t1<Real_t>;
       fn_poten_ = fn_input_t1<Real_t>;
+      fn_veloc_ = tbslas::get_vorticity_field<double,3>,
       mykernel  = &modified_laplace_kernel_d;
       bndry = pvfmm::FreeSpace;
       break;
     default:
       fn_input_=NULL;
       fn_poten_=NULL;
-      fn_grad_ =NULL;
       break;
   }
   // Find out my identity in the default communicator
   int myrank, p;
   MPI_Comm_rank(comm, &myrank);
   MPI_Comm_size(comm,&p);
+
+  // =========================================================================
+  // SIMULATION PARAMETERS
+  // =========================================================================
+  // sim_config->vtk_filename_prefix     = "advection";
+  // sim_config->vtk_filename_variable   = "conc";
+  sim_config->bc = bndry;
 
   // **********************************************************************
   // SETUP TREE
@@ -217,17 +224,17 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
                                     adap,
                                     tol,
                                     comm,
-                                    tbslas::get_vorticity_field<double,3>,
+                                    fn_veloc_,
                                     3,
                                     tvel_curr);
   if (sim_config->vtk_save) {
     snprintf(out_name_buffer,
-	     sizeof(out_name_buffer),
-	     sim_config->vtk_filename_format.c_str(),
-	     tbslas::get_result_dir().c_str(),
-	     sim_config->vtk_filename_prefix.c_str(),
-	     "velocity",
-	     0);
+             sizeof(out_name_buffer),
+             sim_config->vtk_filename_format.c_str(),
+             tbslas::get_result_dir().c_str(),
+             sim_config->vtk_filename_prefix.c_str(),
+             "velocity",
+             0);
     tvel_curr.Write2File(out_name_buffer, cheb_deg);
   }
   // =========================================================================
@@ -242,7 +249,6 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
     // **********************************************************************
     // SOLVE DIFFUSION: FMM
     // **********************************************************************
-    // RunFMM(tree, fmm_mat, bndry);
     tree->InitFMM_Tree(false,bndry);
     if (timestep==1)
       CheckChebOutput<FMM_Tree_t>(tree,

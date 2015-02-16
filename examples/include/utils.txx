@@ -420,7 +420,7 @@ void parse_command_line_options(int argc, char** argv) {
 
   bool vtk_save =
       (commandline_option(argc, argv, "-vs", NULL, false,
-                          "-vs                  : Save VTK files")!=NULL);
+                          "-vs                  : Save VTK files")==NULL);
 
   commandline_option_end(argc, argv);
   // =========================================================================

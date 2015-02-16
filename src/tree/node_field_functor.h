@@ -28,7 +28,8 @@ template <class Tree_t>
 void EvalTree(Tree_t* tree,
               size_t N,
               typename Tree_t::Real_t* trg_coord_,
-              typename Tree_t::Real_t* value) {
+              typename Tree_t::Real_t* value,
+              pvfmm::BoundaryType bc_type) {
   typedef typename Tree_t::Node_t Node_t;
   typedef typename Tree_t::Real_t Real_t;
   tbslas::SimConfig* sim_config = tbslas::SimConfigSingleton::Instance();
@@ -48,6 +49,26 @@ void EvalTree(Tree_t* tree,
     data_dof=nodes[0]->DataDOF();
   }
 
+  if (bc_type == pvfmm::Periodic) {
+    #pragma omp parallel for
+    for (size_t i = 0; i < N; i++) {
+      Real_t* c = &trg_coord_[i*COORD_DIM];
+      if (c[0] < 0)
+        c[0] = c[0] + 1.0;
+      else if ( c[0] > 1.0)
+        c[0] = c[0] - 1.0;
+
+      if (c[1] < 0)
+        c[1] = c[1] + 1.0;
+      else if ( c[1] > 1.0)
+        c[1] = c[1] - 1.0;
+
+      if (c[2] < 0)
+        c[2] = c[2] + 1.0;
+      else if ( c[2] > 1.0)
+        c[2] = c[2] - 1.0;
+    }
+  }
   pvfmm::Vector<pvfmm::MortonId> trg_mid(N);
   #pragma omp parallel for
   for (size_t i = 0; i < N; i++) {
@@ -210,7 +231,7 @@ class NodeFieldFunctor {
                     real_t* out) {
     tbslas::SimConfig* sim_config = tbslas::SimConfigSingleton::Instance();
     pvfmm::Profile::Tic("EvalTree", &sim_config->comm, false, 5);
-    EvalTree(node_, num_points, const_cast<real_t*>(points_pos), out);
+    EvalTree(node_, num_points, const_cast<real_t*>(points_pos), out,sim_config->bc);
     pvfmm::Profile::Toc();
   }
 

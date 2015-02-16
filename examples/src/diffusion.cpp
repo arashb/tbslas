@@ -32,40 +32,40 @@ double tcurr = 0.25;
 
 template <class Real_t>
 void fn_input_t1(const Real_t* coord,
-         int n,
-         Real_t* out) {
+                 int n,
+                 Real_t* out) {
   const Real_t amp = 1e-2;
   const Real_t xc = 0.5;
   const Real_t yc = 0.5;
   const Real_t zc = 0.5;
   tbslas::diffusion_kernel(coord,
-               n,
-               out,
-               TBSLAS_DIFF_COEFF,
-               tcurr,
-               amp,
-               xc,
-               yc,
-               zc);
+                           n,
+                           out,
+                           TBSLAS_DIFF_COEFF,
+                           tcurr,
+                           amp,
+                           xc,
+                           yc,
+                           zc);
 }
 
 template <class Real_t>
 void fn_input_t2(const Real_t* coord,
-         int n,
-         Real_t* out) {
+                 int n,
+                 Real_t* out) {
   tbslas::gaussian_kernel_diffusion_input(coord,
-                      n,
-                      out,
-                      TBSLAS_ALPHA);
+                                          n,
+                                          out,
+                                          TBSLAS_ALPHA);
 }
 
 template <class Real_t>
-void fn_poten_t2(const Real_t* coord, 
-         int n,
-         Real_t* out) {
-  tbslas::gaussian_kernel(coord, 
-              n,
-              out);
+void fn_poten_t2(const Real_t* coord,
+                 int n,
+                 Real_t* out) {
+  tbslas::gaussian_kernel(coord,
+                          n,
+                          out);
 }
 
 typedef tbslas::MetaData<std::string,
@@ -74,7 +74,7 @@ typedef tbslas::MetaData<std::string,
 
 template <class Real_t>
 void RunDiffusion(int test_case, size_t N, size_t M, bool unif, int mult_order,
-              int cheb_deg, int depth, bool adap, Real_t tol, MPI_Comm comm) {
+                  int cheb_deg, int depth, bool adap, Real_t tol, MPI_Comm comm) {
   typedef pvfmm::FMM_Node<pvfmm::Cheb_Node<Real_t> > FMMNode_t;
   typedef pvfmm::FMM_Cheb<FMMNode_t> FMM_Mat_t;
   typedef pvfmm::FMM_Tree<FMM_Mat_t> FMM_Tree_t;
@@ -176,14 +176,14 @@ void RunDiffusion(int test_case, size_t N, size_t M, bool unif, int mult_order,
     if (ts_counter == 1) {
       //Writee2File
       if (sim_config->vtk_save) {
-	snprintf(out_name_buffer,
-		 sizeof(out_name_buffer),
-		 sim_config->vtk_filename_format.c_str(),
-		 tbslas::get_result_dir().c_str(),
-		 sim_config->vtk_filename_prefix.c_str(),
-		 sim_config->vtk_filename_variable.c_str(),
-		 0);
-	tree->Write2File(out_name_buffer,tree_data.cheb_deg);
+        snprintf(out_name_buffer,
+                 sizeof(out_name_buffer),
+                 sim_config->vtk_filename_format.c_str(),
+                 tbslas::get_result_dir().c_str(),
+                 sim_config->vtk_filename_prefix.c_str(),
+                 sim_config->vtk_filename_variable.c_str(),
+                 0);
+        tree->Write2File(out_name_buffer,tree_data.cheb_deg);
       }
       CheckChebOutput<FMM_Tree_t>(tree,
                                   fn_input_,
@@ -199,12 +199,12 @@ void RunDiffusion(int test_case, size_t N, size_t M, bool unif, int mult_order,
     tcurr += TBSLAS_DT;
     if (sim_config->vtk_save) {
       snprintf(out_name_buffer,
-	       sizeof(out_name_buffer),
-	       sim_config->vtk_filename_format.c_str(),
-	       tbslas::get_result_dir().c_str(),
-	       sim_config->vtk_filename_prefix.c_str(),
-	       sim_config->vtk_filename_variable.c_str(),
-	       ts_counter);
+               sizeof(out_name_buffer),
+               sim_config->vtk_filename_format.c_str(),
+               tbslas::get_result_dir().c_str(),
+               sim_config->vtk_filename_prefix.c_str(),
+               sim_config->vtk_filename_variable.c_str(),
+               ts_counter);
       //Write2File
       tree->Write2File(out_name_buffer,tree_data.cheb_deg);
     }
@@ -215,10 +215,10 @@ void RunDiffusion(int test_case, size_t N, size_t M, bool unif, int mult_order,
   //Find error in FMM output.
   double al2,rl2,ali,rli;
   CheckChebOutput<FMM_Tree_t>(tree,
-                  fn_poten_,
-                  mykernel->ker_dim[1],
-                  al2,rl2,ali,rli,
-                  std::string("Output"));
+                              fn_poten_,
+                              mykernel->ker_dim[1],
+                              al2,rl2,ali,rli,
+                              std::string("Output"));
   int num_leaves = tbslas::CountNumLeafNodes(*tree);
   typedef tbslas::Reporter<Real_t> Rep;
   if(!myrank) {
@@ -289,15 +289,15 @@ int main (int argc, char **argv) {
   // =========================================================================
   pvfmm::Profile::Tic("RunDiffuionSolver",&comm,true);
   RunDiffusion<double>(test,
-                      sim_config->tree_num_point_sources,
-                      sim_config->tree_num_points_per_octanct,
-                      unif,
-                      m,
-                      sim_config->tree_chebyshev_order,
-                      sim_config->tree_max_depth,
-                      sim_config->tree_adap,
-                      sim_config->tree_tolerance,
-                      comm);
+                       sim_config->tree_num_point_sources,
+                       sim_config->tree_num_points_per_octanct,
+                       unif,
+                       m,
+                       sim_config->tree_chebyshev_order,
+                       sim_config->tree_max_depth,
+                       sim_config->tree_adap,
+                       sim_config->tree_tolerance,
+                       comm);
   pvfmm::Profile::Toc();
 
   //Output Profiling results.

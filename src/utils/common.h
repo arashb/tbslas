@@ -29,6 +29,7 @@
 #include <mpi.h>
 
 // PROJECT HEADERS
+#include "utils/types.h"
 #include "utils/singleton.h"
 #include "utils/sim_config.h"
 
@@ -40,14 +41,6 @@ namespace tbslas {
 // simulation configuration singleton
 typedef Singleton<SimConfig> SimConfigSingleton;
 
-// point distribution types
-enum DistribType{
-  UnifGrid,
-  RandUnif,
-  RandGaus,
-  RandElps,
-  RandSphr
-};
 
 // ************************************************************
 // COMMON FUNCTIONS
@@ -216,9 +209,9 @@ get_vorticity_field(const real_t* points_pos,
   real_t time_factor = 1;//+sin(2*3.14159*time);
   for (int i = 0; i < num_points; i++) {
     points_values[i*3+0] =
-             omega*(0.5 - points_pos[i*sdim+1])*time_factor;
+        omega*(0.5 - points_pos[i*sdim+1])*time_factor;
     points_values[i*3+1] =
-                omega*(points_pos[i*sdim+0] - 0.5)*time_factor;
+        omega*(points_pos[i*sdim+0] - 0.5)*time_factor;
     points_values[i*3+2] = 0;
   }
 }
@@ -228,10 +221,10 @@ void
 get_vel_field_hom(const real_t* points_pos,
                   int num_points,
                   real_t* points_values) {
-  real_t omega = 0.1;
+  real_t omega = -0.1;
   real_t time_factor = 1;//+sin(2*3.14159*time);
   for (int i = 0; i < num_points; i++) {
-    points_values[i*3+0] = -omega*time_factor;
+    points_values[i*3+0] = omega*time_factor;
     points_values[i*3+1] = 0;
     points_values[i*3+2] = 0;
   }
@@ -244,7 +237,7 @@ get_slotted_cylinder(const real_t* points_pos,
                      real_t* out,
                      const real_t xc = 0.5,
                      const real_t yc = 0.5,
-		     const real_t zc = 0.5,
+                     const real_t zc = 0.5,
                      const real_t R  = 0.3,
                      const real_t w  = 0.1,
                      const real_t a  = 0.0) {
@@ -323,14 +316,14 @@ get_gaussian_field_3d(const real_t* points_pos,
 
 template <class Real_t>
 void gaussian_kernel_diffusion_input(const Real_t* coord,
-			   int n,
-			   Real_t* out,
-			   const Real_t alpha,
-			   const Real_t xc = 0.5,
-			   const Real_t yc = 0.5,
-			   const Real_t zc = 0.5,
-			   const int a  = -160,
-			   const Real_t amp = 1.0) { //Input function
+                                     int n,
+                                     Real_t* out,
+                                     const Real_t alpha,
+                                     const Real_t xc = 0.5,
+                                     const Real_t yc = 0.5,
+                                     const Real_t zc = 0.5,
+                                     const int a  = -160,
+                                     const Real_t amp = 1.0) { //Input function
   int dof=1;
   for(int i=0;i<n;i++) {
     const Real_t* c=&coord[i*COORD_DIM];
@@ -343,14 +336,14 @@ void gaussian_kernel_diffusion_input(const Real_t* coord,
 
 // out = amp * exp(a*R^2)
 template <class Real_t>
-void gaussian_kernel(const Real_t* coord, 
-		     int n,
-		     Real_t* out,
-		     const Real_t xc = 0.5,
-		     const Real_t yc = 0.5,
-		     const Real_t zc = 0.5,
-		     const int a  = -160,
-		     const Real_t amp = 1.0) { //Output potential
+void gaussian_kernel(const Real_t* coord,
+                     int n,
+                     Real_t* out,
+                     const Real_t xc = 0.5,
+                     const Real_t yc = 0.5,
+                     const Real_t zc = 0.5,
+                     const int a  = -160,
+                     const Real_t amp = 1.0) { //Output potential
   int dof=1;
   for(int i=0;i<n;i++) {
     const Real_t* c=&coord[i*COORD_DIM];
@@ -364,14 +357,14 @@ void gaussian_kernel(const Real_t* coord,
 // 1/(4*pi*t)^(3/2)*exp(-r^2/4*d*t)
 template <class Real_t>
 void diffusion_kernel(const Real_t* coord,
-		 int n,
-		 Real_t* out,
-		 const Real_t diff_coeff,
-		 const Real_t t,
-		 const Real_t amp = 1e-2,
-		 const Real_t xc = 0.5,
-		 const Real_t yc = 0.5,
-		 const Real_t zc = 0.5) { //Input function
+                      int n,
+                      Real_t* out,
+                      const Real_t diff_coeff,
+                      const Real_t t,
+                      const Real_t amp = 1e-2,
+                      const Real_t xc = 0.5,
+                      const Real_t yc = 0.5,
+                      const Real_t zc = 0.5) { //Input function
   assert(t!=0);
   const Real_t PI = 3.141592653589;
   int dof        = 1;

@@ -16,6 +16,10 @@
 #include <mpi.h>
 #include <string>
 
+#include <mpi_tree.hpp>
+
+#include "utils/types.h"
+
 namespace tbslas {
 
 class SimConfig {
@@ -40,7 +44,8 @@ class SimConfig {
       tree_chebyshev_order(14),
       tree_max_depth(15),
       tree_adap(false),
-      profile(false) {
+    profile(false),
+    bc(pvfmm::FreeSpace) {
   }
   // *************************************************************************
   // time stepping
@@ -51,6 +56,7 @@ class SimConfig {
   // semi-lagrangian solver
   // *************************************************************************
   int num_rk_step;
+  pvfmm::BoundaryType bc;
   // *************************************************************************
   // output
   // *************************************************************************
