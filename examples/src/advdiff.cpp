@@ -96,18 +96,6 @@ RunFMM(_FMM_Tree_Type* tree,
   tree->Copy_FMMOutput(); //Copy FMM output to tree Data.
 }
 
-void
-GetVTKFileName(char (*buffer)[300], int timestep) {
-  tbslas::SimConfig* sim_config = tbslas::SimConfigSingleton::Instance();
-  snprintf(*buffer,
-           sizeof(*buffer),
-           sim_config->vtk_filename_format.c_str(),
-           tbslas::get_result_dir().c_str(),
-           sim_config->vtk_filename_prefix.c_str(),
-           sim_config->vtk_filename_variable.c_str(),
-           timestep);
-}
-
 template <class Real_t>
 void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
                    int cheb_deg, int depth, bool adap, Real_t tol, MPI_Comm comm) {
@@ -115,7 +103,6 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
   typedef pvfmm::FMM_Cheb<FMMNode_t> FMM_Mat_t;
   typedef pvfmm::FMM_Tree<FMM_Mat_t> FMM_Tree_t;
   tbslas::SimConfig* sim_config = tbslas::SimConfigSingleton::Instance();
-  char out_name_buffer[300];
   // Find out number of OMP thereads.
   int omp_p=omp_get_max_threads();
   // **********************************************************************
@@ -148,6 +135,14 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
       mykernel  = &modified_laplace_kernel_d;
       bndry = pvfmm::FreeSpace;
       break;
+  case 3:
+    fn_input_ = fn_input_t1<Real_t>;
+    fn_poten_ = fn_input_t1<Real_t>;
+    fn_veloc_ = tbslas::get_vel_field_hom<double,3>;//tbslas::get_vorticity_field<double,3>,
+    mykernel  = &modified_laplace_kernel_d;
+    bndry = pvfmm::Periodic;
+    break;
+
     default:
       fn_input_=NULL;
       fn_poten_=NULL;
@@ -161,8 +156,6 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
   // =========================================================================
   // SIMULATION PARAMETERS
   // =========================================================================
-  // sim_config->vtk_filename_prefix     = "advection";
-  // sim_config->vtk_filename_variable   = "conc";
   sim_config->bc = bndry;
 
   // **********************************************************************
@@ -228,14 +221,7 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
                                     3,
                                     tvel_curr);
   if (sim_config->vtk_save) {
-    snprintf(out_name_buffer,
-             sizeof(out_name_buffer),
-             sim_config->vtk_filename_format.c_str(),
-             tbslas::get_result_dir().c_str(),
-             sim_config->vtk_filename_prefix.c_str(),
-             "velocity",
-             0);
-    tvel_curr.Write2File(out_name_buffer, cheb_deg);
+    tvel_curr.Write2File(tbslas::GetVTKFileName(0, "velocity").c_str(), cheb_deg);
   }
   // =========================================================================
   // RUN
@@ -265,8 +251,7 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
     tree->Copy_FMMOutput(); //Copy FMM output to tree Data.
     // Write2File
     if (sim_config->vtk_save) {
-      GetVTKFileName(&out_name_buffer, timestep);
-      tree->Write2File(out_name_buffer, sim_config->vtk_order);
+      tree->Write2File(tbslas::GetVTKFileName(timestep, sim_config->vtk_filename_variable).c_str(), sim_config->vtk_order);
     }
     tcurr += TBSLAS_DT;
     CheckChebOutput<FMM_Tree_t>(tree,
@@ -284,14 +269,13 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
     tbslas::RunSemilagSimulationInSitu(&tvel_curr,
                                        tree,
                                        1,
-                                       sim_config->dt,
+                                       TBSLAS_DT,//sim_config->dt,
                                        sim_config->num_rk_step,
                                        true,
-                                       sim_config->vtk_save);
+                                       false);
     //Write2File
     if (sim_config->vtk_save) {
-      GetVTKFileName(&out_name_buffer, timestep+1);
-      tree->Write2File(out_name_buffer, sim_config->vtk_order);
+      tree->Write2File(tbslas::GetVTKFileName(timestep+1, sim_config->vtk_filename_variable).c_str(), sim_config->vtk_order);
     }
     // tcurr += TBSLAS_DT;
     CheckChebOutput<FMM_Tree_t>(tree,
@@ -308,11 +292,11 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
   // REPORT RESULTS
   // =========================================================================
   int num_leaves = tbslas::CountNumLeafNodes(*tree);
-  CheckChebOutput<FMM_Tree_t>(tree,
-                              fn_poten_,
-                              mykernel->ker_dim[1],
-                              al2,rl2,ali,rli,
-                              std::string("Output"));
+  // CheckChebOutput<FMM_Tree_t>(tree,
+  //                             fn_poten_,
+  //                             mykernel->ker_dim[1],
+  //                             al2,rl2,ali,rli,
+  //                             std::string("Output"));
   typedef tbslas::Reporter<Real_t> Rep;
   if(!myrank) {
     Rep::AddData("TOL", sim_config->tree_tolerance);
@@ -326,16 +310,20 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
     Rep::AddData("ALPHA", TBSLAS_ALPHA);
 
     Rep::AddData("InAL2", in_al2);
-    Rep::AddData("OutAL2", al2);
+    Rep::AddData("DiffAL2", di_al2);
+    Rep::AddData("AdvAL2", ad_al2);
 
     Rep::AddData("InRL2", in_rl2);
-    Rep::AddData("OutRL2", rl2);
+    Rep::AddData("DiffRL2", di_rl2);
+    Rep::AddData("AddRL2", ad_rl2);
 
     Rep::AddData("InALINF", in_ali);
-    Rep::AddData("OutALINF", ali);
+    Rep::AddData("DiffALINF", di_ali);
+    Rep::AddData("AddALINF", ad_ali);
 
     Rep::AddData("InRLINF", in_rli);
-    Rep::AddData("OutRLINF", rli);
+    Rep::AddData("DiffALINF", di_rli);
+    Rep::AddData("AddRLINF", ad_rli);
 
     Rep::Report();
   }

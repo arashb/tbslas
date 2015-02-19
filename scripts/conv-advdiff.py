@@ -29,7 +29,7 @@ def generate_command_args(tl_init, tl_factor, dt_init, dt_factor, tn_init, tn_fa
     for counter in range(0,num_steps):
         ARGS    = ['-N'   , str(8**math.ceil(math.log(MPI_NUM_PROCESS,8))), \
                    '-tol' , str(tl_list[counter]),                               \
-                   '-dt'  , str(dt_list[counter]),                               \
+                   '-dt'  , str(2*dt_list[counter]),                               \
                    '-tn'  , str(tn_list[counter]),                               \
                    '-omp' , str(OMP_NUM_THREADS)]
         cmd_args[cmd_id] = [EXEC] + ARGS

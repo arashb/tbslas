@@ -203,16 +203,8 @@ RunSemilagSimulation(TreeType* vel_tree,
   TreeType* tconc_curr = con_tree_curr;
   TreeType* tconc_next = con_tree_next;
   // save current time step data
-  char out_name_buffer[300];
   if (save) {
-    snprintf(out_name_buffer,
-             sizeof(out_name_buffer),
-             sim_param->vtk_filename_format.c_str(),
-             tbslas::get_result_dir().c_str(),
-             sim_param->vtk_filename_prefix.c_str(),
-             sim_param->vtk_filename_variable.c_str(),
-             tstep);
-    tconc_curr->Write2File(out_name_buffer, sim_param->vtk_order);
+    tconc_curr->Write2File(tbslas::GetVTKFileName(tstep, sim_param->vtk_filename_variable).c_str(), sim_param->vtk_order);
   }
 
   pvfmm::Profile::Tic("RunSemilag", &sim_param->comm, false,5);
@@ -244,14 +236,7 @@ RunSemilagSimulation(TreeType* vel_tree,
     // save current time step data
     *result = tconc_curr;
     if (save) {
-      snprintf(out_name_buffer,
-               sizeof(out_name_buffer),
-               sim_param->vtk_filename_format.c_str(),
-               tbslas::get_result_dir().c_str(),
-               sim_param->vtk_filename_prefix.c_str(),
-               sim_param->vtk_filename_variable.c_str(),
-               tstep);
-      (*result)->Write2File(out_name_buffer, sim_param->vtk_order);
+      (*result)->Write2File(tbslas::GetVTKFileName(tstep, sim_param->vtk_filename_variable).c_str(), sim_param->vtk_order);
     }
   }  // end of for
   pvfmm::Profile::Toc();
@@ -290,14 +275,7 @@ RunSemilagSimulationInSitu(TreeType* vel_tree,
   // save current time step data
   char out_name_buffer[300];
   if (save) {
-    snprintf(out_name_buffer,
-             sizeof(out_name_buffer),
-             sim_param->vtk_filename_format.c_str(),
-             tbslas::get_result_dir().c_str(),
-             sim_param->vtk_filename_prefix.c_str(),
-             sim_param->vtk_filename_variable.c_str(),
-             tstep);
-    tconc_curr->Write2File(out_name_buffer, sim_param->vtk_order);
+    tconc_curr->Write2File(tbslas::GetVTKFileName(tstep, sim_param->vtk_filename_variable).c_str(), sim_param->vtk_order);
   }
 
   pvfmm::Profile::Tic("RunSemilag", &sim_param->comm, false,5);
@@ -322,14 +300,7 @@ RunSemilagSimulationInSitu(TreeType* vel_tree,
 
     // save current time step data
     if (save) {
-      snprintf(out_name_buffer,
-               sizeof(out_name_buffer),
-               sim_param->vtk_filename_format.c_str(),
-               tbslas::get_result_dir().c_str(),
-               sim_param->vtk_filename_prefix.c_str(),
-               sim_param->vtk_filename_variable.c_str(),
-               tstep);
-      tconc_curr->Write2File(out_name_buffer, sim_param->vtk_order);
+      tconc_curr->Write2File(tbslas::GetVTKFileName(tstep, sim_param->vtk_filename_variable).c_str(), sim_param->vtk_order);
     }
   }  // end of for
   pvfmm::Profile::Toc();

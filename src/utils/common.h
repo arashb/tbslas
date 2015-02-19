@@ -71,6 +71,22 @@ const std::string get_result_dir() {
   return res_dir_buffer;
 }
 
+std::string
+GetVTKFileName(int timestep, std::string variable_id) {
+  tbslas::SimConfig* sim_config = tbslas::SimConfigSingleton::Instance();
+  char buffer[500];
+  snprintf(buffer,
+           sizeof(buffer),
+           sim_config->vtk_filename_format.c_str(),
+           tbslas::get_result_dir().c_str(),
+           sim_config->vtk_filename_prefix.c_str(),
+           variable_id.c_str(),
+           timestep);
+  std::ostringstream stringStream;
+  stringStream << buffer;
+  return stringStream.str();
+}
+
 template<typename real_t>
 void dummy_fn(const real_t* points_pos,
               int num_points,
@@ -221,7 +237,7 @@ void
 get_vel_field_hom(const real_t* points_pos,
                   int num_points,
                   real_t* points_values) {
-  real_t omega = -0.1;
+  real_t omega = -0.5;
   real_t time_factor = 1;//+sin(2*3.14159*time);
   for (int i = 0; i < num_points; i++) {
     points_values[i*3+0] = omega*time_factor;
