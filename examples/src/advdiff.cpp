@@ -40,7 +40,8 @@ double TBSLAS_DT;
 double TBSLAS_DIFF_COEFF;
 double TBSLAS_ALPHA;
 // current simulation time
-double tcurr = 0.25;
+// double tcurr = 0.25;
+double tcurr = 25;
 
 typedef tbslas::MetaData<std::string,
                          std::string,
@@ -236,7 +237,7 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
     // SOLVE DIFFUSION: FMM
     // **********************************************************************
     tree->InitFMM_Tree(false,bndry);
-    if (timestep==1)
+    if (timestep==1) {
       CheckChebOutput<FMM_Tree_t>(tree,
                                   fn_poten_,
                                   mykernel->ker_dim[1],
@@ -245,7 +246,10 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
                                   in_ali,
                                   in_rli,
                                   std::string("Input"));
-
+      if (sim_config->vtk_save) {
+	tree.Write2File(tbslas::GetVTKFileName(0, sim_config->vtk_filename_variable).c_str(), cheb_deg);
+      }
+    }
     tree->SetupFMM(fmm_mat);
     tree->RunFMM();
     tree->Copy_FMMOutput(); //Copy FMM output to tree Data.
@@ -362,7 +366,7 @@ int main (int argc, char **argv) {
 
   NUM_TIME_STEPS    = sim_config->total_num_timestep;
   TBSLAS_DT         = sim_config->dt*0.5; // dt/2 advection + dt/2 diffsuion
-  TBSLAS_DIFF_COEFF = 0.01;
+  TBSLAS_DIFF_COEFF = 0.0001;
   TBSLAS_ALPHA      = (1.0)/TBSLAS_DT/TBSLAS_DIFF_COEFF;
   // =========================================================================
   // PRINT METADATA

@@ -28,7 +28,7 @@ double TBSLAS_DT;
 double TBSLAS_DIFF_COEFF;
 double TBSLAS_ALPHA;
 // current simulation time
-double tcurr = 0.25;
+double tcurr = 25;
 
 template <class Real_t>
 void fn_input_t1(const Real_t* coord,
@@ -274,7 +274,7 @@ int main (int argc, char **argv) {
 
   NUM_TIME_STEPS    = sim_config->total_num_timestep;
   TBSLAS_DT         = sim_config->dt;
-  TBSLAS_DIFF_COEFF = 0.01;
+  TBSLAS_DIFF_COEFF = 0.0001;
   TBSLAS_ALPHA      = (1.0)/TBSLAS_DT/TBSLAS_DIFF_COEFF;
 
   pvfmm::Profile::Enable(sim_config->profile);
