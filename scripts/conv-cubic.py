@@ -29,6 +29,7 @@ def generate_command_args(tl_init, tl_factor, cuf_init, cuf_factor, use_cubic, \
         ARGS    = ['-N'   , str(8**math.ceil(math.log(MPI_NUM_PROCESS,8))), \
                    '-tol' , str(tl_list[counter]),                              \
                    '-cuf' , str(uf_list[counter]),                              \
+                   '-vs'  , str(1),                               \
                    '-omp' , str(OMP_NUM_THREADS)]
         if use_cubic:
             ARGS = ARGS + ['-cubic', '1']

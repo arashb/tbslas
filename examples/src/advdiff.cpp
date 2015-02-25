@@ -247,7 +247,7 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
                                   in_rli,
                                   std::string("Input"));
       if (sim_config->vtk_save) {
-	tree.Write2File(tbslas::GetVTKFileName(0, sim_config->vtk_filename_variable).c_str(), cheb_deg);
+	tree->Write2File(tbslas::GetVTKFileName(0, sim_config->vtk_filename_variable).c_str(), cheb_deg);
       }
     }
     tree->SetupFMM(fmm_mat);

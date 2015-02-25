@@ -194,6 +194,11 @@ class CubicInterpPolicy {
         CubicInterpPolicy::h10(t)*(xx[2] - xx[1])*mk +
         CubicInterpPolicy::h01(t)*pp[2] +
         CubicInterpPolicy::h11(t)*(xx[2] - xx[1])*mk1;
+    pvfmm::Profile::Add_FLOP( 18 +  /* tangents */
+    			      24 +  /* 4*h_ii */
+    			      3  +  /* t */
+    			      11 );  /* val */
+
     return val;
   }
 

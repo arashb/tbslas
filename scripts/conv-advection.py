@@ -31,6 +31,7 @@ def generate_command_args(tl_init, tl_factor, dt_init, dt_factor, tn_init, tn_fa
                    '-tol' , str(tl_list[counter]),                              \
                    '-dt'  , str(dt_list[counter]),                              \
                    '-tn'  , str(tn_list[counter]),                              \
+                   '-vs'  , str(1),                               \
                    '-omp' , str(OMP_NUM_THREADS)]
         cmd_args[cmd_id] = [EXEC] + ARGS
         cmd_id = cmd_id + 1
