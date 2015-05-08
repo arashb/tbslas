@@ -10,7 +10,8 @@ MPI_NUM_PROCESSES=$2
 OMP_NUM_THREADS=$3
 TOTAL_TIME=$4
 
-JOB_LIST=(advection diffusion advdiff zalesak cubic)
+#JOB_LIST=(advection diffusion advdiff zalesak cubic)
+JOB_LIST=(advdiff)
 
 for job in "${JOB_LIST[@]}"
 do

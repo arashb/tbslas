@@ -26,8 +26,8 @@ class Reporter {
 
   static void
   AddData(std::string header,
-	  _Real_Type value,
-	  int alignment = 15) {
+          _Real_Type value,
+          int alignment = 15) {
     header_vec.push_back(header);
     values_vec.push_back(value);
     aligns_vec.push_back(alignment);
@@ -41,19 +41,19 @@ class Reporter {
     // PRINT HEADER
     std::cout << "#TBSLAS-HEADER: ";
     for (int i = 0; i < header_vec.size(); ++i) {
-      std::cout << std::left 
-		<< std::setw(aligns_vec[i]) 
-		<< header_vec[i];
+      std::cout << std::left
+                << std::setw(aligns_vec[i])
+                << header_vec[i];
     }
     std::cout << std::endl;
     // REPORT VALUES
     std::cout << "#TBSLAS-RESULT: ";
     for (int i = 0; i < header_vec.size(); ++i) {
       std::cout << std::left
-		<< std::setw(aligns_vec[i]) 
-		<< std::setprecision(5)
-		<< std::scientific
-		<< values_vec[i];
+                << std::setw(aligns_vec[i])
+                << std::setprecision(5)
+                << std::scientific
+                << values_vec[i];
     }
     std::cout << std::endl;
     printf("======================================================================\n");

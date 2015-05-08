@@ -75,12 +75,12 @@ int main (int argc, char **argv) {
     char out_name_buffer[300];
     if (sim_config->vtk_save) {
       snprintf(out_name_buffer,
-	       sizeof(out_name_buffer),
-	       sim_config->vtk_filename_format.c_str(),
-	       tbslas::get_result_dir().c_str(),
-	       sim_config->vtk_filename_prefix.c_str(),
-	       "vel",
-	       0);
+               sizeof(out_name_buffer),
+               sim_config->vtk_filename_format.c_str(),
+               tbslas::get_result_dir().c_str(),
+               sim_config->vtk_filename_prefix.c_str(),
+               "vel",
+               0);
       tvel_curr.Write2File(out_name_buffer, sim_config->vtk_order);
     }
     Tree_t tconc_curr(comm);
@@ -96,12 +96,12 @@ int main (int argc, char **argv) {
                                   tconc_curr);
     if (sim_config->vtk_save) {
       snprintf(out_name_buffer,
-	       sizeof(out_name_buffer),
-	       sim_config->vtk_filename_format.c_str(),
-	       tbslas::get_result_dir().c_str(),
-	       sim_config->vtk_filename_prefix.c_str(),
-	       sim_config->vtk_filename_variable.c_str(),
-	       0);
+               sizeof(out_name_buffer),
+               sim_config->vtk_filename_format.c_str(),
+               tbslas::get_result_dir().c_str(),
+               sim_config->vtk_filename_prefix.c_str(),
+               sim_config->vtk_filename_variable.c_str(),
+               0);
       tconc_curr.Write2File(out_name_buffer, sim_config->vtk_order);
     }
     if (sim_config->dt == 0) {
@@ -139,7 +139,6 @@ int main (int argc, char **argv) {
                                        sim_config->total_num_timestep,
                                        sim_config->dt,
                                        sim_config->num_rk_step,
-                                       true,
                                        true);
 
     //Output Profiling results.

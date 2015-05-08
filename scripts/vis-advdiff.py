@@ -18,18 +18,18 @@ from collections import OrderedDict
 from utils import *
 
 def generate_command_args(max_depth):
-    EXEC = os.path.join(TBSLAS_EXAMPLES_BIN_DIR, "advection")
+    EXEC = os.path.join(TBSLAS_EXAMPLES_BIN_DIR, "advdiff")
     # generate a dictionary data type of commands
     cmd_args = OrderedDict()
     cmd_id = 1
-    ARGS    = ['-N'   , '4096', \
-               '-tol' , '1e-3', \
+    ARGS    = ['-N'   , '2048', \
+               '-tol' , '1e-5', \
                '-d'   , str(max_depth), \
-               '-dt'  , '0.0628', \
-               '-tn'  , '500', \
-               '-test', str(2), \
+               '-dt'  , '0.125', \
+               '-tn'  , '5', \
+               '-test', str(4), \
                '-omp' , str(OMP_NUM_THREADS), \
-               '-q'   , str(8), \
+               #'-q'   , str(8), \
                # '-vs'  , '1'
                ]
     cmd_args[cmd_id] = [EXEC] + ARGS
@@ -46,4 +46,4 @@ if __name__ == '__main__':
     # TEST 1: TEMPORAL CONVERGENCE
     ############################################################################
     cmd_args = generate_command_args(max_depth)
-    execute_commands(cmd_args, 'vis-zalesak')
+    execute_commands(cmd_args, 'vis-advdiff')

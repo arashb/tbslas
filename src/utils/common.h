@@ -87,11 +87,14 @@ GetVTKFileName(int timestep, std::string variable_id) {
   return stringStream.str();
 }
 
+ typedef void (*dummy_fn_ptr)(const double* coord, int n, double* out);
+
 template<typename real_t>
 void dummy_fn(const real_t* points_pos,
               int num_points,
               real_t* values) {
 }
+
 
 inline bool
 is_little_endian() {

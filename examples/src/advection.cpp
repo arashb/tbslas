@@ -42,6 +42,9 @@ typedef tbslas::MetaData<std::string,
                          std::string> MetaData_t;
 double tcurr = 0;
 
+void (*fn_vel)(const double* , int , double*)=NULL;
+void (*fn_con)(const double* , int , double*)=NULL;
+
 int main (int argc, char **argv) {
   MPI_Init(&argc, &argv);
   MPI_Comm comm=MPI_COMM_WORLD;
@@ -65,8 +68,6 @@ int main (int argc, char **argv) {
     // =========================================================================
     // TEST CASE
     // =========================================================================
-    void (*fn_vel)(const double* , int , double*)=NULL;
-    void (*fn_con)(const double* , int , double*)=NULL;
     pvfmm::BoundaryType bc;
     switch(test) {
       case 1:
@@ -137,6 +138,21 @@ int main (int argc, char **argv) {
                             1,
                             in_al2,in_rl2,in_ali,in_rli,
                             std::string("Input"));
+    typedef tbslas::Reporter<double> Rep;
+    if(!myrank) {
+      Rep::AddData("TOL", sim_config->tree_tolerance);
+      Rep::AddData("ChbOrder", sim_config->tree_chebyshev_order);
+      Rep::AddData("MaxDEPTH", sim_config->tree_max_depth);
+
+
+      Rep::AddData("DT", sim_config->dt);
+      Rep::AddData("TN", sim_config->total_num_timestep);
+
+      Rep::AddData("InAL2", in_al2);
+      Rep::AddData("InRL2", in_rl2);
+      Rep::AddData("InALINF", in_ali);
+      Rep::AddData("InRLINF", in_rli);
+    }
     // =========================================================================
     // RUN
     // =========================================================================
@@ -146,7 +162,7 @@ int main (int argc, char **argv) {
                                        sim_config->dt,
                                        sim_config->num_rk_step,
                                        true,
-                                       sim_config->vtk_save);
+                                       fn_con);
     // =========================================================================
     // COMPUTE ERROR
     // =========================================================================
@@ -161,25 +177,10 @@ int main (int argc, char **argv) {
     // =========================================================================
     // REPORT RESULTS
     // =========================================================================
-    typedef tbslas::Reporter<double> Rep;
     if(!myrank) {
-      Rep::AddData("TOL", sim_config->tree_tolerance);
-      Rep::AddData("MaxDEPTH", sim_config->tree_max_depth);
-      Rep::AddData("NOCT", num_leaves);
-
-      Rep::AddData("DT", sim_config->dt);
-      Rep::AddData("TN", sim_config->total_num_timestep);
-
-      Rep::AddData("InAL2", in_al2);
       Rep::AddData("OutAL2", al2);
-
-      Rep::AddData("InRL2", in_rl2);
       Rep::AddData("OutRL2", rl2);
-
-      Rep::AddData("InALINF", in_ali);
       Rep::AddData("OutALINF", ali);
-
-      Rep::AddData("InRLINF", in_rli);
       Rep::AddData("OutRLINF", rli);
       Rep::Report();
     }

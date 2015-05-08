@@ -22,8 +22,10 @@
 #include "tree/node_field_functor.h"
 #include "tree/utils_tree.h"
 #include "utils/common.h"
+#include "utils/reporter.h"
 
 namespace tbslas {
+
 
 template <class TreeType>
 void SolveSemilagTree(TreeType& tvel_curr,
@@ -99,7 +101,8 @@ void SolveSemilagInSitu(TreeType& tvel_curr,
                         TreeType& tree_curr,
                         const int timestep,
                         const typename TreeType::Real_t dt,
-                        int num_rk_step = 1) {
+                        int num_rk_step = 1,
+                        bool adaptive = true) {
   typedef typename TreeType::Node_t NodeType;
   typedef typename TreeType::Real_t RealType;
   tbslas::SimConfig* sim_config = tbslas::SimConfigSingleton::Instance();
@@ -171,8 +174,8 @@ RunSemilagSimulation(TreeType* vel_tree,
                      int tn,
                      typename TreeType::Real_t dt,
                      int num_rk_step = 1,
-                     bool adaptive = true,
-                     bool save = true) {
+                     bool adaptive = true
+                     ) {
   typedef typename TreeType::Node_t NodeType;
   typedef typename TreeType::Real_t RealType;
   int myrank;
@@ -203,7 +206,7 @@ RunSemilagSimulation(TreeType* vel_tree,
   TreeType* tconc_curr = con_tree_curr;
   TreeType* tconc_next = con_tree_next;
   // save current time step data
-  if (save) {
+  if (sim_param->vtk_save) {
     tconc_curr->Write2File(tbslas::GetVTKFileName(tstep, sim_param->vtk_filename_variable).c_str(), sim_param->vtk_order);
   }
 
@@ -235,14 +238,14 @@ RunSemilagSimulation(TreeType* vel_tree,
 
     // save current time step data
     *result = tconc_curr;
-    if (save) {
+    if (sim_param->vtk_save) {
       (*result)->Write2File(tbslas::GetVTKFileName(tstep, sim_param->vtk_filename_variable).c_str(), sim_param->vtk_order);
     }
   }  // end of for
   pvfmm::Profile::Toc();
 }
 
-template <class TreeType>
+template <class TreeType, class FunctorType =  tbslas::dummy_fn_ptr >
 void
 RunSemilagSimulationInSitu(TreeType* vel_tree,
                            TreeType* con_tree_curr,
@@ -250,7 +253,8 @@ RunSemilagSimulationInSitu(TreeType* vel_tree,
                            typename TreeType::Real_t dt,
                            int num_rk_step = 1,
                            bool adaptive = true,
-                           bool save     = true) {
+                           FunctorType anal_sol = NULL,
+                           int error_output_freq = 100) {
   typedef typename TreeType::Node_t NodeType;
   typedef typename TreeType::Real_t RealType;
 
@@ -258,7 +262,7 @@ RunSemilagSimulationInSitu(TreeType* vel_tree,
   MPI_Comm comm=MPI_COMM_WORLD;
   MPI_Comm_rank(comm, &myrank);
 
-    // simulation parameters
+  // simulation parameters
   SimConfig* sim_param = tbslas::SimConfigSingleton::Instance();
 
   // set the input_fn to NULL -> needed for adaptive refinement
@@ -274,15 +278,16 @@ RunSemilagSimulationInSitu(TreeType* vel_tree,
   TreeType* tconc_curr = con_tree_curr;
   // save current time step data
   char out_name_buffer[300];
-  if (save) {
-    tconc_curr->Write2File(tbslas::GetVTKFileName(tstep, sim_param->vtk_filename_variable).c_str(), sim_param->vtk_order);
+  if (sim_param->vtk_save) {
+    tconc_curr->Write2File(tbslas::GetVTKFileName(tstep, sim_param->vtk_filename_variable).c_str(),
+                           sim_param->vtk_order);
   }
 
   pvfmm::Profile::Tic("RunSemilag", &sim_param->comm, false,5);
   for (tstep = 1; tstep < tn+1; tstep++) {
     if(!myrank) {
       printf("============================\n");
-      printf("dt: %f tstep: %d time: %f\n", dt, tstep, dt*tstep);
+      printf("dt: %f tstep: %d \n", dt, tstep);
       printf("============================\n");
     }
     tbslas::SolveSemilagInSitu<TreeType>(*vel_tree,
@@ -297,11 +302,43 @@ RunSemilagSimulationInSitu(TreeType* vel_tree,
       tconc_curr->RefineTree();
       pvfmm::Profile::Toc();
     }
-
+    tcurr += dt;
     // save current time step data
-    if (save) {
+    if (sim_param->vtk_save) {
       tconc_curr->Write2File(tbslas::GetVTKFileName(tstep, sim_param->vtk_filename_variable).c_str(), sim_param->vtk_order);
     }
+    if (anal_sol)
+      if (tstep % error_output_freq == 0) {
+        double al2,rl2,ali,rli;
+        CheckChebOutput<TreeType>(tconc_curr,
+                                  anal_sol,
+                                  1,
+                                  al2,rl2,ali,rli,
+                                  std::string("Output"));
+        if(!myrank) {
+          typedef tbslas::Reporter<double> Rep;
+          {
+            std::ostringstream o;
+            o << "OutAL2T" << tstep;
+            Rep::AddData(o.str(), al2);
+          }
+          {
+            std::ostringstream o;
+            o << "OutRL2T" << tstep;
+            Rep::AddData(o.str(), rl2);
+          }
+          {
+            std::ostringstream o;
+            o << "OutALINFT" << tstep;
+            Rep::AddData(o.str(), ali);
+          }
+          {
+            std::ostringstream o;
+            o << "OutRLINFT" << tstep;
+            Rep::AddData(o.str(), rli);
+          }
+        }
+      }
   }  // end of for
   pvfmm::Profile::Toc();
 }
