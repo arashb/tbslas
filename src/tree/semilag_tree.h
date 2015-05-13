@@ -191,12 +191,12 @@ RunSemilagSimulation(TreeType* vel_tree,
   // set the input_fn to NULL -> needed for adaptive refinement
   std::vector<NodeType*>  ncurr_list = con_tree_curr->GetNodeList();
   for(int i = 0; i < ncurr_list.size(); i++) {
-    ncurr_list[i]->input_fn = NULL;
+    ncurr_list[i]->input_fn = (void (*)(const RealType* , int , RealType*))NULL;
   }
 
   std::vector<NodeType*>  nnext_list = con_tree_next->GetNodeList();
   for(int i = 0; i < nnext_list.size(); i++) {
-    nnext_list[i]->input_fn = NULL;
+    nnext_list[i]->input_fn = (void (*)(const RealType* , int , RealType*))NULL;
   }
 
   //////////////////////////////////////////////////////////////////////
@@ -268,7 +268,7 @@ RunSemilagSimulationInSitu(TreeType* vel_tree,
   // set the input_fn to NULL -> needed for adaptive refinement
   std::vector<NodeType*>  ncurr_list = con_tree_curr->GetNodeList();
   for(int i = 0; i < ncurr_list.size(); i++) {
-    ncurr_list[i]->input_fn = NULL;
+    ncurr_list[i]->input_fn = (void (*)(const RealType* , int , RealType*))NULL;
   }
 
   //////////////////////////////////////////////////////////////////////

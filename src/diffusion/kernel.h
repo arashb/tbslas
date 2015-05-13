@@ -17,6 +17,8 @@
 #include <cmath>
 #include <string>
 
+#include <math_utils.hpp>
+
 extern double TBSLAS_ALPHA;
 
 char kernel_name[256];
@@ -34,7 +36,7 @@ void modified_laplace_poten(Real_t* r_src,
                             Real_t* k_out,
                             pvfmm::mem::MemoryManager* mem_mgr) {
   Real_t lambda = sqrt(TBSLAS_ALPHA);
-  const Real_t OOFP = 1.0/(4.0*const_pi<Real_t>());
+  const Real_t OOFP = 1.0/(4.0*pvfmm::const_pi<Real_t>());
   for (int t=0;t<trg_cnt;t++) {
     for (int i=0;i<dof;i++) {
       Real_t p=0;

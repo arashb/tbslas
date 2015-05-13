@@ -239,7 +239,7 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
   // set the input_fn to NULL -> needed for adaptive refinement
   std::vector<NodeType*>  ncurr_list = tree->GetNodeList();
   for(int i = 0; i < ncurr_list.size(); i++) {
-    ncurr_list[i]->input_fn = NULL;
+    ncurr_list[i]->input_fn = (void (*)(const Real_t* , int , Real_t*))NULL;
   }
   double in_al2,in_rl2,in_ali,in_rli;
   double al2,rl2,ali,rli;
