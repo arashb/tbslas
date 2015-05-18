@@ -30,6 +30,8 @@ TARGET_BIN = \
        $(BINDIR)/advection  \
        $(BINDIR)/diffusion \
        $(BINDIR)/advdiff \
+       $(BINDIR)/advdiff-ss \
+       $(BINDIR)/merge \
        $(BINDIR)/cubic
 
 all : $(TARGET_BIN)

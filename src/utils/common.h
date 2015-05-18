@@ -87,7 +87,7 @@ GetVTKFileName(int timestep, std::string variable_id) {
   return stringStream.str();
 }
 
- typedef void (*dummy_fn_ptr)(const double* coord, int n, double* out);
+typedef void (*dummy_fn_ptr)(const double* coord, int n, double* out);
 
 template<typename real_t>
 void dummy_fn(const real_t* points_pos,
@@ -232,6 +232,22 @@ get_vorticity_field(const real_t* points_pos,
     points_values[i*3+1] =
         omega*(points_pos[i*sdim+0] - 0.5)*time_factor;
     points_values[i*3+2] = 0;
+  }
+}
+
+template<typename real_t, int sdim>
+void
+get_linear_field(const real_t* points_pos,
+                 int num_points,
+                 real_t* points_values) {
+  real_t omega = 1;
+  real_t time_factor = 1;//+sin(2*3.14159*time);
+  for (int i = 0; i < num_points; i++) {
+    points_values[i] =
+        omega*(0.5 - points_pos[i*sdim+1])*time_factor;
+    // points_values[i*3+1] =
+    //     omega*(points_pos[i*sdim+0] - 0.5)*time_factor;
+    // points_values[i*3+2] = 0;
   }
 }
 
