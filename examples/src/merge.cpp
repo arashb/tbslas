@@ -82,6 +82,7 @@ int main (int argc, char **argv) {
     sim_config->vtk_filename_prefix     = "merge";
     sim_config->vtk_filename_variable   = "conc";
     sim_config->bc = bc;
+    double DT = 1.57;
     // =========================================================================
     // INIT THE TREE 1
     // =========================================================================
@@ -111,7 +112,7 @@ int main (int argc, char **argv) {
     // =========================================================================
     // INIT THE TREE 2
     // =========================================================================
-    tcurr = 1.0;
+    tcurr += DT;
     Tree_t tree2(comm);
     tbslas::ConstructTree<Tree_t>(sim_config->tree_num_point_sources,
                                   sim_config->tree_num_points_per_octanct,
@@ -149,8 +150,8 @@ int main (int argc, char **argv) {
     // =========================================================================
     // MERGE TREE1 & TREE2
     // =========================================================================
-    tbslas::SyncTreeRefinement(tree1, merged_tree);
-    tbslas::SyncTreeRefinement(tree2, merged_tree);
+    tbslas::MergeTreeRefinement(tree1, merged_tree);
+    tbslas::MergeTreeRefinement(tree2, merged_tree);
     // =========================================================================
     //  LINEAR COMNINATION OF TREE VALUES
     // =========================================================================

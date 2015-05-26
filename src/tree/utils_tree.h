@@ -319,6 +319,55 @@ CountNumLeafNodes(TreeType& tree) {
 
 template<typename NodeType>
 void
+MergeNodeRefinement(NodeType* node_in,
+                   NodeType* node_out) {
+  if(node_in->IsGhost()) return;
+
+  if(!node_in->IsLeaf()) {
+    node_out->Subdivide();
+    int n_child = 1UL<< node_in->Dim();
+    for (int k = 0; k < n_child; k++) {
+      MergeNodeRefinement(dynamic_cast<NodeType*>(node_in->Child(k)),
+                          dynamic_cast<NodeType*>(node_out->Child(k)));
+    }
+  }
+}
+
+template<typename TreeType>
+void
+MergeTreeRefinement(TreeType& tree_in,
+                    TreeType& tree_out) {
+  typedef typename TreeType::Real_t RealType;
+  typedef typename TreeType::Node_t NodeType;
+  tbslas::SimConfig* sim_config = tbslas::SimConfigSingleton::Instance();
+
+  pvfmm::Profile::Tic("MergeTreeRefinement", &sim_config->comm, false,5);
+  int np, myrank;
+  MPI_Comm_size(*tree_in.Comm(), &np);
+  MPI_Comm_rank(*tree_in.Comm(), &myrank);
+
+  std::vector<pvfmm::MortonId> mins_in;
+  GetTreeMortonIdMins(tree_in, mins_in);
+
+  std::vector<pvfmm::MortonId> mins_out;
+  GetTreeMortonIdMins(tree_out, mins_out);
+
+  size_t range[2]={0,np};
+  range[0]=std::lower_bound(&mins_in[0], &mins_in[np], mins_out[myrank  ])-&mins_in[0];
+  if(myrank<np-1) range[1]=std::lower_bound(&mins_in[0], &mins_in[np], mins_out[myrank+1])-&mins_in[0];
+  for(size_t i=range[0];i<range[1];i++) tree_out.FindNode(mins_in[i],true,NULL);
+
+  tree_out.RedistNodes(&mins_in[myrank]);
+
+  NodeType* node_in  = tree_in.PreorderFirst();
+  NodeType* node_out = tree_out.PreorderFirst();
+  MergeNodeRefinement<NodeType>(node_in, node_out);
+
+  pvfmm::Profile::Toc();
+}
+
+template<typename NodeType>
+void
 SyncNodeRefinement(NodeType* node_in,
                    NodeType* node_out) {
   if(node_in->IsGhost()) return;

@@ -280,10 +280,10 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
                                       *treen);
 
     // =========================================================================
-    // CREATE TREEN BEI MERGING TREEP & TREEC
+    // CREATE THE NEW TREE BEI MERGING THE PREVIOUS TREE & THE CURRENT TREE
     // =========================================================================
-    tbslas::SyncTreeRefinement(*treep, *treen);
-    tbslas::SyncTreeRefinement(*treec, *treen);
+    tbslas::MergeTreeRefinement(*treep, *treen);
+    tbslas::MergeTreeRefinement(*treec, *treen);
     tcurr += TBSLAS_DT;
     // =========================================================================
     // SOLVE SEMILAG
