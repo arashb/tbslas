@@ -375,7 +375,6 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
     treen->SetupFMM(fmm_mat);
     treen->RunFMM();
     treen->Copy_FMMOutput(); //Copy FMM output to tree Data.
-    pvfmm::Profile::Toc();
     // Write2File
     if (sim_config->vtk_save) {
       treen->Write2File(tbslas::GetVTKFileName(timestep, sim_config->vtk_filename_variable).c_str(), sim_config->vtk_order);
@@ -481,7 +480,6 @@ int main (int argc, char **argv) {
                         sim_config->tree_tolerance,
                         comm);
   pvfmm::Profile::Toc();
-
   //Output Profiling results.
   pvfmm::Profile::print(&comm);
 
