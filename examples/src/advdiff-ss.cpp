@@ -284,7 +284,9 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
     // =========================================================================
     tbslas::MergeTreeRefinement(*treep, *treen);
     tbslas::MergeTreeRefinement(*treec, *treen);
+    treen->RedistNodes();
     tcurr += TBSLAS_DT;
+
     // =========================================================================
     // SOLVE SEMILAG
     // =========================================================================
@@ -300,10 +302,15 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
     int sdim     = treen->Dim();
 
     // COLLECT THE MERGED TREE POINTS
+
     std::vector<double> treen_points_pos;
     tbslas::CollectChebTreeGridPoints(*treen, treen_points_pos);
 
     int treen_num_points = treen_points_pos.size()/3;
+    std::cout << "TREEN-NUM-POINTS: " << treen_num_points << std::endl;
+   
+    std::cout << "TREEN-NUM-LEAVES: " <<   tbslas::CountNumLeafNodes(*treen) << std::endl;
+
     tbslas::NodeFieldFunctor<double,FMM_Tree_t> vel_evaluator(tvel_curr);
     tbslas::NodeFieldFunctor<double,FMM_Tree_t> trc_evaluator(treec);
     tbslas::NodeFieldFunctor<double,FMM_Tree_t> trp_evaluator(treep);

@@ -92,7 +92,7 @@ void EvalTree(Tree_t* tree,
   pvfmm::par::ScatterForward  (trg_mid  , scatter_index, *tree->Comm());
   pvfmm::par::ScatterForward  (trg_coord, scatter_index, *tree->Comm());
   //pvfmm::Profile::Toc();
-
+  std::cout << "TRG_COUNT: " <<trg_mid.Dim() << std::endl; 
   pvfmm::Vector<Real_t> trg_value(trg_mid.Dim()*data_dof);
   { // Read tree data
     std::vector<size_t> part_indx(nodes.size()+1);

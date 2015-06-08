@@ -311,8 +311,8 @@ CountNumLeafNodes(TreeType& tree) {
     n_next = tree.PostorderNxt(n_next);
   }
   int total_num_leaf_nodes = 0;
-  MPI_Reduce(&num_leaf_nodes, &total_num_leaf_nodes, 1, MPI_INT,
-             MPI_SUM, 0, *tree.Comm());
+  MPI_Allreduce(&num_leaf_nodes, &total_num_leaf_nodes, 1, MPI_INT,
+             MPI_SUM, *tree.Comm());
 
   return total_num_leaf_nodes;
 }
