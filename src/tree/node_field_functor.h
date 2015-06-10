@@ -43,6 +43,13 @@ void fast_interp(const std::vector<Real_t>& reg_grid_vals, int data_dof,
   query_values.resize(N_pts*data_dof);
 
   for(int i=0;i<N_pts;i++){
+    if( query_points[COORD_DIM*i+0] < 0 || query_points[COORD_DIM*i+0] > 1.0 ||
+        query_points[COORD_DIM*i+1] < 0 || query_points[COORD_DIM*i+1] > 1.0 ||
+        query_points[COORD_DIM*i+2] < 0 || query_points[COORD_DIM*i+2] > 1.0 ){
+      for(int k=0;k<data_dof;k++) query_values[i*data_dof+k]=0;
+      continue;
+    }
+
     Real_t point[COORD_DIM];
     int grid_indx[COORD_DIM];
     for(int j=0;j<COORD_DIM;j++){
