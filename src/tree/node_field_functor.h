@@ -66,9 +66,9 @@ void fast_interp(const std::vector<Real_t>& reg_grid_vals, int data_dof,
 
     for(int k=0;k<data_dof;k++){
       Real_t val=0;
-      for(int j0=0;j0<4;j0++){
+      for(int j2=0;j2<4;j2++){
         for(int j1=0;j1<4;j1++){
-          for(int j2=0;j2<4;j2++){
+          for(int j0=0;j0<4;j0++){
             int indx = (grid_indx[0]+j0) + N_reg*(grid_indx[1]+j1) + N_reg*N_reg*(grid_indx[2]+j2);
             val += M[0][j0]*M[1][j1]*M[2][j2] * reg_grid_vals[indx+k*N_reg3];
           }
