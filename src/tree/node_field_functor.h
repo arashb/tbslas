@@ -24,20 +24,80 @@
 
 namespace tbslas {
 
+
+template <class Real_t>
+void fast_interp(const std::vector<Real_t>& reg_grid_vals, int data_dof,
+              int N_reg, const std::vector<Real_t>& query_points,
+              std::vector<Real_t>& query_values){
+
+  Real_t lagr_denom[4];
+  for(int i=0;i<4;i++){
+    lagr_denom[i]=1;
+    for(int j=0;j<4;j++){
+      if(i!=j) lagr_denom[i]/=(Real_t)(i-j);
+    }
+  }
+
+  int N_reg3=N_reg*N_reg*N_reg;
+  int N_pts=query_points.size()/COORD_DIM;
+  query_values.resize(N_pts*data_dof);
+
+  for(int i=0;i<N_pts;i++){
+    Real_t point[COORD_DIM];
+    int grid_indx[COORD_DIM];
+    for(int j=0;j<COORD_DIM;j++){
+      point[j]=query_points[COORD_DIM*i+j]*(N_reg-1);
+      grid_indx[j]=((int)point[j])-1;
+      if(grid_indx[j]<      0) grid_indx[j]=      0;
+      if(grid_indx[j]>N_reg-4) grid_indx[j]=N_reg-4;
+      point[j]-=grid_indx[j];
+    }
+
+    Real_t M[3][4];
+    for(int j=0;j<COORD_DIM;j++){
+      Real_t x=point[j];
+      for(int k=0;k<4;k++){
+        M[j][k]=lagr_denom[k];
+        for(int l=0;l<4;l++){
+          if(k!=l) M[j][k]*=(x-l);
+        }
+      }
+    }
+
+    for(int k=0;k<data_dof;k++){
+      Real_t val=0;
+      for(int j0=0;j0<4;j0++){
+        for(int j1=0;j1<4;j1++){
+          for(int j2=0;j2<4;j2++){
+            int indx = (grid_indx[0]+j0) + N_reg*(grid_indx[1]+j1) + N_reg*N_reg*(grid_indx[2]+j2);
+            val += M[0][j0]*M[1][j1]*M[2][j2] * reg_grid_vals[indx+k*N_reg3];
+          }
+        }
+      }
+      query_values[i*data_dof+k]=val;
+    }
+  }
+}
+
+
 template <class Tree_t>
 void EvalTree(Tree_t* tree,
               size_t N,
               typename Tree_t::Real_t* trg_coord_,
               typename Tree_t::Real_t* value,
               pvfmm::BoundaryType bc_type) {
+  size_t omp_p=omp_get_max_threads();
   typedef typename Tree_t::Node_t Node_t;
   typedef typename Tree_t::Real_t Real_t;
   tbslas::SimConfig* sim_config = tbslas::SimConfigSingleton::Instance();
 
+  int myrank;
+  MPI_Comm_rank(sim_config->comm, &myrank);
+
+  //pvfmm::Profile::Tic("MortonId", &sim_config->comm, false, 5);
   size_t data_dof=0;
   pvfmm::MortonId min_mid;
   std::vector<Node_t*> nodes;
-  //pvfmm::Profile::Tic("GetNodes", &sim_config->comm, false, 5);
   { // Get list of leaf nodes.
     const std::vector<Node_t*>& all_nodes=tree->GetNodeList();
     for (size_t i=0; i< all_nodes.size(); i++) {
@@ -49,51 +109,53 @@ void EvalTree(Tree_t* tree,
     min_mid=nodes[0]->GetMortonId();
     data_dof=nodes[0]->DataDOF();
   }
-  //pvfmm::Profile::Toc();
+  //std::cout<<"Leaf Nodes = "<<nodes.size()<<'\n';
 
   if (bc_type == pvfmm::Periodic) {
     #pragma omp parallel for
-    for (size_t i = 0; i < N; i++) {
-      Real_t* c = &trg_coord_[i*COORD_DIM];
-      if (c[0] < 0)
-        c[0] = c[0] + 1.0;
-      else if ( c[0] > 1.0)
-        c[0] = c[0] - 1.0;
-
-      if (c[1] < 0)
-        c[1] = c[1] + 1.0;
-      else if ( c[1] > 1.0)
-        c[1] = c[1] - 1.0;
-
-      if (c[2] < 0)
-        c[2] = c[2] + 1.0;
-      else if ( c[2] > 1.0)
-        c[2] = c[2] - 1.0;
+    for (size_t i = 0; i < N*COORD_DIM; i++) {
+      Real_t& c = trg_coord_[i*COORD_DIM];
+      if(c <  0.0) c = c + 1.0;
+      if(c >= 1.0) c = c - 1.0;
     }
   }
-  pvfmm::Vector<pvfmm::MortonId> trg_mid(N);
-
-  //pvfmm::Profile::Tic("ConstMID", &sim_config->comm, false, 5);
-#pragma omp parallel for
+  static pvfmm::Vector<pvfmm::MortonId> trg_mid; trg_mid.Resize(N);
+  #pragma omp parallel for
   for (size_t i = 0; i < N; i++) {
     trg_mid[i] = pvfmm::MortonId(&trg_coord_[i*COORD_DIM]);
   }
   //pvfmm::Profile::Toc();
 
   // Compute scatter_index.
-  //pvfmm::Profile::Tic("SortScatterIndex", &sim_config->comm, false, 5);
-  pvfmm::Vector<size_t> scatter_index;
+  //pvfmm::Profile::Tic("ScatterIndex", &sim_config->comm, true, 5);
+  static pvfmm::Vector<size_t> scatter_index;
   pvfmm::par::SortScatterIndex(trg_mid  , scatter_index, *tree->Comm(), &min_mid);
   //pvfmm::Profile::Toc();
 
   // Scatter coordinates and values.
-  //pvfmm::Profile::Tic("ScatterForward", &sim_config->comm, false, 5);
-  pvfmm::Vector<Real_t> trg_coord(N*COORD_DIM,trg_coord_);
-  pvfmm::par::ScatterForward  (trg_mid  , scatter_index, *tree->Comm());
-  pvfmm::par::ScatterForward  (trg_coord, scatter_index, *tree->Comm());
+  static pvfmm::Vector<Real_t> trg_coord;
+  //pvfmm::Profile::Tic("ScatterForward", &sim_config->comm, true, 5);
+  {
+    trg_coord.Resize(N*COORD_DIM);
+    #pragma omp parallel for
+    for(size_t tid=0;tid<omp_p;tid++){
+      size_t a=N*COORD_DIM*(tid+0)/omp_p;
+      size_t b=N*COORD_DIM*(tid+1)/omp_p;
+      if(b-a) memcpy(&trg_coord[0]+a, &trg_coord_[0]+a, (b-a)*sizeof(Real_t));
+    }
+    pvfmm::par::ScatterForward  (trg_coord, scatter_index, *tree->Comm());
+
+    trg_mid.Resize(trg_coord.Dim()/COORD_DIM);
+    #pragma omp parallel for
+    for(size_t i=0;i<N;i++){
+      trg_mid[i] = pvfmm::MortonId(&trg_coord[i*COORD_DIM]);
+    }
+  }
   //pvfmm::Profile::Toc();
-  std::cout << "TRG_COUNT: " <<trg_mid.Dim() << std::endl; 
-  pvfmm::Vector<Real_t> trg_value(trg_mid.Dim()*data_dof);
+
+  //std::cout << "TRG_COUNT: " <<trg_mid.Dim() << std::endl;
+  static pvfmm::Vector<Real_t> trg_value; trg_value.Resize(trg_mid.Dim()*data_dof);
+  //pvfmm::Profile::Tic("Eval", &sim_config->comm, false, 5);
   { // Read tree data
     std::vector<size_t> part_indx(nodes.size()+1);
     part_indx[nodes.size()]=trg_mid.Dim();
@@ -104,7 +166,6 @@ void EvalTree(Tree_t* tree,
                                     nodes[j]->GetMortonId()) - &trg_mid[0];
     }
 
-    size_t omp_p=omp_get_max_threads();
     #pragma omp parallel for
     for (size_t pid=0;pid<omp_p;pid++) {
       size_t a=((pid+0)*nodes.size())/omp_p;
@@ -113,25 +174,60 @@ void EvalTree(Tree_t* tree,
       std::vector<Real_t> coord;
       pvfmm::Vector<Real_t> tmp_out;    // buffer used in chebyshev evaluation
       std::vector<Real_t> query_values; // buffer used in cubic interpolation
+      std::vector<Real_t> query_points;
       Real_t* output = NULL;
+
+      // ************************************************************
+      // CONSTRUCT REGULAR GRID
+      // ************************************************************
+      int reg_grid_resolution =
+          nodes[0]->ChebDeg()*sim_config->cubic_upsampling_factor;
+      Real_t spacing = 1.0/(reg_grid_resolution-1);
+      std::vector<Real_t> reg_grid_coord_1d(reg_grid_resolution);
+      tbslas::get_reg_grid_points<Real_t, 1>(reg_grid_resolution,
+                                             reg_grid_coord_1d.data());
+
+      // ************************************************************
+      // EVALUATE AT THE REGULAR GRID
+      // ************************************************************
+      int reg_grid_num_points = std::pow(reg_grid_resolution, COORD_DIM);
+      std::vector<Real_t> reg_grid_vals(reg_grid_num_points*data_dof);
+
+      // scale to [-1,1] -> used in cheb_eval
+      std::vector<Real_t> x(reg_grid_resolution);
+      for(size_t i=0;i<reg_grid_resolution;i++) {
+        x[i] = -1.0+2.0*reg_grid_coord_1d[i];
+      }
+
+      pvfmm::Matrix<Real_t> Mp1;
+      pvfmm::Vector<Real_t> v1, v2;
+      { // Precomputation
+        int cheb_deg=nodes[0]->ChebDeg();
+        std::vector<Real_t> p1(reg_grid_resolution*(cheb_deg+1));
+        pvfmm::cheb_poly(cheb_deg,&x[0],reg_grid_resolution,&p1[0]);
+        Mp1.ReInit(cheb_deg+1,reg_grid_resolution,&p1[0]);
+
+        // Create work buffers
+        size_t buff_size=std::max(cheb_deg+1,reg_grid_resolution)*std::max(cheb_deg+1,reg_grid_resolution)*std::max(cheb_deg+1,reg_grid_resolution)*data_dof;
+        v1.Resize(buff_size);
+        v2.Resize(buff_size);
+      }
 
       for (size_t j=a;j<b;j++) {
         const size_t n_pts=part_indx[j+1]-part_indx[j];
         if(!n_pts) continue;
 
-    //pvfmm::Profile::Tic("EvalNode", &sim_config->comm, false, 5);
         Real_t* c=nodes[j]->Coord();
         size_t d=nodes[j]->Depth();
         Real_t s=(Real_t)(1ULL<<d);
 
         Real_t* coord_ptr=&trg_coord[0]+part_indx[j]*COORD_DIM;
-
         if (!sim_config->use_cubic) {
           //////////////////////////////////////////////////////////////
           // CHEBYSHEV INTERPOLATION
           //////////////////////////////////////////////////////////////
           if (tmp_out.Dim()<n_pts*data_dof) {
-            tmp_out.ReInit(n_pts*data_dof);
+            tmp_out.Resize(n_pts*data_dof);
           }
           tmp_out.SetZero();
           coord.resize(n_pts*COORD_DIM);
@@ -149,42 +245,89 @@ void EvalTree(Tree_t* tree,
           //////////////////////////////////////////////////////////////
           // CUBIC INTERPOLATION
           //////////////////////////////////////////////////////////////
-      /* pvfmm::Profile::Tic("AllocMemResVal", &sim_config->comm, false, 5); */
           query_values.resize(n_pts*data_dof);
-      /* pvfmm::Profile::Toc(); */
-          // ************************************************************
-          // CONSTRUCT REGULAR GRID
-          // ************************************************************
-      //pvfmm::Profile::Tic("ConstRegGrid", &sim_config->comm, false, 5);
-          int reg_grid_resolution =
-              nodes[j]->ChebDeg()*sim_config->cubic_upsampling_factor;
-          Real_t spacing = 1.0/(reg_grid_resolution-1);
-          std::vector<Real_t> reg_grid_coord_1d(reg_grid_resolution);
-          tbslas::get_reg_grid_points<Real_t, 1>(reg_grid_resolution,
-                                                 reg_grid_coord_1d.data());
-      //pvfmm::Profile::Toc();
+          query_points.resize(n_pts*COORD_DIM);
           // ************************************************************
           // EVALUATE AT THE REGULAR GRID
           // ************************************************************
-          int reg_grid_num_points = std::pow(reg_grid_resolution, COORD_DIM);
-      //pvfmm::Profile::Tic("AllocMemGridVal", &sim_config->comm, false, 5);
-          std::vector<Real_t> reg_grid_vals(reg_grid_num_points*data_dof);
-          pvfmm::Vector<Real_t> reg_grid_vals_tmp(reg_grid_num_points*data_dof);
-      //pvfmm::Profile::Toc();
           // evaluate using the tree
           if(!sim_config->cubic_use_analytical) {
-            // scale to [-1,1] -> used in cheb_eval
-        //pvfmm::Profile::Tic("EvalRegGrid", &sim_config->comm, false, 5);
-            std::vector<Real_t> x(reg_grid_resolution);
-            for(size_t i=0;i<reg_grid_resolution;i++) {
-              x[i] = -1.0+2.0*reg_grid_coord_1d[i];
+            pvfmm::Vector<Real_t>& coeff_=nodes[j]->ChebData();
+            pvfmm::Vector<Real_t> reg_grid_vals_tmp(reg_grid_num_points*data_dof, &reg_grid_vals[0], false);
+            { // cheb_eval
+              int cheb_deg=nodes[0]->ChebDeg();
+              size_t d=(size_t)cheb_deg+1;
+              size_t n_coeff=(d*(d+1)*(d+2))/6;
+              size_t dof=coeff_.Dim()/n_coeff;
+              assert(coeff_.Dim()==dof*n_coeff);
+
+              size_t n1=x.size();
+              assert(reg_grid_vals_tmp.Dim()==n1*n1*n1*dof);
+
+              { // Rearrange coefficients into a tensor.
+                pvfmm::Vector<Real_t> coeff(d*d*d*dof,&v1[0],false);
+                coeff.SetZero();
+                size_t indx=0;
+                for(size_t l=0;l<dof;l++){
+                  for(size_t i=0;i<d;i++){
+                    for(size_t j=0;j<d-i;j++){
+                      Real_t* coeff_ptr=&coeff[(j+(i+l*d)*d)*d];
+                      for(size_t k=0;k<d-i-j;k++){
+                        coeff_ptr[k]=coeff_[indx];
+                        indx++;
+                      }
+                    }
+                  }
+                }
+              }
+
+              { // Apply Mp1
+                pvfmm::Matrix<Real_t> Mi  ( d* d*dof, d,&v1[0],false);
+                pvfmm::Matrix<Real_t> Mo  ( d* d*dof,n1,&v2[0],false);
+                pvfmm::Matrix<Real_t>::GEMM(Mo, Mi, Mp1);
+
+                pvfmm::Matrix<Real_t> Mo_t(n1, d* d*dof,&v1[0],false);
+                for(size_t i=0;i<Mo.Dim(0);i++)
+                for(size_t j=0;j<Mo.Dim(1);j++){
+                  Mo_t[j][i]=Mo[i][j];
+                }
+              }
+              { // Apply Mp1
+                pvfmm::Matrix<Real_t> Mi  (n1* d*dof, d,&v1[0],false);
+                pvfmm::Matrix<Real_t> Mo  (n1* d*dof,n1,&v2[0],false);
+                pvfmm::Matrix<Real_t>::GEMM(Mo, Mi, Mp1);
+
+                pvfmm::Matrix<Real_t> Mo_t(n1,n1* d*dof,&v1[0],false);
+                for(size_t i=0;i<Mo.Dim(0);i++)
+                for(size_t j=0;j<Mo.Dim(1);j++){
+                  Mo_t[j][i]=Mo[i][j];
+                }
+              }
+              { // Apply Mp1
+                pvfmm::Matrix<Real_t> Mi  (n1*n1*dof, d,&v1[0],false);
+                pvfmm::Matrix<Real_t> Mo  (n1*n1*dof,n1,&v2[0],false);
+                pvfmm::Matrix<Real_t>::GEMM(Mo, Mi, Mp1);
+
+                pvfmm::Matrix<Real_t> Mo_t(n1,n1*n1*dof,&v1[0],false);
+                for(size_t i=0;i<Mo.Dim(0);i++)
+                for(size_t j=0;j<Mo.Dim(1);j++){
+                  Mo_t[j][i]=Mo[i][j];
+                }
+              }
+
+              { // Copy to reg_grid_vals_tmp
+                pvfmm::Matrix<Real_t> Mo  ( n1*n1*n1,dof,&v1[0],false);
+                pvfmm::Matrix<Real_t> Mo_t(dof,n1*n1*n1,&reg_grid_vals_tmp[0],false);
+                for(size_t i=0;i<Mo.Dim(0);i++)
+                for(size_t j=0;j<Mo.Dim(1);j++){
+                  Mo_t[j][i]=Mo[i][j];
+                }
+              }
             }
-            pvfmm::Vector<Real_t>& coeff=nodes[j]->ChebData();
-            pvfmm::cheb_eval(coeff, nodes[j]->ChebDeg(), x, x, x, reg_grid_vals_tmp);
-        //pvfmm::Profile::Toc();
           } else {   // evaluate using analytical function
             std::vector<Real_t> reg_grid_anal_coord(3);
             std::vector<Real_t> reg_grid_anal_vals(1*data_dof);
+            pvfmm::Vector<Real_t> reg_grid_vals_tmp(reg_grid_num_points*data_dof, &reg_grid_vals[0], false);
             int nx = reg_grid_resolution;
             for (int xi = 0; xi < nx; xi++) {
               for (int yi = 0; yi < nx; yi++) {
@@ -202,44 +345,35 @@ void EvalTree(Tree_t* tree,
               }
             }
           }
-      #pragma omp parallel for
-          for (int i = 0; i < reg_grid_vals.size(); i++) {
-            reg_grid_vals[i] = reg_grid_vals_tmp[i];
-          }
           // ************************************************************
           // 3D CUBIC INTERPOLATION
           // ************************************************************
           // scale to [0,1] in local node
-      //pvfmm::Profile::Tic("ScalePoints", &sim_config->comm, false, 5);
-          std::vector<Real_t> query_points(n_pts*COORD_DIM);
           for ( int pi = 0; pi < n_pts; pi++) {
             query_points[pi*COORD_DIM+0] = (coord_ptr[pi*COORD_DIM+0]-c[0])*s;
             query_points[pi*COORD_DIM+1] = (coord_ptr[pi*COORD_DIM+1]-c[1])*s;
             query_points[pi*COORD_DIM+2] = (coord_ptr[pi*COORD_DIM+2]-c[2])*s;
           }
-      //pvfmm::Profile::Toc();
-      //pvfmm::Profile::Tic("CubicInterp", &sim_config->comm, false, 5);
-          tbslas::CubicInterpPolicy<Real_t>::interp(reg_grid_vals,
-                                                    data_dof,
-                                                    spacing,
-                                                    query_points,
-                                                    query_values);
-      //pvfmm::Profile::Toc();
+          //tbslas::CubicInterpPolicy<Real_t>::interp(reg_grid_vals,
+          //                                          data_dof,
+          //                                          spacing,
+          //                                          query_points,
+          //                                          query_values);
+          fast_interp(reg_grid_vals, data_dof, reg_grid_resolution, query_points, query_values);
+
           output = &query_values[0];
         } // end of cubic interpolation
-
-    //pvfmm::Profile::Tic("CopyRes", &sim_config->comm, false, 5);
         memcpy(&trg_value[0]+part_indx[j]*data_dof, output, n_pts*data_dof*sizeof(Real_t));
-    //pvfmm::Profile::Toc();
-    //pvfmm::Profile::Toc();    /* eval node */
       }
     }
+    pvfmm::Profile::Add_FLOP(trg_coord.Dim()/COORD_DIM * (COORD_DIM*16 + data_dof*256)); // cubic interpolation
   }
-
-  //pvfmm::Profile::Tic("ScatterForward", &sim_config->comm, false, 5);
-  pvfmm::par::ScatterReverse(trg_value, scatter_index, *tree->Comm(), N);
   //pvfmm::Profile::Toc();
+
+  //pvfmm::Profile::Tic("ScatterReverse", &sim_config->comm, true, 5);
+  pvfmm::par::ScatterReverse(trg_value, scatter_index, *tree->Comm(), N);
   memcpy(value, &trg_value[0], trg_value.Dim()*sizeof(Real_t));
+  //pvfmm::Profile::Toc();
 }
 
 template<typename real_t,
@@ -258,7 +392,7 @@ class NodeFieldFunctor {
                     int num_points,
                     real_t* out) {
     tbslas::SimConfig* sim_config = tbslas::SimConfigSingleton::Instance();
-    pvfmm::Profile::Tic("EvalTree", &sim_config->comm, false, 5);
+    pvfmm::Profile::Tic("EvalTree", &sim_config->comm, true, 5);
     EvalTree(node_, num_points, const_cast<real_t*>(points_pos), out,sim_config->bc);
     pvfmm::Profile::Toc();
   }
