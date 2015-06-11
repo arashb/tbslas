@@ -117,15 +117,15 @@ void EvalTree(Tree_t* tree,
     data_dof=nodes[0]->DataDOF();
   }
   //std::cout<<"Leaf Nodes = "<<nodes.size()<<'\n';
-
   if (bc_type == pvfmm::Periodic) {
     #pragma omp parallel for
     for (size_t i = 0; i < N*COORD_DIM; i++) {
-      Real_t& c = trg_coord_[i*COORD_DIM];
+      Real_t& c = trg_coord_[i];
       if(c <  0.0) c = c + 1.0;
       if(c >= 1.0) c = c - 1.0;
     }
   }
+
   static pvfmm::Vector<pvfmm::MortonId> trg_mid; trg_mid.Resize(N);
   #pragma omp parallel for
   for (size_t i = 0; i < N; i++) {
