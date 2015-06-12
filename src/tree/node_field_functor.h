@@ -154,7 +154,7 @@ void EvalTree(Tree_t* tree,
 
     trg_mid.Resize(trg_coord.Dim()/COORD_DIM);
     #pragma omp parallel for
-    for(size_t i=0;i<N;i++){
+    for(size_t i=0;i<trg_mid.Dim();i++){
       trg_mid[i] = pvfmm::MortonId(&trg_coord[i*COORD_DIM]);
     }
   }
