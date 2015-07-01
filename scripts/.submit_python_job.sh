@@ -30,7 +30,8 @@ case $HOSTNAME in
     *zico*) #zico.ices.utexas.edu
     module load fftw3
     module load python
-    $EXEC $MPI_NUM_PROCESSES $OMP_NUM_THREADS
+    ./.run_python.sh ${JOB} ${MPI_NUM_PROCESSES} ${OMP_NUM_THREADS}
     ;;
     *) # none of the known machines
+    ./.run_python.sh ${JOB} ${MPI_NUM_PROCESSES} ${OMP_NUM_THREADS}
 esac
