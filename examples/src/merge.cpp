@@ -71,7 +71,7 @@ int main (int argc, char **argv) {
     pvfmm::BoundaryType bc;
     switch(test) {
       case 1:
-        fn_1 = tbslas::get_linear_field<double,3>;//tbslas::get_vorticity_field<double,3>;
+        fn_1 = tbslas::get_linear_field_y<double,3>;//tbslas::get_vorticity_field<double,3>;
         fn_2 = get_gaussian_field_cylinder_atT<double,3>;
         bc = pvfmm::FreeSpace;
         break;

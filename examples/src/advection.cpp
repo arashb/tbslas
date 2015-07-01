@@ -45,6 +45,59 @@ double tcurr = 0;
 void (*fn_vel)(const double* , int , double*)=NULL;
 void (*fn_con)(const double* , int , double*)=NULL;
 
+
+template <class Real_t>
+void gaussian_kernel(const Real_t* coord,
+		     int n,
+		     Real_t* out) {
+  const Real_t xc = 0.7;
+  const Real_t yc = 0.7;
+  const Real_t zc = 0.7;
+  const int a  = -160;
+  const Real_t amp = 1.0;
+  tbslas::gaussian_kernel(coord,
+			  n,
+			  out,
+			  xc,
+			  yc,
+			  zc);
+}
+
+template <class Real_t>
+void diffusion_kernel_atT(const Real_t* coord,
+			  int n,
+			  Real_t* out) {
+  const Real_t TBSLAS_DIFF_COEFF = 0.0001;
+  const Real_t amp = 1e-2;
+  const Real_t xc = 0.5;
+  const Real_t yc = 0.5;
+  const Real_t zc = 0.5;
+  tbslas::diffusion_kernel(coord,
+                           n,
+                           out,
+                           TBSLAS_DIFF_COEFF,
+                           tcurr+25,
+                           amp,
+                           xc,
+                           yc,
+                           zc);
+}
+
+template <class Real_t>
+void get_hopf_field(const Real_t* coord,
+		    int n,
+		    Real_t* out) {
+  const Real_t xc = 0.5;
+  const Real_t yc = 0.5;
+  const Real_t zc = 0.5;
+  tbslas::get_hopf_field(coord,
+			 n,
+			 out,
+			 xc,
+			 yc,
+			 zc);
+}
+
 int main (int argc, char **argv) {
   MPI_Init(&argc, &argv);
   MPI_Comm comm=MPI_COMM_WORLD;
@@ -68,23 +121,43 @@ int main (int argc, char **argv) {
     // =========================================================================
     // TEST CASE
     // =========================================================================
+    int max_depth_vel=0;
+    int max_depth_con=0;
     pvfmm::BoundaryType bc;
     switch(test) {
-      case 1:
-        fn_vel = tbslas::get_vorticity_field<double,3>;
-        fn_con = get_gaussian_field_cylinder_atT<double,3>;
-        bc = pvfmm::FreeSpace;
-        break;
-      case 2:
-        fn_vel = tbslas::get_vorticity_field<double,3>;
-        fn_con = get_slotted_cylinder_atT<double,3>;
-        bc = pvfmm::FreeSpace;
-        break;
-      case 3:
-        fn_vel = tbslas::get_vel_field_hom<double,3>;
-        fn_con = get_gaussian_field_cylinder_atT<double,3>;
-        bc = pvfmm::Periodic;
-        break;
+    case 1:
+      fn_vel = tbslas::get_vorticity_field<double,3>;
+      fn_con = get_gaussian_field_cylinder_atT<double,3>;
+      bc = pvfmm::FreeSpace;
+      break;
+    case 2:
+      fn_vel = tbslas::get_vorticity_field<double,3>;
+      fn_con = get_slotted_cylinder_atT<double,3>;
+      bc = pvfmm::FreeSpace;
+      break;
+    case 3:
+      fn_vel = tbslas::get_vel_field_hom_y<double,3>;
+      fn_con = get_gaussian_field_cylinder_atT<double,3>;
+      bc = pvfmm::Periodic;
+      break;
+    case 4:                     // regular V, regular C
+      max_depth_vel=6;
+      max_depth_con=6;
+      fn_vel = tbslas::get_vel_field_hom_x<double,3>;
+      fn_con = tbslas::get_linear_field_y<double,3>;
+      bc = pvfmm::Periodic;
+      break;
+    case 5:			// regular V, irregular C
+      max_depth_vel=6;
+      fn_vel = tbslas::get_vorticity_field<double,3>;
+      fn_con = gaussian_kernel<double>;
+      bc = pvfmm::FreeSpace;
+      break;
+    case 6:			// irregular V, irregular C
+      fn_vel = get_hopf_field<double>;
+      fn_con = gaussian_kernel<double>;
+      bc = pvfmm::FreeSpace;
+      break;
     }
     // =========================================================================
     // SIMULATION PARAMETERS
@@ -99,7 +172,7 @@ int main (int argc, char **argv) {
     tbslas::ConstructTree<Tree_t>(sim_config->tree_num_point_sources,
                                   sim_config->tree_num_points_per_octanct,
                                   sim_config->tree_chebyshev_order,
-                                  sim_config->tree_max_depth,
+                                  max_depth_vel?max_depth_vel:sim_config->tree_max_depth,
                                   sim_config->tree_adap,
                                   sim_config->tree_tolerance,
                                   comm,
@@ -125,7 +198,7 @@ int main (int argc, char **argv) {
     tbslas::ConstructTree<Tree_t>(sim_config->tree_num_point_sources,
                                   sim_config->tree_num_points_per_octanct,
                                   sim_config->tree_chebyshev_order,
-                                  sim_config->tree_max_depth,
+                                  max_depth_con?max_depth_con:sim_config->tree_max_depth,
                                   sim_config->tree_adap,
                                   sim_config->tree_tolerance,
                                   comm,
@@ -142,8 +215,8 @@ int main (int argc, char **argv) {
     if(!myrank) {
       Rep::AddData("TOL", sim_config->tree_tolerance);
       Rep::AddData("ChbOrder", sim_config->tree_chebyshev_order);
-      Rep::AddData("MaxDEPTH", sim_config->tree_max_depth);
-
+      Rep::AddData("MaxDEPTHC", (max_depth_con)?max_depth_con:sim_config->tree_max_depth);
+      Rep::AddData("MaxDEPTHV", (max_depth_vel)?max_depth_vel:sim_config->tree_max_depth);
 
       Rep::AddData("DT", sim_config->dt);
       Rep::AddData("TN", sim_config->total_num_timestep);

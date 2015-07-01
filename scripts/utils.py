@@ -24,7 +24,8 @@ TIMESTR       = time.strftime("%Y%m%d-%H%M%S")
 RESULT_TAG_HEADER  = '#TBSLAS-HEADER: '
 RESULT_TAG_LIST    = ['#TBSLAS-RESULT: ']
 PROFILE_TAG_HEADER = 't_min'
-PROFILE_TAG_LIST   = ['+-RunSemilag', '+-RunFMM']
+PROFILE_TAG_LIST   = ['+-RunSemilag', '+-RunFMM', '+-EvalTree', \
+                      '+-MortonId', '+-ScatterIndex', '+-ScatterForward', '+-Evaluation', '+-ScatterReverse', 'TRG_CNT']
 ################################################################################
 # COMMANDLINE ARGUMENTS
 ################################################################################
@@ -94,16 +95,16 @@ def analyse_command_output(output, \
         if PROFILE_TAG_HEADER in line and PRINT_PRFL_HEADER:
             li = 'MODULE' + line[6:]
             sys.stdout.write(li)
-            file_prf.write('# ======================================================================\n')
+            file_prf.write('# ============================================================================================================================================\n')
             file_prf.write(li)
-            file_prf.write('# ======================================================================\n')
+            file_prf.write('# ============================================================================================================================================\n')
         # CATCH PROFILE DATA
         for profile_tag in PROFILE_TAG_LIST:
             if profile_tag in line:
                 li = line.replace("+-", '')
                 sys.stdout.write(li)
                 file_prf.write(li)
-                file_prf.write('# ----------------------------------------------------------------------\n')
+                # file_prf.write('# ----------------------------------------------------------------------\n')
 
 def execute_commands(cmd_args, id):
     id = SCRIPT_ID+'-'+id

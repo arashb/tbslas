@@ -141,7 +141,7 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
     case 3:
       fn_input_ = fn_input_t1<Real_t>;
       fn_poten_ = fn_input_t1<Real_t>;
-      fn_veloc_ = tbslas::get_vel_field_hom<double,3>;//tbslas::get_vorticity_field<double,3>,
+      fn_veloc_ = tbslas::get_vel_field_hom_x<double,3>;//tbslas::get_vorticity_field<double,3>,
       mykernel  = &modified_laplace_kernel_d;
       bndry = pvfmm::Periodic;
       break;
@@ -149,7 +149,7 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
       // tcurr = 0;
       fn_input_ = fn_input_t2<Real_t>;//get_slotted_cylinder<double,3>;
       fn_poten_ = fn_input_t2<Real_t>;//get_slotted_cylinder<double,3>;
-      fn_veloc_ = tbslas::get_vel_field_hom<double,3>;
+      fn_veloc_ = tbslas::get_vel_field_hom_x<double,3>;
       mykernel  = &modified_laplace_kernel_d;
       bndry = pvfmm::Periodic;
       break;
@@ -202,6 +202,9 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
   //Create Tree and initialize with input data.
   FMM_Tree_t* tree = new FMM_Tree_t(comm);
   tree->Initialize(&tree_data);
+  if (sim_config->vtk_save) {
+    tree->Write2File(tbslas::GetVTKFileName(0, sim_config->vtk_filename_variable).c_str(), sim_config->vtk_order);
+  }
 
   // **********************************************************************
   // SETUP FMM

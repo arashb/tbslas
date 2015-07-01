@@ -100,8 +100,10 @@ void EvalTree(Tree_t* tree,
 
   int myrank;
   MPI_Comm_rank(sim_config->comm, &myrank);
+  int np;
+  MPI_Comm_size(MPI_COMM_WORLD, &np);
 
-  //pvfmm::Profile::Tic("MortonId", &sim_config->comm, false, 5);
+  pvfmm::Profile::Tic("MortonId", &sim_config->comm, false, 5);
   size_t data_dof=0;
   pvfmm::MortonId min_mid;
   std::vector<Node_t*> nodes;
@@ -131,17 +133,17 @@ void EvalTree(Tree_t* tree,
   for (size_t i = 0; i < N; i++) {
     trg_mid[i] = pvfmm::MortonId(&trg_coord_[i*COORD_DIM]);
   }
-  //pvfmm::Profile::Toc();
+  pvfmm::Profile::Toc();
 
   // Compute scatter_index.
-  //pvfmm::Profile::Tic("ScatterIndex", &sim_config->comm, true, 5);
+  pvfmm::Profile::Tic("ScatterIndex", &sim_config->comm, true, 5);
   static pvfmm::Vector<size_t> scatter_index;
   pvfmm::par::SortScatterIndex(trg_mid  , scatter_index, *tree->Comm(), &min_mid);
-  //pvfmm::Profile::Toc();
+  pvfmm::Profile::Toc();
 
   // Scatter coordinates and values.
   static pvfmm::Vector<Real_t> trg_coord;
-  //pvfmm::Profile::Tic("ScatterForward", &sim_config->comm, true, 5);
+  pvfmm::Profile::Tic("ScatterForward", &sim_config->comm, true, 5);
   {
     trg_coord.Resize(N*COORD_DIM);
     #pragma omp parallel for
@@ -158,11 +160,22 @@ void EvalTree(Tree_t* tree,
       trg_mid[i] = pvfmm::MortonId(&trg_coord[i*COORD_DIM]);
     }
   }
-  //pvfmm::Profile::Toc();
+  pvfmm::Profile::Toc();
 
-  //std::cout << "TRG_COUNT: " <<trg_mid.Dim() << std::endl;
+  /* print number of departure points in current process */
+  int trg_cnt = trg_mid.Dim();
+  int* rbuf = (int *)malloc(np*sizeof(int));
+  MPI_Gather(&trg_mid, 1, MPI_INT, rbuf, 1, MPI_INT, 0, *tree->Comm());
+  if (!myrank) {
+    std::cout << "TRG_CNT: ";
+    for (int i = 0 ; i < np; i++)
+      std::cout << " " << rbuf[i]; 
+    std::cout << std::endl;
+  }
+  delete rbuf;
+
   static pvfmm::Vector<Real_t> trg_value; trg_value.Resize(trg_mid.Dim()*data_dof);
-  //pvfmm::Profile::Tic("Eval", &sim_config->comm, false, 5);
+  pvfmm::Profile::Tic("Evaluation", &sim_config->comm, false, 5);
   { // Read tree data
     std::vector<size_t> part_indx(nodes.size()+1);
     part_indx[nodes.size()]=trg_mid.Dim();
@@ -375,12 +388,12 @@ void EvalTree(Tree_t* tree,
     }
     pvfmm::Profile::Add_FLOP(trg_coord.Dim()/COORD_DIM * (COORD_DIM*16 + data_dof*256)); // cubic interpolation
   }
-  //pvfmm::Profile::Toc();
+  pvfmm::Profile::Toc();
 
-  //pvfmm::Profile::Tic("ScatterReverse", &sim_config->comm, true, 5);
+  pvfmm::Profile::Tic("ScatterReverse", &sim_config->comm, true, 5);
   pvfmm::par::ScatterReverse(trg_value, scatter_index, *tree->Comm(), N);
   memcpy(value, &trg_value[0], trg_value.Dim()*sizeof(Real_t));
-  //pvfmm::Profile::Toc();
+  pvfmm::Profile::Toc();
 }
 
 template<typename real_t,

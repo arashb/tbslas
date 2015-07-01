@@ -237,7 +237,7 @@ get_vorticity_field(const real_t* points_pos,
 
 template<typename real_t, int sdim>
 void
-get_linear_field(const real_t* points_pos,
+get_linear_field_y(const real_t* points_pos,
                  int num_points,
                  real_t* points_values) {
   real_t omega = 1;
@@ -251,16 +251,54 @@ get_linear_field(const real_t* points_pos,
   }
 }
 
+template<typename real_t>
+void
+get_hopf_field(const real_t* points_pos,
+	       int num_points,
+	       real_t* points_values,
+	       const real_t xc = 0.5,
+	       const real_t yc = 0.5,
+	       const real_t zc = 0.5,
+	       const real_t A = 0.05,
+	       const real_t r = 0.1) {
+  real_t x,y,z;
+  for (int i = 0; i < num_points; i++) {
+    const real_t* c = &points_pos[i*COORD_DIM];
+    x = c[0] - xc;
+    y = c[1] - yc;
+    z = c[2] - zc;
+    real_t r_2 = x*x+y*y+z*z;
+    real_t coeff = A/((r*r + r_2)*(r*r + r_2));
+    points_values[i*3+0] = coeff*(2*(-r*y+x*z));
+    points_values[i*3+1] = coeff*(2*(r*x+y*z));
+    points_values[i*3+2] = coeff*(r*r - x*x - y*y + z*z);
+  }
+}
+
 template<typename real_t, int sdim>
 void
-get_vel_field_hom(const real_t* points_pos,
-                  int num_points,
-                  real_t* points_values) {
+get_vel_field_hom_x(const real_t* points_pos,
+		    int num_points,
+		    real_t* points_values) {
   real_t omega = -0.5;
   real_t time_factor = 1;//+sin(2*3.14159*time);
   for (int i = 0; i < num_points; i++) {
     points_values[i*3+0] = omega*time_factor;
     points_values[i*3+1] = 0;
+    points_values[i*3+2] = 0;
+  }
+}
+
+template<typename real_t, int sdim>
+void
+get_vel_field_hom_y(const real_t* points_pos,
+		    int num_points,
+		    real_t* points_values) {
+  real_t omega = -0.5;
+  real_t time_factor = 1;//+sin(2*3.14159*time);
+  for (int i = 0; i < num_points; i++) {
+    points_values[i*3+0] = 0;
+    points_values[i*3+1] = omega*time_factor;
     points_values[i*3+2] = 0;
   }
 }
@@ -383,7 +421,7 @@ void gaussian_kernel(const Real_t* coord,
   for(int i=0;i<n;i++) {
     const Real_t* c=&coord[i*COORD_DIM];
     {
-      Real_t r_2=(c[0]-xc)*(c[0]-xc)+(c[1]-yc)*(c[1]-yc)+(c[2]-yc)*(c[2]-yc);
+      Real_t r_2=(c[0]-xc)*(c[0]-xc)+(c[1]-yc)*(c[1]-yc)+(c[2]-zc)*(c[2]-zc);
       out[i*dof+0]=amp*exp(a*r_2);
     }
   }
