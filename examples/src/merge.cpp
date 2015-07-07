@@ -44,6 +44,24 @@ double tcurr = 0;
 
 void (*fn_1)(const double* , int , double*)=NULL;
 void (*fn_2)(const double* , int , double*)=NULL;
+void (*fn_3)(const double* , int , double*)=NULL;
+
+template <class Real_t>
+void gaussian_kernel(const Real_t* coord,
+                     int n,
+                     Real_t* out) {
+  const Real_t xc = 0.7;
+  const Real_t yc = 0.7;
+  const Real_t zc = 0.7;
+  const int a  = -160;
+  const Real_t amp = 1.0;
+  tbslas::gaussian_kernel(coord,
+                          n,
+                          out,
+                          xc,
+                          yc,
+                          zc);
+}
 
 int main (int argc, char **argv) {
   MPI_Init(&argc, &argv);
@@ -71,7 +89,7 @@ int main (int argc, char **argv) {
     pvfmm::BoundaryType bc;
     switch(test) {
       case 1:
-        fn_1 = tbslas::get_linear_field_y<double,3>;//tbslas::get_vorticity_field<double,3>;
+        fn_1 = gaussian_kernel<double>;//tbslas::get_linear_field_y<double,3>;//tbslas::get_vorticity_field<double,3>;
         fn_2 = get_gaussian_field_cylinder_atT<double,3>;
         bc = pvfmm::FreeSpace;
         break;
@@ -95,7 +113,7 @@ int main (int argc, char **argv) {
                                   sim_config->tree_adap,
                                   sim_config->tree_tolerance,
                                   comm,
-                                  fn_2,
+                                  fn_1,
                                   1,
                                   tree1);
     char out_name_buffer[300];
@@ -135,82 +153,13 @@ int main (int argc, char **argv) {
       tree2.Write2File(out_name_buffer, sim_config->vtk_order);
     }
 
-    Tree_t merged_tree(comm);
-    tbslas::ConstructTree<Tree_t>(sim_config->tree_num_point_sources,
-                                  sim_config->tree_num_points_per_octanct,
-                                  sim_config->tree_chebyshev_order,
-                                  sim_config->tree_max_depth,
-                                  sim_config->tree_adap,
-                                  sim_config->tree_tolerance,
-                                  comm,
-                                  fn_1,
-                                  1,
-                                  merged_tree);
-
     // =========================================================================
     // MERGE TREE1 & TREE2
     // =========================================================================
-    tbslas::MergeTreeRefinement(tree1, merged_tree);
-    tbslas::MergeTreeRefinement(tree2, merged_tree);
-    // =========================================================================
-    //  LINEAR COMNINATION OF TREE VALUES
-    // =========================================================================
-    // GET THE TREE PARAMETERS FROM CURRENT TREE
-    Node_t* n_curr = merged_tree.PostorderFirst();
-    while (n_curr != NULL) {
-      if(!n_curr->IsGhost() && n_curr->IsLeaf())
-        break;
-      n_curr = merged_tree.PostorderNxt(n_curr);
-    }
-    int data_dof = n_curr->DataDOF();
-    int cheb_deg = n_curr->ChebDeg();
-    int sdim     = merged_tree.Dim();
-
-    // COLLECT THE MERGED TREE POINTS
-    std::vector<double> merged_tree_points_pos;
-    tbslas::CollectChebTreeGridPoints(merged_tree, merged_tree_points_pos);
-
-    // EVALUATE TREE 1 AND TREE 2 VALUES AT THE MERGED TREE POINTS
-    int merged_tree_num_points = merged_tree_points_pos.size()/3;
-
-    std::vector<double> tree1_points_val(merged_tree_num_points*data_dof);
-    tbslas::NodeFieldFunctor<double,Tree_t> tree1_func(&tree1);
-    tree1_func(merged_tree_points_pos.data(),
-               merged_tree_num_points,
-               tree1_points_val.data());
-
-    std::vector<double> tree2_points_val(merged_tree_num_points*data_dof);
-    tbslas::NodeFieldFunctor<double,Tree_t> tree2_func(&tree2);
-    tree2_func(merged_tree_points_pos.data(),
-               merged_tree_num_points,
-               tree2_points_val.data());
-
-    Node_t* n_next = merged_tree.PostorderFirst();
-    while (n_next != NULL) {
-      if(!n_next->IsGhost() && n_next->IsLeaf()) break;
-      n_next = merged_tree.PostorderNxt(n_next);
-    }
-
-    std::vector<double> merged_tree_points_val(merged_tree_num_points*data_dof);
-    // combination of tree 1 and tree2 vals
-    for (int i = 0; i < merged_tree_points_val.size(); i++) {
-      merged_tree_points_val[i] = tree1_points_val[i] + tree2_points_val[i];
-    }
-
-    int num_points_per_node = (cheb_deg+1)*(cheb_deg+1)*(cheb_deg+1);
-    int tree_next_node_counter = 0;
-    while (n_next != NULL) {
-      if (n_next->IsLeaf() && !n_next->IsGhost()) {
-        pvfmm::cheb_approx<double, double>(
-            &merged_tree_points_val[tree_next_node_counter*num_points_per_node*data_dof],
-            cheb_deg,
-            data_dof,
-            &(n_next->ChebData()[0])
-                                           );
-        tree_next_node_counter++;
-      }
-      n_next = merged_tree.PostorderNxt(n_next);
-    }
+    tbslas::SemiMergeTree(tree1, tree2);
+    // tbslas::MergeTree(tree1, tree2);
+    // tbslas::MergeTreeRefinement(tree1, tree2);
+    // tbslas::MergeTreeRefinement(tree2, tree1);
 
     if (sim_config->vtk_save) {
       snprintf(out_name_buffer,
@@ -218,10 +167,107 @@ int main (int argc, char **argv) {
                sim_config->vtk_filename_format.c_str(),
                tbslas::get_result_dir().c_str(),
                sim_config->vtk_filename_prefix.c_str(),
-               "merged_tree",
+               "tree1_merged",
                0);
-      merged_tree.Write2File(out_name_buffer, sim_config->vtk_order);
+      tree1.Write2File(out_name_buffer, sim_config->vtk_order);
+      snprintf(out_name_buffer,
+               sizeof(out_name_buffer),
+               sim_config->vtk_filename_format.c_str(),
+               tbslas::get_result_dir().c_str(),
+               sim_config->vtk_filename_prefix.c_str(),
+               "tree2_merged",
+               0);
+      tree2.Write2File(out_name_buffer, sim_config->vtk_order);
     }
+
+    // // =========================================================================
+    // // MERGE TREE1 & TREE2
+    // // =========================================================================
+    // Tree_t merged_tree(comm);
+    // tbslas::ConstructTree<Tree_t>(sim_config->tree_num_point_sources,
+    //                               sim_config->tree_num_points_per_octanct,
+    //                               sim_config->tree_chebyshev_order,
+    //                               sim_config->tree_max_depth,
+    //                               sim_config->tree_adap,
+    //                               sim_config->tree_tolerance,
+    //                               comm,
+    //                               fn_1,
+    //                               1,
+    //                               merged_tree);
+
+
+    // tbslas::MergeTreeRefinement(tree1, merged_tree);
+    // tbslas::MergeTreeRefinement(tree2, merged_tree);
+    // // =========================================================================
+    // //  LINEAR COMNINATION OF TREE VALUES
+    // // =========================================================================
+    // // GET THE TREE PARAMETERS FROM CURRENT TREE
+    // Node_t* n_curr = merged_tree.PostorderFirst();
+    // while (n_curr != NULL) {
+    //   if(!n_curr->IsGhost() && n_curr->IsLeaf())
+    //     break;
+    //   n_curr = merged_tree.PostorderNxt(n_curr);
+    // }
+    // int data_dof = n_curr->DataDOF();
+    // int cheb_deg = n_curr->ChebDeg();
+    // int sdim     = merged_tree.Dim();
+
+    // // COLLECT THE MERGED TREE POINTS
+    // std::vector<double> merged_tree_points_pos;
+    // tbslas::CollectChebTreeGridPoints(merged_tree, merged_tree_points_pos);
+
+    // // EVALUATE TREE 1 AND TREE 2 VALUES AT THE MERGED TREE POINTS
+    // int merged_tree_num_points = merged_tree_points_pos.size()/3;
+
+    // std::vector<double> tree1_points_val(merged_tree_num_points*data_dof);
+    // tbslas::NodeFieldFunctor<double,Tree_t> tree1_func(&tree1);
+    // tree1_func(merged_tree_points_pos.data(),
+    //            merged_tree_num_points,
+    //            tree1_points_val.data());
+
+    // std::vector<double> tree2_points_val(merged_tree_num_points*data_dof);
+    // tbslas::NodeFieldFunctor<double,Tree_t> tree2_func(&tree2);
+    // tree2_func(merged_tree_points_pos.data(),
+    //            merged_tree_num_points,
+    //            tree2_points_val.data());
+
+    // Node_t* n_next = merged_tree.PostorderFirst();
+    // while (n_next != NULL) {
+    //   if(!n_next->IsGhost() && n_next->IsLeaf()) break;
+    //   n_next = merged_tree.PostorderNxt(n_next);
+    // }
+
+    // std::vector<double> merged_tree_points_val(merged_tree_num_points*data_dof);
+    // // combination of tree 1 and tree2 vals
+    // for (int i = 0; i < merged_tree_points_val.size(); i++) {
+    //   merged_tree_points_val[i] = tree1_points_val[i] + tree2_points_val[i];
+    // }
+
+    // int num_points_per_node = (cheb_deg+1)*(cheb_deg+1)*(cheb_deg+1);
+    // int tree_next_node_counter = 0;
+    // while (n_next != NULL) {
+    //   if (n_next->IsLeaf() && !n_next->IsGhost()) {
+    //     pvfmm::cheb_approx<double, double>(
+    //         &merged_tree_points_val[tree_next_node_counter*num_points_per_node*data_dof],
+    //         cheb_deg,
+    //         data_dof,
+    //         &(n_next->ChebData()[0])
+    //                                        );
+    //     tree_next_node_counter++;
+    //   }
+    //   n_next = merged_tree.PostorderNxt(n_next);
+    // }
+
+    // if (sim_config->vtk_save) {
+    //   snprintf(out_name_buffer,
+    //            sizeof(out_name_buffer),
+    //            sim_config->vtk_filename_format.c_str(),
+    //            tbslas::get_result_dir().c_str(),
+    //            sim_config->vtk_filename_prefix.c_str(),
+    //            "merged_tree",
+    //            0);
+    //   merged_tree.Write2File(out_name_buffer, sim_config->vtk_order);
+    // }
 
     //Output Profiling results.
     pvfmm::Profile::print(&comm);
