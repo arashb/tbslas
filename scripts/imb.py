@@ -22,7 +22,8 @@ def generate_command_args(de_init, de_factor, \
                           dt_init, dt_factor, \
                           tn_init, tn_factor, \
                           test_init, test_factor, \
-                              num_steps):
+                          merge_type,         \
+                          num_steps):
     EXEC = os.path.join(TBSLAS_EXAMPLES_BIN_DIR, "advection")
     de_list = [de_init+cnt*de_factor                  for cnt in range(0, num_steps)]
     dt_list = [dt_init*math.pow(dt_factor,float(cnt)) for cnt in range(0,TOL_NUM_STEPS)]
@@ -40,9 +41,10 @@ def generate_command_args(de_init, de_factor, \
                    '-dt'  , str(dt_list[counter]),                            \
                    '-tn'  , str(tn_list[counter]),                            \
                    '-test', str(test_list[counter]),                          \
+                   '-merge', str(merge_type),                          \
                    '-vs'  , str(1),                               \
-                   '-cubic',str(1),                               \
-                   '-cuf'  ,str(8),                               \
+                   # '-cubic',str(1),                               \
+                   # '-cuf'  ,str(8),                               \
                    '-omp' , str(OMP_NUM_THREADS)]
         cmd_args[cmd_id] = [EXEC] + ARGS
         cmd_id = cmd_id + 1
@@ -56,63 +58,60 @@ if __name__ == '__main__':
     TOL_NUM_STEPS = 3
     if len(sys.argv) >= 4:
         TOL_NUM_STEPS   = int(sys.argv[3])
-    # T_END = 1.0
+    for merge_type in range(1,4):
     # ############################################################################
-    # # TEST 1: TEMPORAL ERROR
+    # # TEST 1: V,C depth: [6] config: regular V, regular C
     # ############################################################################
-    de_factor = 2
-    de_init   = 5
-    # tl_factor = 1#0.1
-    # tl_init   = 1e-5
-    dt_factor = 1#0.5
-    dt_init   = 0.25
-    tn_factor = 1.0#/dt_factor
-    tn_init   = 5#T_END/dt_init
-    test_init = 4
-    test_factor = 0;
-    cmd_args = generate_command_args(de_init, de_factor, \
+        de_factor = 2
+        de_init   = 5
+        dt_factor = 1
+        dt_init   = 0.25
+        tn_factor = 1.0
+        tn_init   = 1
+        test_init = 4
+        test_factor = 0;
+        cmd_args = generate_command_args(de_init, de_factor, \
                                      dt_init, dt_factor, \
                                      tn_init, tn_factor, \
                                      test_init, test_factor, \
+                                     merge_type, \
                                      1)
-    execute_commands(cmd_args, 'table1')
+        execute_commands(cmd_args, 'test-1-merge-type-'+str(merge_type))
 
     # ############################################################################
-    # # TEST 2
+    # # TEST 2: V depth: [6] C depth: [5, 7, 9] config: regular V, irregular C
     # ############################################################################
-    de_factor = 2
-    de_init   = 5
-    # tl_factor = 1#0.1
-    # tl_init   = 1e-5
-    dt_factor = 1#0.5
-    dt_init   = 0.25
-    tn_factor = 1.0#/dt_factor
-    tn_init   = 5#T_END/dt_init
-    test_init = 5
-    test_factor = 0;
-    cmd_args = generate_command_args(de_init, de_factor, \
+        de_factor = 2
+        de_init   = 5
+        dt_factor = 1
+        dt_init   = 0.25
+        tn_factor = 1.0
+        tn_init   = 1
+        test_init = 5
+        test_factor = 0;
+        cmd_args = generate_command_args(de_init, de_factor, \
                                      dt_init, dt_factor, \
                                      tn_init, tn_factor, \
                                      test_init, test_factor, \
+                                     merge_type, \
                                      TOL_NUM_STEPS)
-    execute_commands(cmd_args, 'table2')
+        execute_commands(cmd_args, 'test-2-merge-type-'+str(merge_type))
 
     # ############################################################################
-    # # TEST 3
+    # # TEST 3: V,C depth: [5, 7, 9] config: irregular V, irregular C
     # ############################################################################
-    de_factor = 2
-    de_init   = 5
-    # tl_factor = 1#0.1
-    # tl_init   = 1e-5
-    dt_factor = 1#0.5
-    dt_init   = 0.25
-    tn_factor = 1.0#/dt_factor
-    tn_init   = 5#T_END/dt_init
-    test_init = 6
-    test_factor = 0;
-    cmd_args = generate_command_args(de_init, de_factor, \
+        de_factor = 2
+        de_init   = 5
+        dt_factor = 1
+        dt_init   = 0.25
+        tn_factor = 1.0
+        tn_init   = 1
+        test_init = 6
+        test_factor = 0;
+        cmd_args = generate_command_args(de_init, de_factor, \
                                      dt_init, dt_factor, \
                                      tn_init, tn_factor, \
                                      test_init, test_factor, \
+                                     merge_type, \
                                      TOL_NUM_STEPS)
-    execute_commands(cmd_args, 'table3')
+        execute_commands(cmd_args, 'test-3-merge-type-'+str(merge_type))
