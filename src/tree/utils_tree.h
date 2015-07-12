@@ -269,21 +269,6 @@ GetMaxTreeValues(TreeType& tree,
 
 template<typename TreeType>
 void
-GetLocalTreeLeavesMortonIds(TreeType& tree,
-                            std::vector<pvfmm::MortonId>& mids) {
-  typedef typename TreeType::Real_t RealType;
-  typedef typename TreeType::Node_t NodeType;
-
-  NodeType* n_next = tree.PreorderFirst();
-  while (n_next != NULL) {
-    if(!n_next->IsGhost() && n_next->IsLeaf())
-      mids.push_back(n_next->GetMortonId());
-    n_next = tree.PostorderNxt(n_next);
-  }
-}
-
-template<typename TreeType>
-void
 GetTreeMortonIdMins(TreeType& tree,
                     std::vector<pvfmm::MortonId>& mins) {
   typedef typename TreeType::Real_t RealType;
@@ -621,7 +606,7 @@ SemiMergeTree(TreeType& tree1,
   pvfmm::par::HyperQuickSort(lcl_mids_merged, lcl_mids_sorted, *tree1.Comm());
 
   // REMOVE LOCAL DUPLICATES
-  lcl_mids_sorted.erase( unique(lcl_mids_sorted.begin(), lcl_mids_sorted.end()), lcl_mids_sorted.end() );
+  // lcl_mids_sorted.erase( unique(lcl_mids_sorted.begin(), lcl_mids_sorted.end()), lcl_mids_sorted.end() );
 
   // TODO: REMOVE GLOBAL DUPLICATES
 
@@ -637,6 +622,7 @@ SemiMergeTree(TreeType& tree1,
   tree2.RedistNodes(&lcl_mids_sorted[0]);
 }
 
+
 template<typename TreeType>
 void
 MergeTree(TreeType& tree1,
@@ -644,46 +630,19 @@ MergeTree(TreeType& tree1,
   typedef typename TreeType::Real_t RealType;
   typedef typename TreeType::Node_t NodeType;
 
-  // GET TREE LEAVES MORTON IDS
-  std::vector<pvfmm::MortonId> tree1_mids;
-  NodeType* n_in = tree1.PreorderFirst();
-  while (n_in != NULL) {
-    if(!n_in->IsGhost() && n_in->IsLeaf())
-      tree1_mids.push_back(n_in->GetMortonId());
-    n_in = tree1.PreorderNxt(n_in);
+  tbslas::SemiMergeTree(tree1, tree2);
+
+  NodeType* n1 = tree1.PreorderFirst();
+  NodeType* n2 = tree2.PreorderFirst();
+
+  while ( n1 != NULL && n2 != NULL) {
+      if (n1->IsLeaf() && !n2->IsLeaf())
+        n1->Subdivide();
+      if (!n1->IsLeaf() && n2->IsLeaf())
+        n2->Subdivide();
+    n1 = tree1.PreorderNxt(n1);
+    n2 = tree2.PreorderNxt(n2);
   }
-
-  // GET TREE LEAVES MORTON IDS
-  std::vector<pvfmm::MortonId> tree2_mids;
-  NodeType* n_out = tree2.PreorderFirst();
-  while (n_out != NULL) {
-    if(!n_out->IsGhost() && n_out->IsLeaf())
-      tree2_mids.push_back(n_out->GetMortonId());
-    n_out = tree2.PreorderNxt(n_out);
-  }
-
-  // MERGE LOCAL LEAVES MIDS
-  std::vector<pvfmm::MortonId> lcl_mids_merged;
-  lcl_mids_merged.reserve(tree1_mids.size() + tree2_mids.size());
-  lcl_mids_merged.insert(lcl_mids_merged.end(), tree1_mids.begin(), tree1_mids.end());
-  lcl_mids_merged.insert(lcl_mids_merged.end(), tree2_mids.begin(), tree2_mids.end());
-
-  // TODO: REMOVE DUPLICATES
-
-  // SORT & PARTITION
-  std::vector<pvfmm::MortonId> lcl_mids_sorted;
-  pvfmm::par::HyperQuickSort(lcl_mids_merged, lcl_mids_sorted, *tree1.Comm());
-
-  for (int i = 0; i < lcl_mids_sorted.size(); i++) {
-    if(!std::binary_search(tree1_mids.begin(), tree1_mids.end(), lcl_mids_sorted[i]))
-      tree1.FindNode(lcl_mids_sorted[i], true, NULL);
-    if(!std::binary_search(tree2_mids.begin(), tree2_mids.end(), lcl_mids_sorted[i]))
-      tree2.FindNode(lcl_mids_sorted[i], true, NULL);
-  }
-
-  // tree2.FindNode(lcl_mids_sorted[0],true,NULL);
-  tree1.RedistNodes(&lcl_mids_sorted[0]);
-  tree2.RedistNodes(&lcl_mids_sorted[0]);
 }
 
 }  // namespace tbslas

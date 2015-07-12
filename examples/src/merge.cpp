@@ -43,8 +43,10 @@ typedef tbslas::MetaData<std::string,
 double tcurr = 0;
 
 void (*fn_1)(const double* , int , double*)=NULL;
+double fn_1_dof;
 void (*fn_2)(const double* , int , double*)=NULL;
-void (*fn_3)(const double* , int , double*)=NULL;
+double fn_2_dof;
+// void (*fn_3)(const double* , int , double*)=NULL;
 
 template <class Real_t>
 void gaussian_kernel(const Real_t* coord,
@@ -74,6 +76,9 @@ int main (int argc, char **argv) {
   int   test = strtoul(commandline_option(argc, argv, "-test",     "1", false,
                                           "-test <int> = (1)    : 1) Gaussian profile 2) Zalesak disk"),NULL,10);
 
+  int   merge = strtoul(commandline_option(argc, argv, "-merge",     "1", false,
+                                           "-merge <int> = (1)    : 1) no merge 2) complete merge 3) Semi-Merge"),NULL,10);
+
   {
     tbslas::SimConfig* sim_config       = tbslas::SimConfigSingleton::Instance();
     pvfmm::Profile::Enable(sim_config->profile);
@@ -90,9 +95,19 @@ int main (int argc, char **argv) {
     switch(test) {
       case 1:
         fn_1 = gaussian_kernel<double>;//tbslas::get_linear_field_y<double,3>;//tbslas::get_vorticity_field<double,3>;
+        fn_1_dof = 1;
         fn_2 = get_gaussian_field_cylinder_atT<double,3>;
+        fn_2_dof = 1;
         bc = pvfmm::FreeSpace;
         break;
+      case 2:
+        fn_1 = tbslas::get_linear_field_y<double,3>;//tbslas::get_vorticity_field<double,3>;
+        fn_1_dof = 1;
+        fn_2 = get_gaussian_field_cylinder_atT<double,3>;
+        fn_2_dof = 1;
+        bc = pvfmm::FreeSpace;
+        break;
+
     }
     // =========================================================================
     // SIMULATION PARAMETERS
@@ -114,7 +129,7 @@ int main (int argc, char **argv) {
                                   sim_config->tree_tolerance,
                                   comm,
                                   fn_1,
-                                  1,
+                                  fn_1_dof,
                                   tree1);
     char out_name_buffer[300];
     if (sim_config->vtk_save) {
@@ -140,7 +155,7 @@ int main (int argc, char **argv) {
                                   sim_config->tree_tolerance,
                                   comm,
                                   fn_2,
-                                  1,
+                                  fn_2_dof,
                                   tree2);
     if (sim_config->vtk_save) {
       snprintf(out_name_buffer,
@@ -156,10 +171,18 @@ int main (int argc, char **argv) {
     // =========================================================================
     // MERGE TREE1 & TREE2
     // =========================================================================
-    tbslas::SemiMergeTree(tree1, tree2);
-    // tbslas::MergeTree(tree1, tree2);
-    // tbslas::MergeTreeRefinement(tree1, tree2);
-    // tbslas::MergeTreeRefinement(tree2, tree1);
+    switch(merge) {
+      case 2:
+        pvfmm::Profile::Tic("Merge", &sim_config->comm, false, 5);
+        tbslas::MergeTree(tree1, tree2);
+        pvfmm::Profile::Toc();
+        break;
+      case 3:
+        pvfmm::Profile::Tic("SemiMerge", &sim_config->comm, false, 5);
+        tbslas::SemiMergeTree(tree1, tree2);
+        pvfmm::Profile::Toc();
+        break;
+    }
 
     if (sim_config->vtk_save) {
       snprintf(out_name_buffer,
