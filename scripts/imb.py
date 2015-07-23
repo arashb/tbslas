@@ -55,14 +55,14 @@ def generate_command_args(de_init, de_factor, \
 ################################################################################
 if __name__ == '__main__':
     prepare_environment(OUTPUT_PREFIX)
-    TOL_NUM_STEPS = 3
+    TOL_NUM_STEPS = 2
     if len(sys.argv) >= 4:
         TOL_NUM_STEPS   = int(sys.argv[3])
     for merge_type in range(1,4):
     # ############################################################################
     # # TEST 1: V,C depth: [6] config: regular V, regular C
     # ############################################################################
-        de_factor = 2
+        de_factor = 1
         de_init   = 5
         dt_factor = 1
         dt_init   = 0.25
@@ -81,7 +81,7 @@ if __name__ == '__main__':
     # ############################################################################
     # # TEST 2: V depth: [6] C depth: [5, 7, 9] config: regular V, irregular C
     # ############################################################################
-        de_factor = 2
+        de_factor = 1
         de_init   = 5
         dt_factor = 1
         dt_init   = 0.25
@@ -100,7 +100,7 @@ if __name__ == '__main__':
     # ############################################################################
     # # TEST 3: V,C depth: [5, 7, 9] config: irregular V, irregular C
     # ############################################################################
-        de_factor = 2
+        de_factor = 1
         de_init   = 5
         dt_factor = 1
         dt_init   = 0.25

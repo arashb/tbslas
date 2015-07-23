@@ -28,7 +28,7 @@ IntegrateRK2(FieldFunctor field_fn,
              const real_t dt,
              std::vector<real_t>& xsol) {
   tbslas::SimConfig* sim_config = tbslas::SimConfigSingleton::Instance();
-  pvfmm::Profile::Tic("IntegrateRK2", &sim_config->comm, false,5);
+  // pvfmm::Profile::Tic("IntegrateRK2", &sim_config->comm, false,5);
   int num_points = xinit.size()/3;
   std::vector<real_t> xtmp(xinit.size());
   std::vector<real_t> vtmp(xinit.size());
@@ -44,7 +44,7 @@ IntegrateRK2(FieldFunctor field_fn,
     xsol[i] = xinit[i] + dt*vtmp[i];
 
   pvfmm::Profile::Add_FLOP(2*3*xinit.size());
-  pvfmm::Profile::Toc();
+  // pvfmm::Profile::Toc();
 }
 
 template<typename real_t, typename FieldFunctor>

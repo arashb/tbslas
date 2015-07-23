@@ -169,13 +169,14 @@ void EvalTree(Tree_t* tree,
   if (!myrank) {
     std::cout << "TRG_CNT: ";
     for (int i = 0 ; i < np; i++)
-      std::cout << " " << rbuf[i]; 
+      std::cout << " " << rbuf[i];
     std::cout << std::endl;
   }
   delete rbuf;
 
-  static pvfmm::Vector<Real_t> trg_value; trg_value.Resize(trg_mid.Dim()*data_dof);
+  static pvfmm::Vector<Real_t> trg_value;
   pvfmm::Profile::Tic("Evaluation", &sim_config->comm, false, 5);
+  trg_value.Resize(trg_mid.Dim()*data_dof);
   { // Read tree data
     std::vector<size_t> part_indx(nodes.size()+1);
     part_indx[nodes.size()]=trg_mid.Dim();
