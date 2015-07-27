@@ -32,7 +32,7 @@ def post_process_profile_node(node):
             node.values.append(imb_val)
     return node
 
-def post_process_profile_data(mydoc, file_pp, PRINT_PRFL_HEADER = True):
+def post_process_profile_data(mydoc, file_pp, PRINT_HEADER = True):
     """
     post processing of data
     Arguments:
@@ -46,11 +46,27 @@ def post_process_profile_data(mydoc, file_pp, PRINT_PRFL_HEADER = True):
                 time_imb = "{0:>10.4f}".format( float(node.values['t_max'])/float(node.values['t_min']) )
                 node.values['t_imb'] = time_imb
                 if '+-EvalTree' in node.title:
+                    # COMPUTE THE EVAL TREE MIN DIFFERENTELY
+                    node_indx = mydoc.node_list.index(node)
+                    t_min = 0.0;
+                    for i in range(1, 6):
+                        # print mydoc.node_list[node_indx+i].title
+                        t_min += float(mydoc.node_list[node_indx+i].values['t_min'])
+                    node.values['t_min'] = str(t_min)
+                    time_imb = "{0:>10.4f}".format( float(node.values['t_max'])/float(node.values['t_min']))
+                    node.values['t_imb'] = time_imb
                     max_points = max(mydoc.target_points_list[eval_tree_counter])
                     min_points = min(mydoc.target_points_list[eval_tree_counter])
                     target_points_imb = "{0:>10.4f}".format( float(max_points)/ min_points) 
                     node.values['p_imb'] = target_points_imb
                     eval_tree_counter += 1
+                if PRINT_HEADER:
+                    header_string_format = "{:<50}".format('# FUNCTION')
+                    for key, val in node.values.iteritems():
+                        header_string_format += "{:>10}".format(key)
+                    header_string_format += "\n"
+                    file_pp.write(header_string_format)
+                    PRINT_HEADER = False
                 node.print_me(file_pp)
 
 def post_process_scaling_data(mydoc, file_pp, PRINT_HEADER = True):
