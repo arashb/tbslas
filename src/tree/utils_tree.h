@@ -311,10 +311,28 @@ CountNumLeafNodes(TreeType& tree) {
       num_leaf_nodes++;
     n_next = tree.PostorderNxt(n_next);
   }
-  int total_num_leaf_nodes = 0;
-  MPI_Allreduce(&num_leaf_nodes, &total_num_leaf_nodes, 1, MPI_INT,
-             MPI_SUM, *tree.Comm());
+  // int total_num_leaf_nodes = 0;
+  // MPI_Allreduce(&num_leaf_nodes, &total_num_leaf_nodes, 1, MPI_INT,
+  //            MPI_SUM, *tree.Comm());
 
+  /* print number of leaf nodes in current process */
+  int* rbuf = (int *)malloc(np*sizeof(int));
+  MPI_Allgather(&num_leaf_nodes, 1, MPI_INT, rbuf, 1, MPI_INT, *tree.Comm());
+  if (!myrank) {
+    std::cout << "# LEAVES_CNT: ";
+    for (int i = 0 ; i < np; i++) {
+      std::cout << " " << rbuf[i];
+    }
+    std::cout << std::endl;
+  }
+  int total_num_leaf_nodes = 0;
+  for (int i = 0; i < np; i++) {
+    total_num_leaf_nodes += rbuf[i];
+  }
+  if (!myrank)
+    std::cout << "# TOT_LEAVES_CNT: " << total_num_leaf_nodes << std::endl;
+
+  delete rbuf;
   return total_num_leaf_nodes;
 }
 

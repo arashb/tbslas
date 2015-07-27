@@ -274,7 +274,7 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
     // **********************************************************************
     // SOLVE ADVECTION: SEMI-LAGRANGIAN
     // **********************************************************************
-    pvfmm::Profile::Tic("SolveAdv", &sim_config->comm, false, 5);
+    pvfmm::Profile::Tic("SolveSemilag", &sim_config->comm, false, 5);
     tbslas::SolveSemilagInSitu(tvel_curr,
                                *tree,
                                1,

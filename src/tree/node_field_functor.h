@@ -165,7 +165,7 @@ void EvalTree(Tree_t* tree,
   /* print number of departure points in current process */
   int trg_cnt = trg_mid.Dim();
   int* rbuf = (int *)malloc(np*sizeof(int));
-  MPI_Gather(&trg_mid, 1, MPI_INT, rbuf, 1, MPI_INT, 0, *tree->Comm());
+  MPI_Gather(&trg_cnt, 1, MPI_INT, rbuf, 1, MPI_INT, 0, *tree->Comm());
   if (!myrank) {
     std::cout << "TRG_CNT: ";
     for (int i = 0 ; i < np; i++)

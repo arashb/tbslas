@@ -161,6 +161,11 @@ int main (int argc, char **argv) {
         fn_con = gaussian_kernel<double>;
         bc = pvfmm::FreeSpace;
         break;
+      case 7:  // scaling test case -> uniform fields
+        fn_vel = tbslas::get_vel_field_hom_x<double,3>;
+        fn_con = tbslas::get_linear_field_y<double,3>;
+        bc = pvfmm::Periodic;
+        break;
     }
 
     // =========================================================================
@@ -264,6 +269,8 @@ int main (int argc, char **argv) {
         break;
     }
 
+    int num_leaves = tbslas::CountNumLeafNodes(tconc_curr);
+
     int timestep = 1;
     for (; timestep < sim_config->total_num_timestep+1; timestep++) {
       pvfmm::Profile::Tic("SolveSemilag", &sim_config->comm, false, 5);
@@ -309,7 +316,6 @@ int main (int argc, char **argv) {
                             1,
                             al2,rl2,ali,rli,
                             std::string("Output"));
-    int num_leaves = tbslas::CountNumLeafNodes(tconc_curr);
 
     // =========================================================================
     // REPORT RESULTS

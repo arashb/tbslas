@@ -32,10 +32,6 @@ HOSTNAME      = socket.gethostname()
 TIMESTR       = time.strftime("%Y%m%d-%H%M%S")
 RESULT_TAG_HEADER  = '#TBSLAS-HEADER: '
 RESULT_TAG         = '#TBSLAS-RESULT: '
-PROFILE_TAG_HEADER = 't_min'
-PROFILE_TAG_LIST   = ['+-RunSemilag', '+-RunFMM', '+-EvalTree', \
-                      '+-MortonId', '+-ScatterIndex', '+-ScatterForward',\
-                      '+-Evaluation', '+-ScatterReverse', 'TRG_CNT']
 
 ################################################################################
 # COMMANDLINE ARGUMENTS
@@ -46,7 +42,7 @@ if len(sys.argv) < 3:
     print USAGE
     sys.exit()
 if len(sys.argv) >= 3:
-    MPI_NUM_PROCESS = int(sys.argv[1])
+    MPI_TOTAL_NUM_PORCESSES = int(sys.argv[1])
     OMP_NUM_THREADS = int(sys.argv[2])
 
 ################################################################################
@@ -82,13 +78,13 @@ def prepare_environment(output_prefix):
     print "STORING OUTPUT IN: " + RESULT_DIR
     TBSLAS_RESULT_DIR_PREFIX = os.path.join(RESULT_DIR, output_prefix)
 
-def determine_command_prefix():
+def determine_command_prefix(mpi_num_procs):
     if 'stampede' in HOSTNAME:
-        return ['ibrun', 'tacc_affinity']
+        return ['ibrun', '-np', str(mpi_num_procs), 'tacc_affinity']
     elif 'maverick' in HOSTNAME:
-        return ['ibrun', 'tacc_affinity']
+        return ['ibrun', '-np', str(mpi_num_procs), 'tacc_affinity']
     else:
-        return ['mpirun', '-n', str(MPI_NUM_PROCESS)]
+        return ['mpirun', '-np', str(mpi_num_procs)]
 
 def analyse_command_output(output, \
                            file_dt, file_pr, file_out, file_pp, \
@@ -111,7 +107,7 @@ def analyse_command_output(output, \
     mydoc.print_me(file_pr)
     pp.post_process_profile_data(mydoc, file_pp, PRINT_PRFL_HEADER);
 
-def execute_commands(cmd_args, id):
+def execute_commands(cmds, id):
     id = SCRIPT_ID+'-'+id
     sys.stdout.write("##############################\n")
     sys.stdout.write("# "+id+"\n")
@@ -124,16 +120,16 @@ def execute_commands(cmd_args, id):
         os.makedirs(TBSLAS_RESULT_DIR_PREFIX)
     file_dt = open(os.path.join(TBSLAS_RESULT_DIR_PREFIX, id+'.data'), 'w')
     file_pr = open(os.path.join(TBSLAS_RESULT_DIR_PREFIX, id+'.profile'), 'w')
-    file_pp  = open(os.path.join(TBSLAS_RESULT_DIR_PREFIX, id+'.profile.pp'), 'w')
+    file_pp = open(os.path.join(TBSLAS_RESULT_DIR_PREFIX, id+'.profile.pp'), 'w')
 
     # output current git revision
     revision = subprocess.check_output(["git", "describe"])
     file_dt.write('# REVISION: ' + revision)
     file_pr.write('# REVISION: ' + revision)
-    file_pp.write( '# REVISION: ' + revision)
+    file_pp.write('# REVISION: ' + revision)
 
     # execute generated commands
-    for counter, args in cmd_args.iteritems():
+    for counter, cmd in cmds.iteritems():
         out_dir_name = \
           os.path.join(TBSLAS_RESULT_DIR_PREFIX,'{0}-cmd{1:03}'.format(id,counter))
         out_file_name = out_dir_name+'.out'
@@ -141,13 +137,14 @@ def execute_commands(cmd_args, id):
         os.environ['TBSLAS_RESULT_DIR'] = out_dir_name
         os.makedirs(out_dir_name)
 
-        # TODO: move this part
-        cmd = determine_command_prefix() + args
-
         # output command
         cmd_msg = '# CMD: ' +  ' '.join(cmd) + '\n'
+
         sys.stdout.write('# ============================================================================================================================================\n')
         sys.stdout.write(cmd_msg)
+
+        file_out.write('# ============================================================================================================================================\n')
+        file_out.write(cmd_msg)
 
         file_dt.write('# ============================================================================================================================================\n')
         file_dt.write(cmd_msg)
@@ -165,7 +162,7 @@ def execute_commands(cmd_args, id):
                              stderr=subprocess.STDOUT)
 
         # analyse command
-        analyse_command_output(p.stdout.readlines(),                  \
+        analyse_command_output(p.stdout.readlines(),                \
                                file_dt, file_pr, file_out, file_pp, \
                                PRINT_RSLT_HEADER, PRINT_PRFL_HEADER)
         PRINT_RSLT_HEADER = False
