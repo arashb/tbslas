@@ -37,7 +37,7 @@ pattern_prof_value = re.compile(pattern_prof_value_string)
 pattern_prof_title_string = "([\|\s]*\+\-\w+)"
 pattern_prof_title = re.compile(pattern_prof_title_string)
 
-pattern_np_string = "-np\s(\d+\.\d+)"
+pattern_np_string = "-np\s(\d+\.?\d*)"
 pattern_np = re.compile(pattern_np_string)
 
 class pnode(object):
@@ -80,6 +80,7 @@ class pdoc(object):
                 self.target_points_list.append([int(trg_cnt) for trg_cnt in trg_cnt_match])
             if line.startswith('# CMD:'):
                 np_match = pattern_np.findall(line)
+                print np_match
                 self.np = np_match[0]
             # CATCH PROFILE HEADER
             header = self.__parse_profile_header(line)

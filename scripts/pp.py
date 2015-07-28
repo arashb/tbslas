@@ -18,7 +18,10 @@ import sys
 import os
 import parser
 
-SCALE_TAG_LIST = ['+-SolveSemilag', '+-ConstructTree']
+SCALE_TAG_LIST = ['+-SolveSemilag', \
+                  '+-FMM', \
+                  '+-MergeTree' \
+                      ]
 PROFILE_TAG_LIST = ['+-EvalTree', \
                     '+-Evaluation'\
                     ]
@@ -81,10 +84,10 @@ def post_process_scaling_data(mydoc, file_pp, PRINT_HEADER = True):
 
     for scale_tag in SCALE_TAG_LIST:
         for node in mydoc.node_list:
-            if node.title == scale_tag:
+            if scale_tag in node.title:
                 print node.title
                 ppnode_values[node.title] = node.values['t_avg']
-                if node.title == '+-SolveSemilag':
+                if '+-SolveSemilag' in node.title:
                     ppnode_values['f/s_total'] = node.values['f/s_total']
                     print node.values['f/s_total']
                 break
@@ -100,8 +103,12 @@ def post_process_scaling_data(mydoc, file_pp, PRINT_HEADER = True):
 def list_raw_files(raw_dir_name):
     """
     """
-    return sorted(glob.glob(raw_dir_name + "*.out"))
-
+    import os
+    outfiles = [os.path.join(root, filename) \
+              for root, dirnames, filenames in os.walk(raw_dir_name) \
+              for filename in filenames if filename.endswith('.out')]
+    return sorted(outfiles)
+    # return sorted(glob.glob(raw_dir_name + "*.out"))
 
 def post_process(output, file_pp, pp_func, PRINT_HEADER):
     # PARSE PROFILE OUTPUT

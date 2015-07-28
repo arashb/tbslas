@@ -69,8 +69,8 @@ void fn_input_t1(const Real_t* coord,
 
 template <class Real_t>
 void fn_input_t1_hom(const Real_t* coord,
-		      int n,
-		      Real_t* out) {
+              int n,
+              Real_t* out) {
   const Real_t amp = 1e-2;
   const Real_t xc = 0.5+(tcurr-tcurr_init)*-0.5;
   const Real_t yc = 0.5;
@@ -161,7 +161,6 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
       mykernel  = &modified_laplace_kernel_d;
       bndry = pvfmm::FreeSpace;
       break;
-
     case 3:
       fn_input_ = fn_input_t1_hom<Real_t>;
       fn_poten_ = fn_input_t1_hom<Real_t>;
@@ -296,7 +295,7 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
 
   tcurr += TBSLAS_DT;
 
-  //Create previous timestep Tree and initialize with input data.
+  //Create currnt timestep Tree and initialize with input data.
   FMM_Tree_t* treec = new FMM_Tree_t(comm);
   treec->Initialize(&tree_data);
   treec->InitFMM_Tree(false,bndry);
@@ -322,21 +321,15 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
     // =========================================================================
     // CREATE THE NEW TREE BEI MERGING THE PREVIOUS TREE & THE CURRENT TREE
     // =========================================================================
-    FMM_Tree_t* treen = new FMM_Tree_t(comm);
-    tbslas::ConstructTree<FMM_Tree_t>(sim_config->tree_num_point_sources,
-                                      sim_config->tree_num_points_per_octanct,
-                                      sim_config->tree_chebyshev_order,
-                                      sim_config->tree_max_depth,
-                                      sim_config->tree_adap,
-                                      sim_config->tree_tolerance,
-                                      comm,
-                                      fn_1,
-                                      1,
-                                      *treen);
+    // MERGE TREES
+    pvfmm::Profile::Tic("MergeTree",&comm,true);
+    tbslas::MergeTree(*treec, *treep);
+    pvfmm::Profile::Toc();
 
-    tbslas::MergeTreeRefinement(*treep, *treen);
-    tbslas::MergeTreeRefinement(*treec, *treen);
-    treen->RedistNodes();
+    // use previous time step's tree for the next time step
+    FMM_Tree_t* treen = treep;
+
+    // UPDATE THE SIMULATION CURRENT TIME
     tcurr += TBSLAS_DT;
 
     // =========================================================================
@@ -353,6 +346,7 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
     // int cheb_deg = n_curr->ChebDeg();
     int sdim     = treen->Dim();
 
+    pvfmm::Profile::Tic("SolveSemilag",&comm,true);
     // COLLECT THE MERGED TREE POINTS
     std::vector<double> treen_points_pos;
     tbslas::CollectChebTreeGridPoints(*treen, treen_points_pos);
@@ -396,6 +390,7 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
       treen_points_val[i] = ccoeff*treec_points_val[i] - pcoeff*treep_points_val[i] ;
     }
 
+    // use the previous time step's tree as the tree for the next time step
     FMMNode_t* n_next = treen->PostorderFirst();
     while (n_next != NULL) {
       if(!n_next->IsGhost() && n_next->IsLeaf()) break;
@@ -416,6 +411,8 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
       }
       n_next = treen->PostorderNxt(n_next);
     }
+    pvfmm::Profile::Toc();
+
     if (sim_config->vtk_save) {
       treen->Write2File(tbslas::GetVTKFileName(timestep, "next").c_str(), sim_config->vtk_order);
     }
@@ -428,16 +425,19 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
     for(int i = 0; i < ncurr_list.size(); i++) {
       ncurr_list[i]->input_fn = (void (*)(const Real_t* , int , Real_t*))NULL;
     }
+    pvfmm::Profile::Tic("FMM",&comm,true);
     treen->InitFMM_Tree(false,bndry);
     treen->SetupFMM(fmm_mat);
     treen->RunFMM();
     treen->Copy_FMMOutput(); //Copy FMM output to tree Data.
+    pvfmm::Profile::Toc();
+
     treen->RefineTree();
+
     // Write2File
     if (sim_config->vtk_save) {
       treen->Write2File(tbslas::GetVTKFileName(timestep, sim_config->vtk_filename_variable).c_str(), sim_config->vtk_order);
     }
-    delete treep;
     treep = treec;
     treec = treen;
   }
@@ -479,6 +479,7 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
 
     Rep::Report();
   }
+
   // **********************************************************************
   // CLEAN UP MEMORY
   // **********************************************************************

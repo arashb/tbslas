@@ -23,19 +23,20 @@ def generate_command_args(tl_init, tl_factor, \
                           tn_init, tn_factor, \
                           np_list, np_factor, \
                           num_steps):
-    EXEC = os.path.join(utils.TBSLAS_EXAMPLES_BIN_DIR, "advection")
+    EXEC = os.path.join(utils.TBSLAS_EXAMPLES_BIN_DIR, "advdiff-ss")
 
     tl_list = [tl_init*math.pow(tl_factor,float(cnt)) for cnt in range(0, num_steps)]
     dt_list = [dt_init*math.pow(dt_factor,float(cnt)) for cnt in range(0, num_steps)]
     tn_list = [tn_init*math.pow(tn_factor,float(cnt)) for cnt in range(0, num_steps)]
-    np_list = [np_init*math.pow(np_factor,float(cnt)) for cnt in range(0, num_steps)]
+    # np_list = [np_init*math.pow(np_factor,float(cnt)) for cnt in range(0, num_steps)]
+    np_list = [utils.MPI_TOTAL_NUM_PORCESSES          for cnt in range(0, num_steps)]
     nt_list = [utils.OMP_NUM_THREADS                  for cnt in range(0, num_steps)]
 
     # generate a dictionary data type of commands
     cmd_args = OrderedDict()
     cmd_id = 1;
     for counter in range(0,num_steps):
-        ARGS    = ['-N'   , str(8**( math.ceil(math.log(max(np_list),8))+1 ) ), \
+        ARGS    = ['-N'   , str(8**5 ), \
                    '-tol' , str(tl_list[counter]),                              \
                    '-dt'  , str(2*dt_list[counter]),                            \
                    '-tn'  , str(tn_list[counter]),                              \
@@ -50,7 +51,7 @@ def generate_command_args(tl_init, tl_factor, \
 ################################################################################
 if __name__ == '__main__':
     utils.prepare_environment(utils.OUTPUT_PREFIX)
-    TOL_NUM_STEPS = 8
+    TOL_NUM_STEPS = 1
     if len(sys.argv) >= 4:
         TOL_NUM_STEPS   = int(sys.argv[3])
 
@@ -58,7 +59,7 @@ if __name__ == '__main__':
     # TEST 1: STRONG SCALING
     ############################################################################
     tl_factor = 1
-    tl_init   = 1e-5
+    tl_init   = 1e-0
     dt_factor = 1
     dt_init   = 0.25
     tn_factor = 1
