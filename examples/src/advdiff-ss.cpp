@@ -105,18 +105,6 @@ void fn_poten_t2(const Real_t* coord,
                           out);
 }
 
-template<class _FMM_Tree_Type,
-         class _FMM_Mat_Type>
-void
-RunFMM(_FMM_Tree_Type* tree,
-       _FMM_Mat_Type* fmm_mat,
-       pvfmm::BoundaryType bndry) {
-  tree->InitFMM_Tree(adap,bndry);
-  tree->SetupFMM(fmm_mat);
-  tree->RunFMM();
-  tree->Copy_FMMOutput(); //Copy FMM output to tree Data.
-}
-
 template <class Real_t>
 void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
                    int cheb_deg, int depth, bool adap, Real_t tol, MPI_Comm comm) {

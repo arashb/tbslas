@@ -18,6 +18,8 @@ import sys
 from collections import OrderedDict
 import utils
 
+TREE_MAX_DEPTH = 8
+
 def generate_command_args(tl_init, tl_factor, \
                           dt_init, dt_factor, \
                           tn_init, tn_factor, \
@@ -38,7 +40,7 @@ def generate_command_args(tl_init, tl_factor, \
     for counter in range(0,num_steps):
         ARGS    = ['-N'   , str(8**5 ), \
                    '-tol' , str(tl_list[counter]),                              \
-                   '-d', str(8), \
+                   '-d', str(TREE_MAX_DEPTH), \
                    '-dt'  , str(2*dt_list[counter]),                            \
                    '-tn'  , str(tn_list[counter]),                              \
                    '-vs'  , str(1),                                             \
@@ -56,7 +58,7 @@ if __name__ == '__main__':
     utils.prepare_environment(utils.OUTPUT_PREFIX)
     TOL_NUM_STEPS = 1
     if len(sys.argv) >= 4:
-        TOL_NUM_STEPS   = int(sys.argv[3])
+        TREE_MAX_DEPTH   = int(sys.argv[3])
 
     ############################################################################
     # TEST 1: STRONG SCALING

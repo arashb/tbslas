@@ -17,6 +17,7 @@ import glob
 import sys
 import os
 import parser
+import copy
 
 SCALE_TAG_LIST = ['+-AdvDif',\
                   # '+-InitFMM_Cheb', \
@@ -125,10 +126,55 @@ if __name__ == '__main__':
         sys.exit()
     raw_file_names = list_raw_files(raw_dir_name)
     print raw_file_names
-    file_pp = open(os.path.join(raw_dir_name, "sscal"+'.pp'), 'w')
+    file_pp_path = os.path.join(raw_dir_name, "sscal"+'.pp')
+    file_pp = open(file_pp_path, 'w')
 
+    # create scalability output file
     PRINT_HEADER = True
     for file_name in raw_file_names:
         f = open(file_name, 'r')
         post_process(f, file_pp, post_process_scaling_data, PRINT_HEADER)
         PRINT_HEADER = False
+
+    file_pp.close()
+
+    # create efficiency output file
+    file_eff_path = os.path.join(raw_dir_name, "eff"+'.pp')
+    file_eff = open(file_eff_path, 'w')
+
+    file_eff_input = open(file_pp_path, 'r')
+    table = []
+    num_col = 0
+    for line in file_eff_input:
+        if line.startswith("#"):
+            continue
+        if line.startswith("NP"):
+            titles = line.split();
+            num_col = len(titles)
+        else:
+            vals = line.split()
+            if len(vals) == num_col:
+                table.append(line.split())
+    # print header
+    string_format = ""
+    for val in titles:
+            string_format += "{:>10}".format(val)
+    string_format += "\n"
+    file_eff.write(string_format)
+
+    eff_table =  copy.deepcopy(table)
+    num_rows = len(table)
+    for c in range(0,num_col):
+        for r in range(0,num_rows):
+            np_fact = float(table[r][0])/float(table[0][0])
+            if c == 0:
+                eff_table[r][c] = float(table[r][c])
+            else:
+                eff_table[r][c] = float(table[0][c])/float(table[r][c])/np_fact
+
+    for li in eff_table:
+        string_format = ""
+        for val in li:
+            string_format += "{0:>10.4f}".format(val)
+        string_format += "\n"
+        file_eff.write(string_format)
