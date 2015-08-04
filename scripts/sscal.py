@@ -24,8 +24,9 @@ def generate_command_args(tl_init, tl_factor, \
                           dt_init, dt_factor, \
                           tn_init, tn_factor, \
                           np_list, np_factor, \
+                          merge_type, \
                           num_steps):
-    EXEC = os.path.join(utils.TBSLAS_EXAMPLES_BIN_DIR, "advdiff-ss")
+    EXEC = os.path.join(utils.TBSLAS_EXAMPLES_BIN_DIR, "advdiff")
 
     tl_list = [tl_init*math.pow(tl_factor,float(cnt)) for cnt in range(0, num_steps)]
     dt_list = [dt_init*math.pow(dt_factor,float(cnt)) for cnt in range(0, num_steps)]
@@ -38,15 +39,17 @@ def generate_command_args(tl_init, tl_factor, \
     cmd_args = OrderedDict()
     cmd_id = 1;
     for counter in range(0,num_steps):
-        ARGS    = ['-N'   , str(8**5 ), \
-                   '-tol' , str(tl_list[counter]),                              \
-                   '-d', str(TREE_MAX_DEPTH), \
-                   '-dt'  , str(2*dt_list[counter]),                            \
-                   '-tn'  , str(tn_list[counter]),                              \
-                   '-vs'  , str(1),                                             \
-                   '-omp' , str(nt_list[counter]),
-                   '-cubic', str(1),
-                   '-cuf', str(4)]
+        ARGS    = ['-N'    , str(8**5 ), \
+                   '-tol'  , str(tl_list[counter]),                              \
+                   '-d'    , str(TREE_MAX_DEPTH), \
+                   '-dt'   , str(2*dt_list[counter]),                            \
+                   '-tn'   , str(tn_list[counter]),                              \
+                   '-vs'   , str(1),                                             \
+                   '-omp'  , str(nt_list[counter]),\
+                   '-cubic', str(1),\
+                   '-cuf'  , str(4)\
+                   '-merge', str(merge_type)\
+                   ]
         cmd_args[cmd_id] = utils.determine_command_prefix(np_list[counter]) + [EXEC] + ARGS
         cmd_id = cmd_id + 1
     return cmd_args
@@ -71,10 +74,51 @@ if __name__ == '__main__':
     tn_init   = 1
     np_factor = 2
     np_init   = 1
-
+    merge_type = 1
     cmd_args = generate_command_args(tl_init, tl_factor, \
                                      dt_init, dt_factor, \
                                      tn_init, tn_factor, \
                                      np_init, np_factor, \
+                                     merge_type,\
                                      TOL_NUM_STEPS)
-    utils.execute_commands(cmd_args,'table1')
+    utils.execute_commands(cmd_args,'merge-type-1')
+
+    ############################################################################
+    # TEST 2: STRONG SCALING
+    ############################################################################
+    tl_factor = 1
+    tl_init   = 1e-0
+    dt_factor = 1
+    dt_init   = 0.25
+    tn_factor = 1
+    tn_init   = 1
+    np_factor = 2
+    np_init   = 1
+    merge_type = 2
+    cmd_args = generate_command_args(tl_init, tl_factor, \
+                                     dt_init, dt_factor, \
+                                     tn_init, tn_factor, \
+                                     np_init, np_factor, \
+                                     merge_type,\
+                                     TOL_NUM_STEPS)
+    utils.execute_commands(cmd_args,'merge-type-2')
+
+    ############################################################################
+    # TEST 3: STRONG SCALING
+    ############################################################################
+    tl_factor = 1
+    tl_init   = 1e-0
+    dt_factor = 1
+    dt_init   = 0.25
+    tn_factor = 1
+    tn_init   = 1
+    np_factor = 2
+    np_init   = 1
+    merge_type = 3
+    cmd_args = generate_command_args(tl_init, tl_factor, \
+                                     dt_init, dt_factor, \
+                                     tn_init, tn_factor, \
+                                     np_init, np_factor, \
+                                     merge_type,\
+                                     TOL_NUM_STEPS)
+    utils.execute_commands(cmd_args,'merge-type-3')

@@ -204,28 +204,6 @@ int main (int argc, char **argv) {
                                   fn_con,
                                   1,
                                   tconc_curr);
-    double in_al2,in_rl2,in_ali,in_rli;
-    CheckChebOutput<Tree_t>(&tconc_curr,
-                            fn_con,
-                            1,
-                            in_al2,in_rl2,in_ali,in_rli,
-                            std::string("Input"));
-    typedef tbslas::Reporter<double> Rep;
-    if(!myrank) {
-      Rep::AddData("TOL", sim_config->tree_tolerance);
-      Rep::AddData("ChbOrder", sim_config->tree_chebyshev_order);
-      Rep::AddData("MaxDEPTHC", (max_depth_con)?max_depth_con:sim_config->tree_max_depth);
-      Rep::AddData("MaxDEPTHV", (max_depth_vel)?max_depth_vel:sim_config->tree_max_depth);
-
-      Rep::AddData("DT", sim_config->dt);
-      Rep::AddData("TN", sim_config->total_num_timestep);
-
-      Rep::AddData("InAL2", in_al2);
-      Rep::AddData("InRL2", in_rl2);
-      Rep::AddData("InALINF", in_ali);
-      Rep::AddData("InRLINF", in_rli);
-    }
-
     char out_name_buffer[300];
     if (sim_config->vtk_save) {
       snprintf(out_name_buffer,
@@ -258,22 +236,45 @@ int main (int argc, char **argv) {
 
     switch(merge) {
       case 2:
-        pvfmm::Profile::Tic("Merge", &sim_config->comm, false, 5);
+        pvfmm::Profile::Tic("CMerge", &sim_config->comm, false, 5);
         tbslas::MergeTree(tvel_curr, tconc_curr);
         pvfmm::Profile::Toc();
         break;
       case 3:
-        pvfmm::Profile::Tic("SemiMerge", &sim_config->comm, false, 5);
+        pvfmm::Profile::Tic("SMerge", &sim_config->comm, false, 5);
         tbslas::SemiMergeTree(tvel_curr, tconc_curr);
         pvfmm::Profile::Toc();
         break;
     }
 
+    double in_al2,in_rl2,in_ali,in_rli;
+    CheckChebOutput<Tree_t>(&tconc_curr,
+                            fn_con,
+                            1,
+                            in_al2,in_rl2,in_ali,in_rli,
+                            std::string("Input"));
+    typedef tbslas::Reporter<double> Rep;
+    if(!myrank) {
+      Rep::AddData("TOL", sim_config->tree_tolerance);
+      Rep::AddData("ChbOrder", sim_config->tree_chebyshev_order);
+      Rep::AddData("MaxDEPTHC", (max_depth_con)?max_depth_con:sim_config->tree_max_depth);
+      Rep::AddData("MaxDEPTHV", (max_depth_vel)?max_depth_vel:sim_config->tree_max_depth);
+
+      Rep::AddData("DT", sim_config->dt);
+      Rep::AddData("TN", sim_config->total_num_timestep);
+
+      Rep::AddData("InAL2", in_al2);
+      Rep::AddData("InRL2", in_rl2);
+      Rep::AddData("InALINF", in_ali);
+      Rep::AddData("InRLINF", in_rli);
+    }
+
+
     int num_leaves = tbslas::CountNumLeafNodes(tconc_curr);
 
     int timestep = 1;
     for (; timestep < sim_config->total_num_timestep+1; timestep++) {
-      pvfmm::Profile::Tic("SolveSemilag", &sim_config->comm, false, 5);
+      pvfmm::Profile::Tic("SL", &sim_config->comm, false, 5);
       tbslas::SolveSemilagInSitu(tvel_curr,
                                  tconc_curr,
                                  timestep,
@@ -294,12 +295,12 @@ int main (int argc, char **argv) {
       // (SEMI) MERGE TO FIX IMBALANCE
       switch(merge) {
         case 2:
-          pvfmm::Profile::Tic("Merge", &sim_config->comm, false, 5);
+          pvfmm::Profile::Tic("CMerge", &sim_config->comm, false, 5);
           tbslas::MergeTree(tvel_curr, tconc_curr);
           pvfmm::Profile::Toc();
           break;
         case 3:
-          pvfmm::Profile::Tic("SemiMerge", &sim_config->comm, false, 5);
+          pvfmm::Profile::Tic("SMerge", &sim_config->comm, false, 5);
           tbslas::SemiMergeTree(tvel_curr, tconc_curr);
           pvfmm::Profile::Toc();
           break;

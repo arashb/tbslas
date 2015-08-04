@@ -66,7 +66,7 @@ TBSLAS_RESULT_DIR_PREFIX = ''
 # EXECUTION COMMAND
 ################################################################################
 SCRIPT_ID       = sys.argv[0].replace('.py', '').replace('./','')
-OUTPUT_PREFIX   = SCRIPT_ID+'-'+TIMESTR
+OUTPUT_PREFIX   = SCRIPT_ID+'-np'+str(MPI_TOTAL_NUM_PORCESSES).zfill(5)+'-'+TIMESTR
 
 def prepare_environment(output_prefix):
     global TBSLAS_RESULT_DIR_PREFIX

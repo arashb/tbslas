@@ -99,7 +99,7 @@ RunFMM(_FMM_Tree_Type* tree,
 
 template <class Real_t>
 void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
-                   int cheb_deg, int depth, bool adap, Real_t tol, MPI_Comm comm) {
+                   int cheb_deg, int depth, bool adap, Real_t tol, MPI_Comm comm, int merge) {
   typedef pvfmm::FMM_Node<pvfmm::Cheb_Node<Real_t> > FMMNode_t;
   typedef pvfmm::FMM_Cheb<FMMNode_t> FMM_Mat_t;
   typedef pvfmm::FMM_Tree<FMM_Mat_t> FMM_Tree_t;
@@ -199,9 +199,12 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
     std::cout<<"Maximum Tree Depth: "<<depth<<'\n';
     std::cout<<"BoundaryType: "<<(bndry==pvfmm::Periodic?"Periodic":"FreeSpace")<<'\n';
   }
+
   //Create Tree and initialize with input data.
   FMM_Tree_t* tree = new FMM_Tree_t(comm);
   tree->Initialize(&tree_data);
+  tree->InitFMM_Tree(false,bndry);
+
   if (sim_config->vtk_save) {
     tree->Write2File(tbslas::GetVTKFileName(0, sim_config->vtk_filename_variable).c_str(), sim_config->vtk_order);
   }
@@ -236,6 +239,7 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
   if (sim_config->vtk_save) {
     tvel_curr.Write2File(tbslas::GetVTKFileName(0, "velocity").c_str(), cheb_deg);
   }
+
   // =========================================================================
   // RUN
   // =========================================================================
@@ -244,52 +248,84 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
   for(int i = 0; i < ncurr_list.size(); i++) {
     ncurr_list[i]->input_fn = (void (*)(const Real_t* , int , Real_t*))NULL;
   }
+
+  switch(merge) {
+  case 2:
+    pvfmm::Profile::Tic("CMerge", &sim_config->comm, false, 5);
+    tbslas::MergeTree(tvel_curr, *tree);
+    pvfmm::Profile::Toc();
+    break;
+  case 3:
+    pvfmm::Profile::Tic("SMerge", &sim_config->comm, false, 5);
+    tbslas::SemiMergeTree(tvel_curr, *tree);
+    pvfmm::Profile::Toc();
+    break;
+  }
+
   double in_al2,in_rl2,in_ali,in_rli;
   double al2,rl2,ali,rli;
+  CheckChebOutput<FMM_Tree_t>(tree,
+			      fn_poten_,
+			      mykernel->ker_dim[1],
+			      in_al2,
+			      in_rl2,
+			      in_ali,
+			      in_rli,
+			      std::string("Input"));
+
   int timestep = 1;
   for (; timestep < 2*NUM_TIME_STEPS+1; timestep +=2) {
     // **********************************************************************
     // SOLVE DIFFUSION: FMM
     // **********************************************************************
-    pvfmm::Profile::Tic("SolveDiff", &sim_config->comm, false, 5);
+    pvfmm::Profile::Tic("FMM", &sim_config->comm, false, 5);
     tree->InitFMM_Tree(false,bndry);
-    if (timestep==1) {
-      CheckChebOutput<FMM_Tree_t>(tree,
-                                  fn_poten_,
-                                  mykernel->ker_dim[1],
-                                  in_al2,
-                                  in_rl2,
-                                  in_ali,
-                                  in_rli,
-                                  std::string("Input"));
-    }
     tree->SetupFMM(fmm_mat);
     tree->RunFMM();
     tree->Copy_FMMOutput(); //Copy FMM output to tree Data.
     pvfmm::Profile::Toc();
+
     // Write2File
     if (sim_config->vtk_save) {
       tree->Write2File(tbslas::GetVTKFileName(timestep, sim_config->vtk_filename_variable).c_str(), sim_config->vtk_order);
     }
+    
     // **********************************************************************
     // SOLVE ADVECTION: SEMI-LAGRANGIAN
     // **********************************************************************
-    pvfmm::Profile::Tic("SolveSemilag", &sim_config->comm, false, 5);
+    pvfmm::Profile::Tic("SL", &sim_config->comm, false, 5);
     tbslas::SolveSemilagInSitu(tvel_curr,
                                *tree,
                                1,
                                TBSLAS_DT,
                                sim_config->num_rk_step);
     pvfmm::Profile::Toc();
+
     // refine the tree according to the computed values
     pvfmm::Profile::Tic("RefineTree", &sim_config->comm, false, 5);
     tree->RefineTree();
     pvfmm::Profile::Toc();
+
     //Write2File
     if (sim_config->vtk_save) {
       tree->Write2File(tbslas::GetVTKFileName(timestep+1, sim_config->vtk_filename_variable).c_str(), sim_config->vtk_order);
     }
     tcurr += TBSLAS_DT;
+
+    // merge v and c trees
+    switch(merge) {
+    case 2:
+      pvfmm::Profile::Tic("CMerge", &sim_config->comm, false, 5);
+      tbslas::MergeTree(tvel_curr, *tree);
+      pvfmm::Profile::Toc();
+      break;
+    case 3:
+      pvfmm::Profile::Tic("SMerge", &sim_config->comm, false, 5);
+      tbslas::SemiMergeTree(tvel_curr, *tree);
+      pvfmm::Profile::Toc();
+      break;
+    }
+
   }
 
   // =========================================================================
@@ -351,6 +387,8 @@ int main (int argc, char **argv) {
   int      m=       strtoul(commandline_option(argc, argv,    "-m",    "10", false, "-m    <int> = (10)   : Multipole order (+ve even integer)."),NULL,10);
   int   test=       strtoul(commandline_option(argc, argv, "-test",     "1", false,
                                                "-test <int> = (1)    : 1) Laplace, Smooth Gaussian, Periodic Boundary"),NULL,10);
+  int   merge = strtoul(commandline_option(argc, argv, "-merge",     "1", false,
+                                          "-merge <int> = (1)    : 1) no merge 2) complete merge 3) Semi-Merge"),NULL,10);
 
   // =========================================================================
   // SIMULATION PARAMETERS
@@ -362,7 +400,7 @@ int main (int argc, char **argv) {
   sim_config->vtk_filename_variable = "conc";
 
   NUM_TIME_STEPS    = sim_config->total_num_timestep;
-  TBSLAS_DT         = sim_config->dt*0.5; // dt/2 advection + dt/2 diffsuion
+  TBSLAS_DT         = sim_config->dt;
   TBSLAS_DIFF_COEFF = 0.0001;
   TBSLAS_ALPHA      = (1.0)/TBSLAS_DT/TBSLAS_DIFF_COEFF;
   // =========================================================================
@@ -374,7 +412,7 @@ int main (int argc, char **argv) {
   // =========================================================================
   // RUN
   // =========================================================================
-  pvfmm::Profile::Tic("RunAdvectDiff",&comm,true);
+  pvfmm::Profile::Tic("AdvDif",&comm,true);
   RunAdvectDiff<double>(test,
                         sim_config->tree_num_point_sources,
                         sim_config->tree_num_points_per_octanct,
@@ -384,7 +422,8 @@ int main (int argc, char **argv) {
                         sim_config->tree_max_depth,
                         sim_config->tree_adap,
                         sim_config->tree_tolerance,
-                        comm);
+                        comm,
+			merge);
   pvfmm::Profile::Toc();
 
   //Output Profiling results.

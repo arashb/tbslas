@@ -23,8 +23,16 @@ SCALE_TAG_LIST = ['+-AdvDif',\
                   # '+-InitFMM_Cheb', \
                   '+-SL', \
                   '+-FMM', \
-                  '+-Merge' \
+                  '+-CMerge' \
+                  '+-SMerge' \
                       ]
+# SCALE_TAG_LIST = ['+-AdvDif',\
+#                   '+-InitFMM_Cheb', \
+#                   '+-SolveSemilag', \
+#                   '+-FMM', \
+#                   '+-MergeTree' \
+#                       ]
+
 PROFILE_TAG_LIST = ['+-EvalTree', \
                     '+-Evaluation'\
                     ]

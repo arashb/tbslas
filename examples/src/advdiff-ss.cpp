@@ -313,8 +313,9 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
     // CREATE THE NEW TREE BEI MERGING THE PREVIOUS TREE & THE CURRENT TREE
     // =========================================================================
     // MERGE TREES
-    pvfmm::Profile::Tic("Merge",&comm,true);
+    pvfmm::Profile::Tic("CMerge",&comm,true);
     tbslas::MergeTree(*treec, *treep);
+    // TODO: merge with velocity trees
     pvfmm::Profile::Toc();
 
     // use previous time step's tree for the next time step
