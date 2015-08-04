@@ -18,9 +18,11 @@ import sys
 import os
 import parser
 
-SCALE_TAG_LIST = ['+-SolveSemilag', \
+SCALE_TAG_LIST = ['+-AdvDif',\
+                  # '+-InitFMM_Cheb', \
+                  '+-SL', \
                   '+-FMM', \
-                  '+-MergeTree' \
+                  '+-Merge' \
                       ]
 PROFILE_TAG_LIST = ['+-EvalTree', \
                     '+-Evaluation'\
@@ -87,13 +89,13 @@ def post_process_scaling_data(mydoc, file_pp, PRINT_HEADER = True):
             if scale_tag in node.title:
                 print node.title
                 ppnode_values[node.title] = node.values['t_avg']
-                if '+-SolveSemilag' in node.title:
+                if '+-SL' in node.title:
                     ppnode_values['f/s_total'] = node.values['f/s_total']
-                    print node.values['f/s_total']
+                    # print node.values['f/s_total']
                 break
     ppnode = parser.pnode(ppnode_title, ppnode_values)
     if PRINT_HEADER:
-        header_string_format = "{:<50}".format('# NP')
+        header_string_format = "{:<50}".format('NP')
         for key, val in ppnode_values.iteritems():
             header_string_format += "{:>10}".format(key)
         header_string_format += "\n"

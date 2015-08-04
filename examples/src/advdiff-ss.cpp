@@ -111,7 +111,7 @@ void
 RunFMM(_FMM_Tree_Type* tree,
        _FMM_Mat_Type* fmm_mat,
        pvfmm::BoundaryType bndry) {
-  tree->InitFMM_Tree(false,bndry);
+  tree->InitFMM_Tree(adap,bndry);
   tree->SetupFMM(fmm_mat);
   tree->RunFMM();
   tree->Copy_FMMOutput(); //Copy FMM output to tree Data.
@@ -230,6 +230,7 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
     std::cout<<"FMM Kernel name: "<<mykernel->ker_name<<'\n';
     std::cout<<"Number of point samples: "<<N<<'\n';
     std::cout<<"Uniform distribution: "<<(unif?"true":"false")<<'\n';
+    std::cout<<"Adaptive: "<<(adap?"true":"false")<<'\n';
     std::cout<<"Maximum points per octant: "<<tree_data.max_pts<<'\n';
     std::cout<<"Chebyshev Tolerance: "<<tree_data.tol<<'\n';
     std::cout<<"Maximum Tree Depth: "<<depth<<'\n';
@@ -259,7 +260,7 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
   // **********************************************************************
   FMM_Tree_t* treep = new FMM_Tree_t(comm);
   treep->Initialize(&tree_data);
-  treep->InitFMM_Tree(false,bndry);
+  treep->InitFMM_Tree(adap,bndry);
   // Write2File
   if (sim_config->vtk_save) {
     treep->Write2File(tbslas::GetVTKFileName(0, "previous").c_str(), sim_config->vtk_order);
@@ -298,7 +299,8 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
   //Create currnt timestep Tree and initialize with input data.
   FMM_Tree_t* treec = new FMM_Tree_t(comm);
   treec->Initialize(&tree_data);
-  treec->InitFMM_Tree(false,bndry);
+  treec->InitFMM_Tree(adap,bndry);
+
   // Write2File
   if (sim_config->vtk_save) {
     treec->Write2File(tbslas::GetVTKFileName(0, "current").c_str(), sim_config->vtk_order);
@@ -317,17 +319,19 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
 
 
   int timestep = 1;
+  int num_leaves = 0;
   for (; timestep < NUM_TIME_STEPS+1; timestep +=1) {
     // =========================================================================
     // CREATE THE NEW TREE BEI MERGING THE PREVIOUS TREE & THE CURRENT TREE
     // =========================================================================
     // MERGE TREES
-    pvfmm::Profile::Tic("MergeTree",&comm,true);
+    pvfmm::Profile::Tic("Merge",&comm,true);
     tbslas::MergeTree(*treec, *treep);
     pvfmm::Profile::Toc();
 
     // use previous time step's tree for the next time step
     FMM_Tree_t* treen = treep;
+    num_leaves = tbslas::CountNumLeafNodes(*treec);
 
     // UPDATE THE SIMULATION CURRENT TIME
     tcurr += TBSLAS_DT;
@@ -346,14 +350,13 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
     // int cheb_deg = n_curr->ChebDeg();
     int sdim     = treen->Dim();
 
-    pvfmm::Profile::Tic("SolveSemilag",&comm,true);
+    pvfmm::Profile::Tic("SL",&comm,true);
     // COLLECT THE MERGED TREE POINTS
     std::vector<double> treen_points_pos;
     tbslas::CollectChebTreeGridPoints(*treen, treen_points_pos);
 
     int treen_num_points = treen_points_pos.size()/3;
     // std::cout << "TREEN-NUM-POINTS: " << treen_num_points << std::endl;   
-    // std::cout << "TREEN-NUM-LEAVES: " <<   tbslas::CountNumLeafNodes(*treen) << std::endl;
 
     tbslas::NodeFieldFunctor<double,FMM_Tree_t> vel_evaluator(tvel_curr);
     tbslas::NodeFieldFunctor<double,FMM_Tree_t> trc_evaluator(treec);
@@ -432,7 +435,8 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
     treen->Copy_FMMOutput(); //Copy FMM output to tree Data.
     pvfmm::Profile::Toc();
 
-    treen->RefineTree();
+    if (adap)
+      treen->RefineTree();
 
     // Write2File
     if (sim_config->vtk_save) {
@@ -446,7 +450,7 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
   // REPORT RESULTS
   // =========================================================================
   double al2,rl2,ali,rli;
-  int num_leaves = tbslas::CountNumLeafNodes(*treec);
+  // int num_leaves = tbslas::CountNumLeafNodes(*treec);
   CheckChebOutput<FMM_Tree_t>(treec,
                               fn_poten_,
                               mykernel->ker_dim[1],
@@ -527,7 +531,7 @@ int main (int argc, char **argv) {
   // =========================================================================
   // RUN
   // =========================================================================
-  pvfmm::Profile::Tic("RunAdvectDiff",&comm,true);
+  pvfmm::Profile::Tic("AdvDif",&comm,true);
   RunAdvectDiff<double>(test,
                         sim_config->tree_num_point_sources,
                         sim_config->tree_num_points_per_octanct,

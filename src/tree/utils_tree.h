@@ -459,6 +459,7 @@ void CollectChebTreeGridPoints(TreeType& tree,
       num_leaf_nodes++;
     n_next = tree.PostorderNxt(n_next);
   }
+  /* std::cout << "NUM-LEAVES: " << num_leaf_nodes  << std::endl; */
 
   // std::vector<RealType> grid_points;
   grid_points.resize(cheb_pos.size()*num_leaf_nodes);
