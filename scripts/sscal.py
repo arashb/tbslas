@@ -47,8 +47,8 @@ def generate_command_args(tl_init, tl_factor, \
                    '-vs'   , str(1),                                             \
                    '-omp'  , str(nt_list[counter]),\
                    '-cubic', str(1),\
-                   '-cuf'  , str(4)\
-                   '-merge', str(merge_type)\
+                   '-cuf'  , str(4),\
+                   '-merge', str(merge_type),\
                    ]
         cmd_args[cmd_id] = utils.determine_command_prefix(np_list[counter]) + [EXEC] + ARGS
         cmd_id = cmd_id + 1
