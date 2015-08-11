@@ -11,7 +11,7 @@ OMP_NUM_THREADS=10
 TOTAL_TIME=$1
 
 # NODE_LIST=(4 8 16 32)
-NODE_LIST=(8 16 32)
+NODE_LIST=(1 2 4 8 16 32)
 
 for node in "${NODE_LIST[@]}"
 do

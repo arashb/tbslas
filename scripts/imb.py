@@ -65,40 +65,40 @@ if __name__ == '__main__':
     # ############################################################################
     # # TEST 1: V,C depth: [6] config: regular V, regular C
     # ############################################################################
-        de_factor = 1
-        de_init   = 5
-        dt_factor = 1
-        dt_init   = 0.25
-        tn_factor = 1.0
-        tn_init   = 1
-        test_init = 4
-        test_factor = 0;
-        cmd_args = generate_command_args(de_init, de_factor, \
-                                     dt_init, dt_factor, \
-                                     tn_init, tn_factor, \
-                                     test_init, test_factor, \
-                                     merge_type, \
-                                     1)
-        utils.execute_commands(cmd_args, 'test-1-merge-type-'+str(merge_type))
+        # de_factor = 1
+        # de_init   = 5
+        # dt_factor = 1
+        # dt_init   = 0.25
+        # tn_factor = 1.0
+        # tn_init   = 1
+        # test_init = 4
+        # test_factor = 0;
+        # cmd_args = generate_command_args(de_init, de_factor, \
+        #                              dt_init, dt_factor, \
+        #                              tn_init, tn_factor, \
+        #                              test_init, test_factor, \
+        #                              merge_type, \
+        #                              1)
+        # utils.execute_commands(cmd_args, 'test-1-merge-type-'+str(merge_type))
 
     # ############################################################################
     # # TEST 2: V depth: [6] C depth: [5, 7, 9] config: regular V, irregular C
     # ############################################################################
-        de_factor = 1
-        de_init   = 5
-        dt_factor = 1
-        dt_init   = 0.25
-        tn_factor = 1.0
-        tn_init   = 1
-        test_init = 5
-        test_factor = 0;
-        cmd_args = generate_command_args(de_init, de_factor, \
-                                     dt_init, dt_factor, \
-                                     tn_init, tn_factor, \
-                                     test_init, test_factor, \
-                                     merge_type, \
-                                     TOL_NUM_STEPS)
-        utils.execute_commands(cmd_args, 'test-2-merge-type-'+str(merge_type))
+        # de_factor = 1
+        # de_init   = 5
+        # dt_factor = 1
+        # dt_init   = 0.25
+        # tn_factor = 1.0
+        # tn_init   = 1
+        # test_init = 5
+        # test_factor = 0;
+        # cmd_args = generate_command_args(de_init, de_factor, \
+        #                              dt_init, dt_factor, \
+        #                              tn_init, tn_factor, \
+        #                              test_init, test_factor, \
+        #                              merge_type, \
+        #                              TOL_NUM_STEPS)
+        # utils.execute_commands(cmd_args, 'test-2-merge-type-'+str(merge_type))
 
     # ############################################################################
     # # TEST 3: V,C depth: [5, 7, 9] config: irregular V, irregular C
