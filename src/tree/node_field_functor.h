@@ -20,7 +20,6 @@
 #include <profile.hpp>
 
 #include "utils/common.h"
-#include "semilag/cubic_interp_policy.h"
 
 namespace tbslas {
 
