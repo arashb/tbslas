@@ -19,6 +19,8 @@
 #include <cheb_node.hpp>
 #include <profile.hpp>
 
+#include <ompUtils.h>
+
 #include "utils/common.h"
 
 namespace tbslas {
@@ -98,10 +100,13 @@ void EvalTree(Tree_t* tree,
   tbslas::SimConfig* sim_config = tbslas::SimConfigSingleton::Instance();
 
   int myrank;
-  MPI_Comm_rank(sim_config->comm, &myrank);
   int np;
+  MPI_Comm_rank(sim_config->comm, &myrank);
   MPI_Comm_size(MPI_COMM_WORLD, &np);
 
+  //////////////////////////////////////////////////////////////
+  // GET LEAF NODES AND MINIMUM MORTON ID OF THE CURRENT PROCESS
+  //////////////////////////////////////////////////////////////
   pvfmm::Profile::Tic("MortonId", &sim_config->comm, false, 5);
   size_t data_dof=0;
   pvfmm::MortonId min_mid;
@@ -118,6 +123,10 @@ void EvalTree(Tree_t* tree,
     data_dof=nodes[0]->DataDOF();
   }
   //std::cout<<"Leaf Nodes = "<<nodes.size()<<'\n';
+
+  //////////////////////////////////////////////////////////////
+  // APPLY PERIODIC BOUNDARY CONDITION
+  //////////////////////////////////////////////////////////////
   if (bc_type == pvfmm::Periodic) {
     #pragma omp parallel for
     for (size_t i = 0; i < N*COORD_DIM; i++) {
@@ -127,6 +136,9 @@ void EvalTree(Tree_t* tree,
     }
   }
 
+  //////////////////////////////////////////////////////////////
+  // COMPUTE MORTON ID OF THE TARGET POINTS
+  //////////////////////////////////////////////////////////////
   static pvfmm::Vector<pvfmm::MortonId> trg_mid; trg_mid.Resize(N);
   #pragma omp parallel for
   for (size_t i = 0; i < N; i++) {
@@ -134,7 +146,98 @@ void EvalTree(Tree_t* tree,
   }
   pvfmm::Profile::Toc();
 
-  // Compute scatter_index.
+  //////////////////////////////////////////////////////////////
+  // GATHER ALL THE MINIMUM MORTION IDS
+  //////////////////////////////////////////////////////////////
+  // TODO: do not need allgather
+  std::vector<pvfmm::MortonId> glb_min_mid(np);
+  MPI_Allgather(&min_mid, 1, pvfmm::par::Mpi_datatype<pvfmm::MortonId>::value(),
+                &glb_min_mid[0], 1, pvfmm::par::Mpi_datatype<pvfmm::MortonId>::value(), sim_config->comm);
+
+  //////////////////////////////////////////////////////////////
+  // LOCAL SORT
+  //////////////////////////////////////////////////////////////
+  // size_t lcl_start, lcl_end, lcl_trg_cnt;
+
+  // {
+  //   // LOCAL SORT WITHOUT TRACKING THE INDICES
+  //   pvfmm::omp_par::merge_sort(&trg_mid[0], &trg_mid[0]+trg_mid.Dim());
+  //   lcl_start = std::lower_bound(&trg_mid[0],
+  //                                &trg_mid[0]+trg_mid.Dim(),
+  //                                glb_min_mid[myrank]) - &trg_mid[0];
+  //   if (myrank+1 < np)
+  //     lcl_end = std::lower_bound(&trg_mid[0],
+  //                                &trg_mid[0]+trg_mid.Dim(),
+  //                                glb_min_mid[myrank+1]) - &trg_mid[0];
+  //   else
+  //     lcl_end = trg_mid.Dim();
+  //   lcl_trg_cnt = lcl_end - lcl_start;
+  // }
+
+//   {
+//     // LOCAL SORT WITH TRACKING THE INDICES
+//     typedef pvfmm::par::SortPair<pvfmm::MortonId,size_t> Pair_t;
+//     pvfmm::Vector<Pair_t> parray(trg_mid.Dim());
+//     {
+//       long long loc_size=trg_mid.Dim();
+// #pragma omp parallel for
+//       for(size_t i=0; i < loc_size; i++) {
+//       parray[i].key  = trg_mid[i];
+//       parray[i].data = i;
+//     }
+//     }
+
+//     pvfmm::Vector<Pair_t> parray_sorted;
+//     pvfmm::par::HyperQuickSort(parray, parray_sorted, MPI_COMM_SELF);
+
+//     Pair_t p1; p1.key = glb_min_mid[myrank];
+//     lcl_start = std::lower_bound(&parray_sorted[0],
+//           &parray_sorted[0]+parray_sorted.Dim(),
+//           p1,
+//           std::less<Pair_t>()) - &parray_sorted[0];
+
+//     if (myrank+1 < np) {
+//       Pair_t p2; p2.key = glb_min_mid[myrank+1];
+//       lcl_end = std::lower_bound(&parray_sorted[0],
+//           &parray_sorted[0]+parray_sorted.Dim(),
+//           p2,
+//           std::less<Pair_t>()) - &parray_sorted[0];
+//     } else {
+//       lcl_end = parray_sorted.Dim();
+//     }
+
+//     static pvfmm::Vector<size_t> scatter_index;
+//     scatter_index.Resize(parray_sorted.Dim());
+// #pragma omp parallel for
+//     for(size_t i=0; i<parray_sorted.Dim(); i++) {
+//       scatter_index[i] = parray_sorted[i].data;
+//     }
+
+//     lcl_trg_cnt = lcl_end - lcl_start;
+//   }
+
+//   /* print number of departure points in current process */
+//   int total_trg_cnt = trg_mid.Dim();
+//   int* rbuf_total_trg_cnt = (int *)malloc(np*sizeof(int));
+//   int* rbuf_lcl_trg_cnt = (int *)malloc(np*sizeof(int));
+//   MPI_Gather(&total_trg_cnt, 1, MPI_INT, rbuf_total_trg_cnt, 1, MPI_INT, 0, *tree->Comm());
+//   MPI_Gather(&lcl_trg_cnt, 1, MPI_INT, rbuf_lcl_trg_cnt, 1, MPI_INT, 0, *tree->Comm());
+//   if (!myrank) {
+//     std::cout << "LCL_TRG_CNT/TOT_TRG_CNT: ";
+//     for (int i = 0 ; i < np; i++)
+//       std::cout << " " << rbuf_lcl_trg_cnt[i]<<"/" << rbuf_total_trg_cnt[i];
+//     std::cout << std::endl;
+//   }
+//   delete rbuf_total_trg_cnt;
+//   delete rbuf_lcl_trg_cnt;
+
+  //////////////////////////////////////////////////////////////
+  // LOCAL EVALUATION
+  //////////////////////////////////////////////////////////////
+
+  //////////////////////////////////////////////////////////////
+  // GLOBAL EVALUATION
+  //////////////////////////////////////////////////////////////
   pvfmm::Profile::Tic("ScatterIndex", &sim_config->comm, true, 5);
   static pvfmm::Vector<size_t> scatter_index;
   pvfmm::par::SortScatterIndex(trg_mid  , scatter_index, *tree->Comm(), &min_mid);
@@ -163,22 +266,22 @@ void EvalTree(Tree_t* tree,
 
   /* print number of departure points in current process */
   int trg_cnt = trg_mid.Dim();
-  int* rbuf = (int *)malloc(np*sizeof(int));
-  MPI_Gather(&trg_cnt, 1, MPI_INT, rbuf, 1, MPI_INT, 0, *tree->Comm());
+  int* rbuf_trg_cnt = (int *)malloc(np*sizeof(int));
+  MPI_Gather(&trg_cnt, 1, MPI_INT, rbuf_trg_cnt, 1, MPI_INT, 0, *tree->Comm());
   if (!myrank) {
     std::cout << "TRG_CNT: ";
     for (int i = 0 ; i < np; i++)
-      std::cout << " " << rbuf[i];
+      std::cout << " " << rbuf_trg_cnt[i];
     std::cout << std::endl;
   }
-  delete rbuf;
+  delete rbuf_trg_cnt;
 
   static pvfmm::Vector<Real_t> trg_value;
   pvfmm::Profile::Tic("Evaluation", &sim_config->comm, false, 5);
   trg_value.Resize(trg_mid.Dim()*data_dof);
   { // Read tree data
     std::vector<size_t> part_indx(nodes.size()+1);
-    part_indx[nodes.size()]=trg_mid.Dim();
+    part_indx[nodes.size()] = trg_mid.Dim();
     #pragma omp parallel for
     for (size_t j=0;j<nodes.size();j++) {
       part_indx[j]=std::lower_bound(&trg_mid[0],
@@ -270,7 +373,6 @@ void EvalTree(Tree_t* tree,
           // ************************************************************
           // EVALUATE AT THE REGULAR GRID
           // ************************************************************
-          // evaluate using the tree
           if(!sim_config->cubic_use_analytical) {
             pvfmm::Vector<Real_t>& coeff_=nodes[j]->ChebData();
             pvfmm::Vector<Real_t> reg_grid_vals_tmp(reg_grid_num_points*data_dof, &reg_grid_vals[0], false);
@@ -374,15 +476,10 @@ void EvalTree(Tree_t* tree,
             query_points[pi*COORD_DIM+1] = (coord_ptr[pi*COORD_DIM+1]-c[1])*s;
             query_points[pi*COORD_DIM+2] = (coord_ptr[pi*COORD_DIM+2]-c[2])*s;
           }
-          //tbslas::CubicInterpPolicy<Real_t>::interp(reg_grid_vals,
-          //                                          data_dof,
-          //                                          spacing,
-          //                                          query_points,
-          //                                          query_values);
           fast_interp(reg_grid_vals, data_dof, reg_grid_resolution, query_points, query_values);
-
           output = &query_values[0];
         } // end of cubic interpolation
+
         memcpy(&trg_value[0]+part_indx[j]*data_dof, output, n_pts*data_dof*sizeof(Real_t));
       }
     }
