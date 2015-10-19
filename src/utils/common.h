@@ -254,13 +254,13 @@ get_linear_field_y(const real_t* points_pos,
 template<typename real_t>
 void
 get_hopf_field(const real_t* points_pos,
-	       int num_points,
-	       real_t* points_values,
-	       const real_t xc = 0.5,
-	       const real_t yc = 0.5,
-	       const real_t zc = 0.5,
-	       const real_t A = 0.05,
-	       const real_t r = 0.1) {
+           int num_points,
+           real_t* points_values,
+           const real_t xc = 0.5,
+           const real_t yc = 0.5,
+           const real_t zc = 0.5,
+           const real_t A = 0.05,
+           const real_t r = 0.1) {
   real_t x,y,z;
   for (int i = 0; i < num_points; i++) {
     const real_t* c = &points_pos[i*COORD_DIM];
@@ -277,9 +277,21 @@ get_hopf_field(const real_t* points_pos,
 
 template<typename real_t, int sdim>
 void
+get_vel_field_hom_zero(const real_t* points_pos,
+            int num_points,
+            real_t* points_values) {
+  for (int i = 0; i < num_points; i++) {
+    points_values[i*3+0] = 0;
+    points_values[i*3+1] = 0;
+    points_values[i*3+2] = 0;
+  }
+}
+
+template<typename real_t, int sdim>
+void
 get_vel_field_hom_x(const real_t* points_pos,
-		    int num_points,
-		    real_t* points_values) {
+            int num_points,
+            real_t* points_values) {
   real_t omega = -0.5;
   real_t time_factor = 1;//+sin(2*3.14159*time);
   for (int i = 0; i < num_points; i++) {
@@ -292,8 +304,8 @@ get_vel_field_hom_x(const real_t* points_pos,
 template<typename real_t, int sdim>
 void
 get_vel_field_hom_y(const real_t* points_pos,
-		    int num_points,
-		    real_t* points_values) {
+            int num_points,
+            real_t* points_values) {
   real_t omega = -0.5;
   real_t time_factor = 1;//+sin(2*3.14159*time);
   for (int i = 0; i < num_points; i++) {
