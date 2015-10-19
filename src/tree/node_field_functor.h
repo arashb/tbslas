@@ -371,12 +371,12 @@ void EvalTree(Tree_t* tree,
   pvfmm::Vector<Pair_t> iarray_trg_mid_sorted(N);
   size_t lcl_start, lcl_end, trg_cnt_inside, trg_cnt_outside;
 
-  pvfmm::Profile::Tic("LocalSort", &sim_config->comm, false, 5);
+  pvfmm::Profile::Tic("LclSort2Eval", &sim_config->comm, false, 5);
   {
     //////////////////////////////////////////////////
     // LOCAL SORT WITH TRACKING THE INDICES
     //////////////////////////////////////////////////
-    pvfmm::Profile::Tic("HQSort", &sim_config->comm, false, 5);
+    pvfmm::Profile::Tic("LclHQSort", &sim_config->comm, false, 5);
     {
 #pragma omp parallel for
       for(size_t i = 0; i < N; i++) {
@@ -414,43 +414,44 @@ void EvalTree(Tree_t* tree,
     //////////////////////////////////////////////////
     static pvfmm::Vector<size_t> out_scatter_index;
     static pvfmm::Vector<Real_t> trg_coord_outside;
-    {
-      trg_coord_outside.Resize(trg_cnt_outside*COORD_DIM);
+
+    pvfmm::Profile::Tic("OutCpyCoord", &sim_config->comm, true, 5);
+    trg_coord_outside.Resize(trg_cnt_outside*COORD_DIM);
 #pragma omp parallel for
-      for (int i = 0 ; i < lcl_start; i++) {
-        size_t src_indx = iarray_trg_mid_sorted[i].data;
-        size_t dst_indx = i;
-        for(size_t j = 0; j < COORD_DIM; j++) {
-          trg_coord_outside[dst_indx*COORD_DIM+j] = trg_coord_[src_indx*COORD_DIM+j];
-        }
+    for (int i = 0 ; i < lcl_start; i++) {
+      size_t src_indx = iarray_trg_mid_sorted[i].data;
+      size_t dst_indx = i;
+      for(size_t j = 0; j < COORD_DIM; j++) {
+        trg_coord_outside[dst_indx*COORD_DIM+j] = trg_coord_[src_indx*COORD_DIM+j];
       }
-
-#pragma omp parallel for
-      for (int i = 0 ; i < (N-lcl_end); i++) {
-        size_t src_indx = iarray_trg_mid_sorted[lcl_end+i].data;
-        size_t dst_indx = lcl_start + i;
-        for(size_t j = 0; j < COORD_DIM; j++) {
-          trg_coord_outside[dst_indx*COORD_DIM+j] = trg_coord_[src_indx*COORD_DIM+j];
-        }
-      }
-
-      pvfmm::Profile::Tic("OutMortonID", &sim_config->comm, true, 5);
-      static pvfmm::Vector<pvfmm::MortonId> trg_mid_outside;
-      trg_mid_outside.Resize(trg_cnt_outside);
-#pragma omp parallel for
-      for (size_t i = 0; i < trg_cnt_outside; i++) {
-        trg_mid_outside[i] = pvfmm::MortonId(&trg_coord_outside[i*COORD_DIM]);
-      }
-      pvfmm::Profile::Toc();
-
-      pvfmm::Profile::Tic("OutScatterIndex", &sim_config->comm, true, 5);
-      pvfmm::par::SortScatterIndex(trg_mid_outside, out_scatter_index, *tree->Comm(), &min_mid);
-      pvfmm::Profile::Toc();
-
-      pvfmm::Profile::Tic("OutScatterForward", &sim_config->comm, true, 5);
-      pvfmm::par::ScatterForward(trg_coord_outside, out_scatter_index, *tree->Comm());
-      pvfmm::Profile::Toc();
     }
+
+#pragma omp parallel for
+    for (int i = 0 ; i < (N-lcl_end); i++) {
+      size_t src_indx = iarray_trg_mid_sorted[lcl_end+i].data;
+      size_t dst_indx = lcl_start + i;
+      for(size_t j = 0; j < COORD_DIM; j++) {
+        trg_coord_outside[dst_indx*COORD_DIM+j] = trg_coord_[src_indx*COORD_DIM+j];
+      }
+    }
+    pvfmm::Profile::Toc();  // OUT COPY COORDINATES
+
+    pvfmm::Profile::Tic("OutMortonID", &sim_config->comm, true, 5);
+    static pvfmm::Vector<pvfmm::MortonId> trg_mid_outside;
+    trg_mid_outside.Resize(trg_cnt_outside);
+#pragma omp parallel for
+    for (size_t i = 0; i < trg_cnt_outside; i++) {
+      trg_mid_outside[i] = pvfmm::MortonId(&trg_coord_outside[i*COORD_DIM]);
+    }
+    pvfmm::Profile::Toc();
+
+    pvfmm::Profile::Tic("OutScatterIndex", &sim_config->comm, true, 5);
+    pvfmm::par::SortScatterIndex(trg_mid_outside, out_scatter_index, *tree->Comm(), &min_mid);
+    pvfmm::Profile::Toc();
+
+    pvfmm::Profile::Tic("OutScatterForward", &sim_config->comm, true, 5);
+    pvfmm::par::ScatterForward(trg_coord_outside, out_scatter_index, *tree->Comm());
+    pvfmm::Profile::Toc();
 
     size_t trg_cnt_others = trg_coord_outside.Dim()/COORD_DIM;
     size_t trg_cnt_total  = trg_cnt_inside + trg_cnt_others;
@@ -459,7 +460,7 @@ void EvalTree(Tree_t* tree,
     // EVALUATE THE OUTSIDER POINTS
     //////////////////////////////////////////////////
     static pvfmm::Vector<Real_t> trg_value_outsider__;
-    pvfmm::Profile::Tic("OutsiderEvaluation", &sim_config->comm, false, 5);
+    pvfmm::Profile::Tic("OutEvaluation", &sim_config->comm, false, 5);
     trg_value_outsider__.Resize(trg_cnt_others*data_dof);
     EvalNodesLocal<Real_t, Tree_t>(nodes, trg_coord_outside, trg_value_outsider__);
     pvfmm::Profile::Toc();
@@ -474,7 +475,7 @@ void EvalTree(Tree_t* tree,
     //////////////////////////////////////////////////
     // SET OUTSIDER POINTS EVALUATION VALUES
     //////////////////////////////////////////////////
-    pvfmm::Profile::Tic("SetValues", &sim_config->comm, true, 5);
+    pvfmm::Profile::Tic("OutSetVal", &sim_config->comm, true, 5);
 #pragma omp parallel for
     for (int i = 0 ; i < lcl_start; i++) {
       size_t src_indx = i;
@@ -491,7 +492,7 @@ void EvalTree(Tree_t* tree,
         value[dst_indx*data_dof+j] = trg_value_outsider__[src_indx*data_dof+j];
       }
     }
-    pvfmm::Profile::Toc();  // SET VALUES
+    pvfmm::Profile::Toc();  // OUT SET VALUES
 
     //////////////////////////////////////////////////
     // COLLECT THE COORDINATE VALUES
@@ -511,7 +512,7 @@ void EvalTree(Tree_t* tree,
     // EVALUATE THE LOCAL POINTS
     //////////////////////////////////////////////////
     static pvfmm::Vector<Real_t> trg_value_insider__;
-    pvfmm::Profile::Tic("LocalEvaluation", &sim_config->comm, false, 5);
+    pvfmm::Profile::Tic("InEvaluation", &sim_config->comm, false, 5);
     trg_value_insider__.Resize(trg_cnt_inside*data_dof);
     EvalNodesLocal<Real_t, Tree_t>(nodes, trg_coord_inside, trg_value_insider__);
     pvfmm::Profile::Toc();
@@ -519,6 +520,7 @@ void EvalTree(Tree_t* tree,
     //////////////////////////////////////////////////
     // SET INSIDER POINTS EVALUATION VALUES
     //////////////////////////////////////////////////
+    pvfmm::Profile::Tic("InSetVal", &sim_config->comm, false, 5);
 #pragma omp parallel for
     for (size_t i = 0; i < trg_cnt_inside; i++) {
       size_t src_indx = i;
@@ -527,6 +529,7 @@ void EvalTree(Tree_t* tree,
         value[dst_indx*data_dof+j] = trg_value_insider__[i*data_dof+j];
       }
     }
+    pvfmm::Profile::Toc();
 
 //     //////////////////////////////////////////////////
 //     // COLLECT THE COORDINATE VALUES
@@ -680,7 +683,7 @@ void EvalTree(Tree_t* tree,
     }
     pvfmm::Profile::Toc();
 
-    std::cout << "P" << myrank << " TRG_CNT: " << trg_coord.Dim()/COORD_DIM << std::endl; 
+    // std::cout << "P" << myrank << " TRG_CNT: " << trg_coord.Dim()/COORD_DIM << std::endl; 
 
     //////////////////////////////////////////////////////////////
     // LOCAL POINTS EVALUATION
