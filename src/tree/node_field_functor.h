@@ -305,8 +305,6 @@ void EvalNodesLocal(std::vector<typename Tree_t::Node_t*>& nodes,
   pvfmm::Profile::Add_FLOP(trg_coord.Dim()/COORD_DIM * (COORD_DIM*16 + data_dof*256)); // cubic interpolation
 }
 
-
-
 template <class Tree_t>
 void EvalTree(Tree_t* tree,
               typename Tree_t::Real_t* trg_coord_,
@@ -371,279 +369,189 @@ void EvalTree(Tree_t* tree,
   pvfmm::Vector<Pair_t> iarray_trg_mid_sorted(N);
   size_t lcl_start, lcl_end, trg_cnt_inside, trg_cnt_outside;
 
-  pvfmm::Profile::Tic("LclSort2Eval", &sim_config->comm, false, 5);
-  {
-    //////////////////////////////////////////////////
-    // LOCAL SORT WITH TRACKING THE INDICES
-    //////////////////////////////////////////////////
-    pvfmm::Profile::Tic("LclHQSort", &sim_config->comm, false, 5);
-    {
+  pvfmm::Profile::Tic("LclSort", &sim_config->comm, false, 5);
+  //////////////////////////////////////////////////
+  // LOCAL SORT WITH TRACKING THE INDICES
+  //////////////////////////////////////////////////
+  pvfmm::Profile::Tic("LclHQSort", &sim_config->comm, false, 5);
 #pragma omp parallel for
-      for(size_t i = 0; i < N; i++) {
-        iarray_trg_mid[i].key  = pvfmm::MortonId(&trg_coord_[i*COORD_DIM]);
-        iarray_trg_mid[i].data = i;
-      }
-
-      pvfmm::par::HyperQuickSort(iarray_trg_mid, iarray_trg_mid_sorted, MPI_COMM_SELF);
-
-      Pair_t p1;
-      p1.key = glb_min_mid[myrank];
-      lcl_start = std::lower_bound(&iarray_trg_mid_sorted[0],
-                                   &iarray_trg_mid_sorted[0]+iarray_trg_mid_sorted.Dim(),
-                                   p1,
-                                   std::less<Pair_t>()) - &iarray_trg_mid_sorted[0];
-
-      if (myrank+1 < np) {
-        Pair_t p2; p2.key = glb_min_mid[myrank+1];
-        lcl_end = std::lower_bound(&iarray_trg_mid_sorted[0],
-                                   &iarray_trg_mid_sorted[0]+iarray_trg_mid_sorted.Dim(),
-                                   p2,
-                                   std::less<Pair_t>()) - &iarray_trg_mid_sorted[0];
-      } else {
-        lcl_end = iarray_trg_mid_sorted.Dim();
-      }
-
-      // [lcl_start, lcl_end[
-      trg_cnt_inside  = lcl_end - lcl_start;
-      trg_cnt_outside = N - trg_cnt_inside;
-    }
-    pvfmm::Profile::Toc();  // Sort
-
-    //////////////////////////////////////////////////
-    // COMMINUCATE THE OUTSIDER POINTS
-    //////////////////////////////////////////////////
-    static pvfmm::Vector<size_t> out_scatter_index;
-    static pvfmm::Vector<Real_t> trg_coord_outside;
-
-    pvfmm::Profile::Tic("OutCpyCoord", &sim_config->comm, true, 5);
-    trg_coord_outside.Resize(trg_cnt_outside*COORD_DIM);
-#pragma omp parallel for
-    for (int i = 0 ; i < lcl_start; i++) {
-      size_t src_indx = iarray_trg_mid_sorted[i].data;
-      size_t dst_indx = i;
-      for(size_t j = 0; j < COORD_DIM; j++) {
-        trg_coord_outside[dst_indx*COORD_DIM+j] = trg_coord_[src_indx*COORD_DIM+j];
-      }
-    }
-
-#pragma omp parallel for
-    for (int i = 0 ; i < (N-lcl_end); i++) {
-      size_t src_indx = iarray_trg_mid_sorted[lcl_end+i].data;
-      size_t dst_indx = lcl_start + i;
-      for(size_t j = 0; j < COORD_DIM; j++) {
-        trg_coord_outside[dst_indx*COORD_DIM+j] = trg_coord_[src_indx*COORD_DIM+j];
-      }
-    }
-    pvfmm::Profile::Toc();  // OUT COPY COORDINATES
-
-    pvfmm::Profile::Tic("OutMortonID", &sim_config->comm, true, 5);
-    static pvfmm::Vector<pvfmm::MortonId> trg_mid_outside;
-    trg_mid_outside.Resize(trg_cnt_outside);
-#pragma omp parallel for
-    for (size_t i = 0; i < trg_cnt_outside; i++) {
-      trg_mid_outside[i] = pvfmm::MortonId(&trg_coord_outside[i*COORD_DIM]);
-    }
-    pvfmm::Profile::Toc();
-
-    pvfmm::Profile::Tic("OutScatterIndex", &sim_config->comm, true, 5);
-    pvfmm::par::SortScatterIndex(trg_mid_outside, out_scatter_index, *tree->Comm(), &min_mid);
-    pvfmm::Profile::Toc();
-
-    pvfmm::Profile::Tic("OutScatterForward", &sim_config->comm, true, 5);
-    pvfmm::par::ScatterForward(trg_coord_outside, out_scatter_index, *tree->Comm());
-    pvfmm::Profile::Toc();
-
-    size_t trg_cnt_others = trg_coord_outside.Dim()/COORD_DIM;
-    size_t trg_cnt_total  = trg_cnt_inside + trg_cnt_others;
-
-    //////////////////////////////////////////////////
-    // EVALUATE THE OUTSIDER POINTS
-    //////////////////////////////////////////////////
-    static pvfmm::Vector<Real_t> trg_value_outsider__;
-    pvfmm::Profile::Tic("OutEvaluation", &sim_config->comm, false, 5);
-    trg_value_outsider__.Resize(trg_cnt_others*data_dof);
-    EvalNodesLocal<Real_t, Tree_t>(nodes, trg_coord_outside, trg_value_outsider__);
-    pvfmm::Profile::Toc();
-
-    //////////////////////////////////////////////////
-    // SCATTER REVERSE THE OUTSIDER POINT'S VALUES
-    //////////////////////////////////////////////////
-    pvfmm::Profile::Tic("OutScatterReverse", &sim_config->comm, true, 5);
-    pvfmm::par::ScatterReverse(trg_value_outsider__, out_scatter_index, *tree->Comm(), trg_cnt_outside);
-    pvfmm::Profile::Toc();
-
-    //////////////////////////////////////////////////
-    // SET OUTSIDER POINTS EVALUATION VALUES
-    //////////////////////////////////////////////////
-    pvfmm::Profile::Tic("OutSetVal", &sim_config->comm, true, 5);
-#pragma omp parallel for
-    for (int i = 0 ; i < lcl_start; i++) {
-      size_t src_indx = i;
-      size_t dst_indx = iarray_trg_mid_sorted[i].data;
-      for(size_t j = 0; j < data_dof; j++) {
-        value[dst_indx*data_dof+j] = trg_value_outsider__[src_indx*data_dof+j];
-      }
-    }
-#pragma omp parallel for
-    for (int i = 0 ; i < (N-lcl_end); i++) {
-      size_t src_indx = lcl_start + i;
-      size_t dst_indx = iarray_trg_mid_sorted[lcl_end+i].data;
-      for(size_t j = 0; j < data_dof; j++) {
-        value[dst_indx*data_dof+j] = trg_value_outsider__[src_indx*data_dof+j];
-      }
-    }
-    pvfmm::Profile::Toc();  // OUT SET VALUES
-
-    //////////////////////////////////////////////////
-    // COLLECT THE COORDINATE VALUES
-    //////////////////////////////////////////////////
-    static  pvfmm::Vector<Real_t> trg_coord_inside;
-    trg_coord_inside.Resize(trg_cnt_inside*COORD_DIM);
-#pragma omp parallel for
-    for (size_t i = 0; i < trg_cnt_inside; i++) {
-      size_t src_indx = iarray_trg_mid_sorted[lcl_start+i].data;
-      size_t dst_indx = i;
-      for(size_t j = 0; j < COORD_DIM;j++) {
-        trg_coord_inside[dst_indx*COORD_DIM+j] = trg_coord_[src_indx*COORD_DIM+j];
-      }
-    }
-
-    //////////////////////////////////////////////////
-    // EVALUATE THE LOCAL POINTS
-    //////////////////////////////////////////////////
-    static pvfmm::Vector<Real_t> trg_value_insider__;
-    pvfmm::Profile::Tic("InEvaluation", &sim_config->comm, false, 5);
-    trg_value_insider__.Resize(trg_cnt_inside*data_dof);
-    EvalNodesLocal<Real_t, Tree_t>(nodes, trg_coord_inside, trg_value_insider__);
-    pvfmm::Profile::Toc();
-
-    //////////////////////////////////////////////////
-    // SET INSIDER POINTS EVALUATION VALUES
-    //////////////////////////////////////////////////
-    pvfmm::Profile::Tic("InSetVal", &sim_config->comm, false, 5);
-#pragma omp parallel for
-    for (size_t i = 0; i < trg_cnt_inside; i++) {
-      size_t src_indx = i;
-      size_t dst_indx = iarray_trg_mid_sorted[lcl_start+i].data;
-      for (int j = 0; j < data_dof; j++) {
-        value[dst_indx*data_dof+j] = trg_value_insider__[i*data_dof+j];
-      }
-    }
-    pvfmm::Profile::Toc();
-
-//     //////////////////////////////////////////////////
-//     // COLLECT THE COORDINATE VALUES
-//     //////////////////////////////////////////////////
-//     static
-//     pvfmm::Vector<Real_t> tot_lcl_trg_coord;
-//     {
-//       tot_lcl_trg_coord.Resize(trg_cnt_total*COORD_DIM);
-
-// #pragma omp parallel for
-//       for (size_t i = 0; i < trg_cnt_inside; i++) {
-//         size_t src_indx = iarray_trg_mid_sorted[lcl_start+i].data;
-//         size_t dst_indx = i;
-//         for(size_t j = 0; j < COORD_DIM;j++) {
-//           tot_lcl_trg_coord[dst_indx*COORD_DIM+j] = trg_coord_[src_indx*COORD_DIM+j];
-//         }
-//       }
-
-// #pragma omp parallel for
-//       for(size_t tid = 0; tid < omp_p; tid++){
-//         size_t a = trg_cnt_others*COORD_DIM*(tid+0)/omp_p;
-//         size_t b = trg_cnt_others*COORD_DIM*(tid+1)/omp_p;
-//         if(b-a) memcpy(&tot_lcl_trg_coord[trg_cnt_inside*COORD_DIM]+a, &trg_coord_outside[0]+a, (b-a)*sizeof(Real_t));
-//       }
-//       // memcpy(&tot_lcl_trg_coord[trg_cnt_inside*COORD_DIM], &trg_coord_outside[0], trg_coord_outside.Dim()*sizeof(Real_t));
-//     }
-
-//     //////////////////////////////////////////////////
-//     // EVALUATE THE LOCAL POINTS
-//     //////////////////////////////////////////////////
-//     static
-//     pvfmm::Vector<Real_t> trg_value_total;
-//     {
-//       pvfmm::Profile::Tic("LocalEvaluation", &sim_config->comm, false, 5);
-//       trg_value_total.Resize(trg_cnt_total*data_dof);
-//       EvalNodesLocal<Real_t, Tree_t>(nodes, tot_lcl_trg_coord, trg_value_total);
-//       pvfmm::Profile::Toc();
-//     }
-//     //////////////////////////////////////////////////
-//     // SCATTER REVERSE THE OUTSIDER POINT'S VALUES
-//     //////////////////////////////////////////////////
-//     int printing_rank = 2;
-//     static
-//     pvfmm::Vector<Real_t> trg_value_outsider;
-//     {
-//       pvfmm::Profile::Tic("OutScatterReverse", &sim_config->comm, true, 5);
-//       trg_value_outsider.Resize(trg_cnt_others*data_dof);
-// #pragma omp parallel for
-//       for(size_t tid=0;tid<omp_p;tid++){
-//         size_t a=trg_cnt_others*data_dof*(tid+0)/omp_p;
-//         size_t b=trg_cnt_others*data_dof*(tid+1)/omp_p;
-//         if(b-a) memcpy(&trg_value_outsider[0]+a, &trg_value_total[trg_cnt_inside*data_dof]+a, (b-a)*sizeof(Real_t));
-//       }
-//       // memcpy(&trg_value_outsider[0], &trg_value_total[trg_cnt_inside*data_dof], trg_cnt_others*data_dof*sizeof(Real_t));
-
-//       // if (myrank == printing_rank){
-//       //   for (int i = 0 ; i < trg_cnt_others*data_dof; i++) {
-//       //     std::cout
-//       //         << "P " << myrank
-//       //         << " FV_OUT: " << trg_value_outsider[i]
-//       //         << " TV_OUT: " << trg_value_total[trg_cnt_inside*data_dof+i]
-//       //         << " SV_OUT: " << trg_value_outsider__[i]
-//       //         << std::endl;
-//       //   }
-//       // }
-//       pvfmm::par::ScatterReverse(trg_value_outsider__, out_scatter_index, *tree->Comm(), trg_cnt_outside);
-//       pvfmm::Profile::Toc();
-//     }
-
-//     std::cout << "P" << myrank << " [0, " << lcl_start <<", " << lcl_end << ", " << N << "]";
-//     std::cout
-//         << " TRG_CNT_IN: " << trg_cnt_inside
-//         << " TRG_CNT_OUT: " << trg_cnt_outside
-//         << " TRG_CNT_RCV: " << trg_value_outsider__.Dim()/data_dof
-//         << " TRG_CNT_OTHRS: " << trg_cnt_others
-//         << " TRG_CNT_IN_TOT: " << trg_value_total.Dim()/data_dof
-//         << std::endl;
-
-    //////////////////////////////////////////////////
-    // SETTING EVALUATION VALUES
-    //////////////////////////////////////////////////
-    // {
-//       pvfmm::Profile::Tic("SetValues", &sim_config->comm, true, 5);
-
-// #pragma omp parallel for
-//       for (size_t i = 0; i < trg_cnt_inside; i++) {
-//         size_t src_indx = i;
-//         size_t dst_indx = iarray_trg_mid_sorted[lcl_start+i].data;
-//         for (int j = 0; j < data_dof; j++) {
-//           value[dst_indx*data_dof+j] = trg_value_total[i*data_dof+j];
-//         }
-//       }
-
-// #pragma omp parallel for
-//       for (int i = 0 ; i < lcl_start; i++) {
-//         size_t src_indx = i;
-//         size_t dst_indx = iarray_trg_mid_sorted[i].data;
-//         for(size_t j = 0; j < data_dof; j++) {
-//           value[dst_indx*data_dof+j] = trg_value_outsider__[src_indx*data_dof+j];
-//         }
-//       }
-
-// #pragma omp parallel for
-//       for (int i = 0 ; i < (N-lcl_end); i++) {
-//         size_t src_indx = lcl_start + i;
-//         size_t dst_indx = iarray_trg_mid_sorted[lcl_end+i].data;
-//         for(size_t j = 0; j < data_dof; j++) {
-//           value[dst_indx*data_dof+j] = trg_value_outsider__[src_indx*data_dof+j];
-//         }
-//       }
-
-//       pvfmm::Profile::Toc();  // SET VALUES
+  for(size_t i = 0; i < N; i++) {
+    iarray_trg_mid[i].key  = pvfmm::MortonId(&trg_coord_[i*COORD_DIM]);
+    iarray_trg_mid[i].data = i;
   }
+
+  pvfmm::par::HyperQuickSort(iarray_trg_mid, iarray_trg_mid_sorted, MPI_COMM_SELF);
+
+  Pair_t p1;
+  p1.key = glb_min_mid[myrank];
+  lcl_start = std::lower_bound(&iarray_trg_mid_sorted[0],
+                               &iarray_trg_mid_sorted[0]+iarray_trg_mid_sorted.Dim(),
+                               p1,
+                               std::less<Pair_t>()) - &iarray_trg_mid_sorted[0];
+
+  if (myrank+1 < np) {
+    Pair_t p2; p2.key = glb_min_mid[myrank+1];
+    lcl_end = std::lower_bound(&iarray_trg_mid_sorted[0],
+                               &iarray_trg_mid_sorted[0]+iarray_trg_mid_sorted.Dim(),
+                               p2,
+                               std::less<Pair_t>()) - &iarray_trg_mid_sorted[0];
+  } else {
+    lcl_end = iarray_trg_mid_sorted.Dim();
+  }
+
+  // [lcl_start, lcl_end[
+  trg_cnt_inside  = lcl_end - lcl_start;
+  trg_cnt_outside = N - trg_cnt_inside;
+  pvfmm::Profile::Toc();  // Sort
+
+  //////////////////////////////////////////////////
+  // COMMINUCATE THE OUTSIDER POINTS
+  //////////////////////////////////////////////////
+  static pvfmm::Vector<size_t> out_scatter_index;
+  static pvfmm::Vector<Real_t> trg_coord_outside;
+
+  pvfmm::Profile::Tic("OutCpyCoord", &sim_config->comm, true, 5);
+  trg_coord_outside.Resize(trg_cnt_outside*COORD_DIM);
+#pragma omp parallel for
+  for (int i = 0 ; i < lcl_start; i++) {
+    size_t src_indx = iarray_trg_mid_sorted[i].data;
+    size_t dst_indx = i;
+    for(size_t j = 0; j < COORD_DIM; j++) {
+      trg_coord_outside[dst_indx*COORD_DIM+j] = trg_coord_[src_indx*COORD_DIM+j];
+    }
+  }
+
+#pragma omp parallel for
+  for (int i = 0 ; i < (N-lcl_end); i++) {
+    size_t src_indx = iarray_trg_mid_sorted[lcl_end+i].data;
+    size_t dst_indx = lcl_start + i;
+    for(size_t j = 0; j < COORD_DIM; j++) {
+      trg_coord_outside[dst_indx*COORD_DIM+j] = trg_coord_[src_indx*COORD_DIM+j];
+    }
+  }
+  pvfmm::Profile::Toc();  // OUT COPY COORDINATES
+
+  pvfmm::Profile::Tic("OutMortonID", &sim_config->comm, true, 5);
+  static pvfmm::Vector<pvfmm::MortonId> trg_mid_outside;
+  trg_mid_outside.Resize(trg_cnt_outside);
+#pragma omp parallel for
+  for (size_t i = 0; i < trg_cnt_outside; i++) {
+    trg_mid_outside[i] = pvfmm::MortonId(&trg_coord_outside[i*COORD_DIM]);
+  }
+  pvfmm::Profile::Toc();
+
+  pvfmm::Profile::Tic("OutScatterIndex", &sim_config->comm, true, 5);
+  pvfmm::par::SortScatterIndex(trg_mid_outside, out_scatter_index, *tree->Comm(), &min_mid);
+  pvfmm::Profile::Toc();
+
+  pvfmm::Profile::Tic("OutScatterForward", &sim_config->comm, true, 5);
+  pvfmm::par::ScatterForward(trg_coord_outside, out_scatter_index, *tree->Comm());
+  pvfmm::Profile::Toc();
+
+  size_t trg_cnt_others = trg_coord_outside.Dim()/COORD_DIM;
+  size_t trg_cnt_total  = trg_cnt_inside + trg_cnt_others;
+
+  //////////////////////////////////////////////////
+  // EVALUATE THE OUTSIDER POINTS
+  //////////////////////////////////////////////////
+  static pvfmm::Vector<Real_t> trg_value_outsider;
+  pvfmm::Profile::Tic("OutEvaluation", &sim_config->comm, false, 5);
+  trg_value_outsider.Resize(trg_cnt_others*data_dof);
+  EvalNodesLocal<Real_t, Tree_t>(nodes, trg_coord_outside, trg_value_outsider);
+  pvfmm::Profile::Toc();
+
+  //////////////////////////////////////////////////
+  // SCATTER REVERSE THE OUTSIDER POINT'S VALUES
+  //////////////////////////////////////////////////
+  pvfmm::Profile::Tic("OutScatterReverse", &sim_config->comm, true, 5);
+  pvfmm::par::ScatterReverse(trg_value_outsider, out_scatter_index, *tree->Comm(), trg_cnt_outside);
+  pvfmm::Profile::Toc();
+
+  //////////////////////////////////////////////////
+  // SET OUTSIDER POINTS EVALUATION VALUES
+  //////////////////////////////////////////////////
+  pvfmm::Profile::Tic("OutSetVal", &sim_config->comm, true, 5);
+#pragma omp parallel for
+  for (int i = 0 ; i < lcl_start; i++) {
+    size_t src_indx = i;
+    size_t dst_indx = iarray_trg_mid_sorted[i].data;
+    for(size_t j = 0; j < data_dof; j++) {
+      value[dst_indx*data_dof+j] = trg_value_outsider[src_indx*data_dof+j];
+    }
+  }
+#pragma omp parallel for
+  for (int i = 0 ; i < (N-lcl_end); i++) {
+    size_t src_indx = lcl_start + i;
+    size_t dst_indx = iarray_trg_mid_sorted[lcl_end+i].data;
+    for(size_t j = 0; j < data_dof; j++) {
+      value[dst_indx*data_dof+j] = trg_value_outsider[src_indx*data_dof+j];
+    }
+  }
+  pvfmm::Profile::Toc();  // OUT SET VALUES
+
+  //////////////////////////////////////////////////
+  // COLLECT THE COORDINATE VALUES
+  //////////////////////////////////////////////////
+  static  pvfmm::Vector<Real_t> trg_coord_inside;
+  pvfmm::Profile::Tic("InCpyCoord", &sim_config->comm, true, 5);
+  trg_coord_inside.Resize(trg_cnt_inside*COORD_DIM);
+#pragma omp parallel for
+  for (size_t i = 0; i < trg_cnt_inside; i++) {
+    size_t src_indx = iarray_trg_mid_sorted[lcl_start+i].data;
+    size_t dst_indx = i;
+    for(size_t j = 0; j < COORD_DIM;j++) {
+      trg_coord_inside[dst_indx*COORD_DIM+j] = trg_coord_[src_indx*COORD_DIM+j];
+    }
+  }
+  pvfmm::Profile::Toc();
+
+  //////////////////////////////////////////////////
+  // EVALUATE THE LOCAL POINTS
+  //////////////////////////////////////////////////
+  static pvfmm::Vector<Real_t> trg_value_insider;
+  pvfmm::Profile::Tic("InEvaluation", &sim_config->comm, false, 5);
+  trg_value_insider.Resize(trg_cnt_inside*data_dof);
+  EvalNodesLocal<Real_t, Tree_t>(nodes, trg_coord_inside, trg_value_insider);
+  pvfmm::Profile::Toc();
+
+  //////////////////////////////////////////////////
+  // SET INSIDER POINTS EVALUATION VALUES
+  //////////////////////////////////////////////////
+  pvfmm::Profile::Tic("InSetVal", &sim_config->comm, false, 5);
+#pragma omp parallel for
+  for (size_t i = 0; i < trg_cnt_inside; i++) {
+    size_t src_indx = i;
+    size_t dst_indx = iarray_trg_mid_sorted[lcl_start+i].data;
+    for (int j = 0; j < data_dof; j++) {
+      value[dst_indx*data_dof+j] = trg_value_insider[i*data_dof+j];
+    }
+  }
+  pvfmm::Profile::Toc();
+
   pvfmm::Profile::Toc();  // LOCAL SORT
+
+  //////////////////////////////////////////////////
+  // PRINT TARGET COUNTS INFO
+  //////////////////////////////////////////////////
+  int sbuff[4] = {trg_cnt_inside,
+                  trg_cnt_outside,
+                  trg_value_outsider.Dim()/data_dof,
+                  trg_cnt_others};
+  int* rbuff = (int *)malloc(np*4*sizeof(int));
+  MPI_Gather(sbuff, 4, MPI_INT, rbuff, 4, MPI_INT, 0, *tree->Comm());
+  if (myrank == 0) {
+    for (int i = 0 ; i < np; i++) {
+      int* data = &rbuff[i*4];
+      std::cout
+          << " TRG_CNT_IN: "     << data[0]
+          << " TRG_CNT_OUT: "    << data[1]
+          << " TRG_CNT_RCV: "    << data[2]
+          << " TRG_CNT_OTHRS: "  << data[3]
+          << " TRG_CNT_IN_TOT: " << data[0] + data[3]
+          << std::endl;
+    }
+  }
+  delete rbuff;
 
   //////////////////////////////////////////////////////////////
   // GLOBAL SORT
@@ -706,43 +614,6 @@ void EvalTree(Tree_t* tree,
     // SETTING EVALUATION VALUES
     //////////////////////////////////////////////////////////////
     // memcpy(value, &trg_value[0], trg_value.Dim()*sizeof(Real_t));
-
-    // int printing_rank = 2;
-    // if (myrank == printing_rank){
-    //   for (int i = 0 ; i < lcl_start; i++) {
-    //     size_t dst_indx = iarray_trg_mid_sorted[i].data;
-    //     for(size_t j = 0; j < data_dof; j++) {
-    //       std::cout
-    //           << "FC P " << myrank
-    //           << " I: " << i
-    //           << " DST_INDX: " << dst_indx
-    //           << " DOF: " << data_dof
-    //           << " INDX: " << dst_indx*data_dof+j
-    //           << " LCL_VAL: " << value[dst_indx*data_dof+j]
-    //           << " GLB_VAL: " << trg_value[dst_indx*data_dof+j]
-    //           << std::endl;
-
-    //     }
-    //   }
-    // }
-
-// #pragma omp parallel for
-    // if (myrank == printing_rank)
-    // for (int i = 0 ; i < (N-lcl_end); i++) {
-    //   size_t dst_indx = iarray_trg_mid_sorted[lcl_end+i].data;
-    //   for(size_t j = 0; j < data_dof; j++) {
-    //     std::cout
-    //         << "SC P" << myrank
-    //         << " I: " << i
-    //         << " DST_INDX: " << dst_indx
-    //         << " DOF: " << data_dof
-    //         << " INDX: " << dst_indx*data_dof+j
-    //         << " LCL_VAL: " << value[dst_indx*data_dof+j]
-    //         << " GLB_VAL: " << trg_value[dst_indx*data_dof+j]
-    //         << std::endl;
-    //   }
-    // }
-
   }  // GLOBAL SORT
   pvfmm::Profile::Toc();
 }
