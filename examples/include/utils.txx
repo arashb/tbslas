@@ -410,9 +410,9 @@ void parse_command_line_options(int argc, char** argv) {
                              "-cuf   <int> = (4)    : Upsampling factor used for cubic interpolation."),
           NULL,10);
 
-  bool cubic_analytical =
-      (commandline_option(argc, argv, "-ca", NULL, false,
-                          "-ca                  : Analytical values used in cubic interpolation upsampling.")!=NULL);
+  // bool cubic_analytical =
+  //     (commandline_option(argc, argv, "-ca", NULL, false,
+  //                         "-ca                  : Analytical values used in cubic interpolation upsampling.")!=NULL);
 
   bool profile =
       (commandline_option(argc, argv, "-p", NULL, false,
@@ -433,7 +433,7 @@ void parse_command_line_options(int argc, char** argv) {
   sim_config->vtk_save                = vtk_save;
   sim_config->use_cubic               = cubic;
   sim_config->cubic_upsampling_factor = cuf;
-  sim_config->cubic_use_analytical    = cubic_analytical;
+  // sim_config->cubic_use_analytical    = cubic_analytical;
   sim_config->num_omp_threads         = omp;
   omp_set_num_threads(omp);
   // *************************************************************************
