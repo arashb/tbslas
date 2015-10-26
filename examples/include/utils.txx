@@ -356,9 +356,17 @@ void parse_command_line_options(int argc, char** argv) {
           commandline_option(argc, argv, "-omp", "1", false,
                              "-omp  <int> = (1)    : Number of OpenMP threads."));
 
+  int np;
+  MPI_Comm_size(MPI_COMM_WORLD,&np);
+  // default value is number of processes
+
+  std::stringstream temp_str;
+  temp_str<<np;
+  std::string str = temp_str.str();
+
   size_t N =
       (size_t)strtod(
-          commandline_option(argc, argv, "-N", "1", true,
+          commandline_option(argc, argv, "-N", str.c_str(), false,
                              "-N    <int>          : Number of point sources."),
           NULL);
 
@@ -427,6 +435,7 @@ void parse_command_line_options(int argc, char** argv) {
   // SIMULATION PARAMETERS
   // =========================================================================
   tbslas::SimConfig* sim_config       = tbslas::SimConfigSingleton::Instance();
+
   sim_config->total_num_timestep      = tn;
   sim_config->dt                      = dt;
   sim_config->vtk_order               = q;

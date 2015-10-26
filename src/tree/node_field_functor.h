@@ -556,66 +556,66 @@ void EvalTree(Tree_t* tree,
   //////////////////////////////////////////////////////////////
   // GLOBAL SORT
   //////////////////////////////////////////////////////////////
-  pvfmm::Profile::Tic("GlobalSort", &sim_config->comm, false, 5);
-  {
-    //////////////////////////////////////////////////////////////
-    // COMPUTE MORTON ID OF THE TARGET POINTS
-    //////////////////////////////////////////////////////////////
-    pvfmm::Profile::Tic("MortonId", &sim_config->comm, true, 5);
-    static pvfmm::Vector<pvfmm::MortonId> trg_mid; trg_mid.Resize(N);
-#pragma omp parallel for
-    for (size_t i = 0; i < N; i++) {
-      trg_mid[i] = pvfmm::MortonId(&trg_coord_[i*COORD_DIM]);
-    }
-    pvfmm::Profile::Toc();
+//   pvfmm::Profile::Tic("GlobalSort", &sim_config->comm, false, 5);
+//   {
+//     //////////////////////////////////////////////////////////////
+//     // COMPUTE MORTON ID OF THE TARGET POINTS
+//     //////////////////////////////////////////////////////////////
+//     pvfmm::Profile::Tic("MortonId", &sim_config->comm, true, 5);
+//     static pvfmm::Vector<pvfmm::MortonId> trg_mid; trg_mid.Resize(N);
+// #pragma omp parallel for
+//     for (size_t i = 0; i < N; i++) {
+//       trg_mid[i] = pvfmm::MortonId(&trg_coord_[i*COORD_DIM]);
+//     }
+//     pvfmm::Profile::Toc();
 
-    //////////////////////////////////////////////////////////////
-    // SCATTER THE COORDINATES
-    //////////////////////////////////////////////////////////////
-    pvfmm::Profile::Tic("ScatterIndex", &sim_config->comm, true, 5);
-    static pvfmm::Vector<size_t> scatter_index;
-    pvfmm::par::SortScatterIndex(trg_mid, scatter_index, *tree->Comm(), &min_mid);
-    pvfmm::Profile::Toc();
+//     //////////////////////////////////////////////////////////////
+//     // SCATTER THE COORDINATES
+//     //////////////////////////////////////////////////////////////
+//     pvfmm::Profile::Tic("ScatterIndex", &sim_config->comm, true, 5);
+//     static pvfmm::Vector<size_t> scatter_index;
+//     pvfmm::par::SortScatterIndex(trg_mid, scatter_index, *tree->Comm(), &min_mid);
+//     pvfmm::Profile::Toc();
 
-    static pvfmm::Vector<Real_t> trg_coord;
-    pvfmm::Profile::Tic("ScatterForward", &sim_config->comm, true, 5);
-    {
-      trg_coord.Resize(N*COORD_DIM);
-#pragma omp parallel for
-      for(size_t tid=0;tid<omp_p;tid++){
-        size_t a=N*COORD_DIM*(tid+0)/omp_p;
-        size_t b=N*COORD_DIM*(tid+1)/omp_p;
-        if(b-a) memcpy(&trg_coord[0]+a, &trg_coord_[0]+a, (b-a)*sizeof(Real_t));
-      }
-      pvfmm::par::ScatterForward(trg_coord, scatter_index, *tree->Comm());
-    }
-    pvfmm::Profile::Toc();
+//     static pvfmm::Vector<Real_t> trg_coord;
+//     pvfmm::Profile::Tic("ScatterForward", &sim_config->comm, true, 5);
+//     {
+//       trg_coord.Resize(N*COORD_DIM);
+// #pragma omp parallel for
+//       for(size_t tid=0;tid<omp_p;tid++){
+//         size_t a=N*COORD_DIM*(tid+0)/omp_p;
+//         size_t b=N*COORD_DIM*(tid+1)/omp_p;
+//         if(b-a) memcpy(&trg_coord[0]+a, &trg_coord_[0]+a, (b-a)*sizeof(Real_t));
+//       }
+//       pvfmm::par::ScatterForward(trg_coord, scatter_index, *tree->Comm());
+//     }
+//     pvfmm::Profile::Toc();
 
-    // std::cout << "P" << myrank << " TRG_CNT: " << trg_coord.Dim()/COORD_DIM << std::endl; 
+//     // std::cout << "P" << myrank << " TRG_CNT: " << trg_coord.Dim()/COORD_DIM << std::endl; 
 
-    //////////////////////////////////////////////////////////////
-    // LOCAL POINTS EVALUATION
-    //////////////////////////////////////////////////////////////
-    size_t num_trg_points = trg_coord.Dim()/COORD_DIM;
-    static pvfmm::Vector<Real_t> trg_value;
-    pvfmm::Profile::Tic("Evaluation", &sim_config->comm, false, 5);
-    trg_value.Resize(num_trg_points*data_dof);
-    EvalNodesLocal<Real_t, Tree_t>(nodes, trg_coord, trg_value);
-    pvfmm::Profile::Toc();
+//     //////////////////////////////////////////////////////////////
+//     // LOCAL POINTS EVALUATION
+//     //////////////////////////////////////////////////////////////
+//     size_t num_trg_points = trg_coord.Dim()/COORD_DIM;
+//     static pvfmm::Vector<Real_t> trg_value;
+//     pvfmm::Profile::Tic("Evaluation", &sim_config->comm, false, 5);
+//     trg_value.Resize(num_trg_points*data_dof);
+//     EvalNodesLocal<Real_t, Tree_t>(nodes, trg_coord, trg_value);
+//     pvfmm::Profile::Toc();
 
-    //////////////////////////////////////////////////////////////
-    // GATHERING GLOBAL POINTS VALUES
-    //////////////////////////////////////////////////////////////
-    pvfmm::Profile::Tic("ScatterReverse", &sim_config->comm, true, 5);
-    pvfmm::par::ScatterReverse(trg_value, scatter_index, *tree->Comm(), N);
-    pvfmm::Profile::Toc();
+//     //////////////////////////////////////////////////////////////
+//     // GATHERING GLOBAL POINTS VALUES
+//     //////////////////////////////////////////////////////////////
+//     pvfmm::Profile::Tic("ScatterReverse", &sim_config->comm, true, 5);
+//     pvfmm::par::ScatterReverse(trg_value, scatter_index, *tree->Comm(), N);
+//     pvfmm::Profile::Toc();
 
-    //////////////////////////////////////////////////////////////
-    // SETTING EVALUATION VALUES
-    //////////////////////////////////////////////////////////////
-    // memcpy(value, &trg_value[0], trg_value.Dim()*sizeof(Real_t));
-  }  // GLOBAL SORT
-  pvfmm::Profile::Toc();
+//     //////////////////////////////////////////////////////////////
+//     // SETTING EVALUATION VALUES
+//     //////////////////////////////////////////////////////////////
+//     // memcpy(value, &trg_value[0], trg_value.Dim()*sizeof(Real_t));
+//   }  // GLOBAL SORT
+  // pvfmm::Profile::Toc();
 }
 
 template<typename real_t,
