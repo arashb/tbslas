@@ -1,4 +1,4 @@
 TbSLAS
 ======
 
-Tree-based Semi-Lagrangian Advection Solver
+Tree-based Semi-Lagrangian Advection-Diffusion Solver

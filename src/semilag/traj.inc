@@ -15,9 +15,6 @@
 
 #include <profile.hpp>
 
-#include "semilag/vec_field.h"
-// #include "utils/profile.h"
-
 namespace tbslas {
 
 template<typename real_t, typename FieldFunctor>
@@ -71,48 +68,6 @@ ComputeTrajRK2(FieldFunctor field_fn,
     current_time = current_time + tau;
   }
   pvfmm::Profile::Toc();
-}
-
-template<typename real_t, typename InterpPolicy, int sdim, int vdim>
-void
-IntegrateRK2(const VecField<real_t, sdim, vdim>& field,
-             const std::vector<real_t>& xinit,
-             const real_t init_time,
-             const real_t dt,
-             const InterpPolicy& interp_policy,
-             std::vector<real_t>& xsol) {
-  std::vector<real_t> xtmp(xinit.size());
-  std::vector<real_t> vtmp(xinit.size());
-
-  field.interp(xinit, init_time, interp_policy, vtmp);
-  for (int i = 0; i < xinit.size(); i++)
-    xtmp[i] = xinit[i] + 0.5*dt*vtmp[i];
-
-  field.interp(xtmp, init_time+0.5*dt, interp_policy, vtmp);
-  for (int i = 0; i < xinit.size(); i++)
-    xsol[i] = xinit[i] + dt*vtmp[i];
-}
-
-template<typename real_t, typename InterpPolicy, int sdim, int vdim>
-void
-ComputeTrajRK2(const VecField<real_t, sdim, vdim>& field,
-               const std::vector<real_t>& xinit,
-               const real_t tinit,
-               const real_t tfinal,
-               const int num_rk_step,
-               const InterpPolicy& interp_policy,
-               std::vector<real_t>& xsol) {
-  real_t tau = (tfinal - tinit)/num_rk_step;
-
-  for (int i = 0; i < xinit.size(); i++)
-    xsol[i] = xinit[i];
-
-  real_t current_time = tinit;
-  // n-step RK2
-  for (int taustep = 0; taustep < num_rk_step; taustep++) {
-    IntegrateRK2(field, xsol, current_time, tau, interp_policy, xsol);
-    current_time = current_time + tau;
-  }
 }
 
 }  // namespace tbslas

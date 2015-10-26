@@ -31,18 +31,6 @@ SolveSemilagRK2(VFieldFunctor vel_evaluator,
                 const int num_rk_step,
                 std::vector<real_t>& points_vals);
 
-template<typename real_t,
-         typename InterpPolicy,
-         typename VField,
-         typename CField>
-void
-SolveSemilagRK2(const VField& vel_field,
-                const InterpPolicy& interp_policy,
-                const int timestep,
-                const real_t dt,
-                const int num_rk_step,
-                CField& conc_field);
-
 }  // namespace tbslas
 
 #include "semilag.inc"

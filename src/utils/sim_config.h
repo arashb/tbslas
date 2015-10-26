@@ -36,7 +36,7 @@ class SimConfig {
       vtk_filename_variable("vals"),
       use_cubic(false),
       cubic_upsampling_factor(4),
-      cubic_use_analytical(false),
+      // cubic_use_analytical(false),
       comm(MPI_COMM_WORLD),
       num_omp_threads(1),
       tree_num_point_sources(1),
@@ -70,7 +70,7 @@ class SimConfig {
   // *************************************************************************
   bool use_cubic;
   int cubic_upsampling_factor;
-  bool cubic_use_analytical;
+  // bool cubic_use_analytical;
   // *************************************************************************
   // parallelization
   // *************************************************************************

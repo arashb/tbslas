@@ -18,6 +18,7 @@ import sys
 import os
 import parser
 import copy
+from collections import OrderedDict
 
 SCALE_TAG_LIST = ['+-AdvDif',\
                   # '+-InitFMM_Cheb', \
@@ -91,7 +92,7 @@ def post_process_scaling_data(mydoc, file_pp, PRINT_HEADER = True):
     - `file_pp`:
     """
     ppnode_title = mydoc.np
-    ppnode_values = dict()
+    ppnode_values = OrderedDict()
 
     for scale_tag in SCALE_TAG_LIST:
         for node in mydoc.node_list:
@@ -100,8 +101,40 @@ def post_process_scaling_data(mydoc, file_pp, PRINT_HEADER = True):
                 ppnode_values[node.title] = node.values['t_avg']
                 if '+-SL' in node.title:
                     ppnode_values['f/s_total'] = node.values['f/s_total']
-                    # print node.values['f/s_total']
+                    print node.values['f/s_total']
                 break
+    ppnode = parser.pnode(ppnode_title, ppnode_values)
+    if PRINT_HEADER:
+        header_string_format = "{:<50}".format('NP')
+        for key, val in ppnode_values.iteritems():
+            header_string_format += "{:>10}".format(key)
+        header_string_format += "\n"
+        file_pp.write(header_string_format)
+    ppnode.print_me(file_pp)
+
+def post_process_tree_eval_data(mydoc, file_pp, PRINT_HEADER = True):
+    """
+    post processing of data
+    Arguments:
+    - `output`:
+    - `file_pp`:
+    """
+    SCALE_TAG_LIST = ['+-LclSort',\
+                      '+-GlobalSort'
+                      ]
+
+    ppnode_title = mydoc.np
+    ppnode_values = OrderedDict()
+
+    for scale_tag in SCALE_TAG_LIST:
+        for node in mydoc.node_list:
+            if scale_tag in node.title:
+                print node.title
+                ppnode_values[node.title] = node.values['t_avg']
+                # if '+-SL' in node.title:
+                #     ppnode_values['f/s_total'] = node.values['f/s_total']
+                #     print node.values['f/s_total']
+                # break
     ppnode = parser.pnode(ppnode_title, ppnode_values)
     if PRINT_HEADER:
         header_string_format = "{:<50}".format('NP')
@@ -141,48 +174,49 @@ if __name__ == '__main__':
     PRINT_HEADER = True
     for file_name in raw_file_names:
         f = open(file_name, 'r')
-        post_process(f, file_pp, post_process_scaling_data, PRINT_HEADER)
+        # post_process(f, file_pp, post_process_scaling_data, PRINT_HEADER)
+        post_process(f, file_pp, post_process_tree_eval_data, PRINT_HEADER)
         PRINT_HEADER = False
 
     file_pp.close()
 
     # create efficiency output file
-    file_eff_path = os.path.join(raw_dir_name, "eff"+'.pp')
-    file_eff = open(file_eff_path, 'w')
+    # file_eff_path = os.path.join(raw_dir_name, "eff"+'.pp')
+    # file_eff = open(file_eff_path, 'w')
 
-    file_eff_input = open(file_pp_path, 'r')
-    table = []
-    num_col = 0
-    for line in file_eff_input:
-        if line.startswith("#"):
-            continue
-        if line.startswith("NP"):
-            titles = line.split();
-            num_col = len(titles)
-        else:
-            vals = line.split()
-            if len(vals) == num_col:
-                table.append(line.split())
-    # print header
-    string_format = ""
-    for val in titles:
-            string_format += "{:>10}".format(val)
-    string_format += "\n"
-    file_eff.write(string_format)
+    # file_eff_input = open(file_pp_path, 'r')
+    # table = []
+    # num_col = 0
+    # for line in file_eff_input:
+    #     if line.startswith("#"):
+    #         continue
+    #     if line.startswith("NP"):
+    #         titles = line.split();
+    #         num_col = len(titles)
+    #     else:
+    #         vals = line.split()
+    #         if len(vals) == num_col:
+    #             table.append(line.split())
+    # # print header
+    # string_format = ""
+    # for val in titles:
+    #         string_format += "{:>10}".format(val)
+    # string_format += "\n"
+    # file_eff.write(string_format)
 
-    eff_table =  copy.deepcopy(table)
-    num_rows = len(table)
-    for c in range(0,num_col):
-        for r in range(0,num_rows):
-            np_fact = float(table[r][0])/float(table[0][0])
-            if c == 0:
-                eff_table[r][c] = float(table[r][c])
-            else:
-                eff_table[r][c] = float(table[0][c])/float(table[r][c])/np_fact
+    # eff_table =  copy.deepcopy(table)
+    # num_rows = len(table)
+    # for c in range(0,num_col):
+    #     for r in range(0,num_rows):
+    #         np_fact = float(table[r][0])/float(table[0][0])
+    #         if c == 0:
+    #             eff_table[r][c] = float(table[r][c])
+    #         else:
+    #             eff_table[r][c] = float(table[0][c])/float(table[r][c])/np_fact
 
-    for li in eff_table:
-        string_format = ""
-        for val in li:
-            string_format += "{0:>10.4f}".format(val)
-        string_format += "\n"
-        file_eff.write(string_format)
+    # for li in eff_table:
+    #     string_format = ""
+    #     for val in li:
+    #         string_format += "{0:>10.4f}".format(val)
+    #     string_format += "\n"
+    #     file_eff.write(string_format)

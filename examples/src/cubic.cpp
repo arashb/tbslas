@@ -121,7 +121,7 @@ int main (int argc, char **argv) {
 
     Rep::AddData("CUBIC", sim_config->use_cubic);
     Rep::AddData("CUF", sim_config->cubic_upsampling_factor);
-    Rep::AddData("ANAL", sim_config->cubic_use_analytical);
+    // Rep::AddData("ANAL", sim_config->cubic_use_analytical);
 
     Rep::AddData("OutAL2", al2);
     Rep::AddData("OutALINF", ali);

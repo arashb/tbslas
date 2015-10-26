@@ -356,9 +356,17 @@ void parse_command_line_options(int argc, char** argv) {
           commandline_option(argc, argv, "-omp", "1", false,
                              "-omp  <int> = (1)    : Number of OpenMP threads."));
 
+  int np;
+  MPI_Comm_size(MPI_COMM_WORLD,&np);
+  // default value is number of processes
+
+  std::stringstream temp_str;
+  temp_str<<np;
+  std::string str = temp_str.str();
+
   size_t N =
       (size_t)strtod(
-          commandline_option(argc, argv, "-N", "1", true,
+          commandline_option(argc, argv, "-N", str.c_str(), false,
                              "-N    <int>          : Number of point sources."),
           NULL);
 
@@ -410,9 +418,9 @@ void parse_command_line_options(int argc, char** argv) {
                              "-cuf   <int> = (4)    : Upsampling factor used for cubic interpolation."),
           NULL,10);
 
-  bool cubic_analytical =
-      (commandline_option(argc, argv, "-ca", NULL, false,
-                          "-ca                  : Analytical values used in cubic interpolation upsampling.")!=NULL);
+  // bool cubic_analytical =
+  //     (commandline_option(argc, argv, "-ca", NULL, false,
+  //                         "-ca                  : Analytical values used in cubic interpolation upsampling.")!=NULL);
 
   bool profile =
       (commandline_option(argc, argv, "-p", NULL, false,
@@ -427,13 +435,14 @@ void parse_command_line_options(int argc, char** argv) {
   // SIMULATION PARAMETERS
   // =========================================================================
   tbslas::SimConfig* sim_config       = tbslas::SimConfigSingleton::Instance();
+
   sim_config->total_num_timestep      = tn;
   sim_config->dt                      = dt;
   sim_config->vtk_order               = q;
   sim_config->vtk_save                = vtk_save;
   sim_config->use_cubic               = cubic;
   sim_config->cubic_upsampling_factor = cuf;
-  sim_config->cubic_use_analytical    = cubic_analytical;
+  // sim_config->cubic_use_analytical    = cubic_analytical;
   sim_config->num_omp_threads         = omp;
   omp_set_num_threads(omp);
   // *************************************************************************
