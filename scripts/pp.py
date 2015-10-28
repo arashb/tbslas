@@ -70,11 +70,12 @@ def post_process_profile_data(mydoc, file_pp, PRINT_HEADER = True):
                     node.values['t_min'] = str(t_min)
                     time_imb = "{0:>10.4f}".format( float(node.values['t_max'])/float(node.values['t_min']))
                     node.values['t_imb'] = time_imb
-                    max_points = max(mydoc.target_points_list[eval_tree_counter])
-                    min_points = min(mydoc.target_points_list[eval_tree_counter])
-                    target_points_imb = "{0:>10.4f}".format( float(max_points)/ min_points) 
-                    node.values['p_imb'] = target_points_imb
-                    eval_tree_counter += 1
+                    if len(mydoc.target_points_list) != 0:
+                        max_points = max(mydoc.target_points_list[eval_tree_counter])
+                        min_points = min(mydoc.target_points_list[eval_tree_counter])
+                        target_points_imb = "{0:>10.4f}".format( float(max_points)/ min_points) 
+                        node.values['p_imb'] = target_points_imb
+                        eval_tree_counter += 1
                 if PRINT_HEADER:
                     header_string_format = "{:<50}".format('# FUNCTION')
                     for key, val in node.values.iteritems():
