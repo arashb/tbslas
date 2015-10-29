@@ -45,10 +45,8 @@ def generate_command_args(tl_init, tl_factor, dt_init, dt_factor, tn_init, tn_fa
 # MAIN
 ################################################################################
 if __name__ == '__main__':
-    utils.prepare_environment(utils.OUTPUT_PREFIX)
+    utils.parse_args()
     TOL_NUM_STEPS = 8
-    if len(sys.argv) >= 4:
-        TOL_NUM_STEPS   = int(sys.argv[3])
     T_END = 1.0
     ############################################################################
     # TEST 1: TEMPORAL ERROR
