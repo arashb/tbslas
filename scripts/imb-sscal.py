@@ -1,5 +1,3 @@
-#!/bin/env python
-
 #*************************************************************************
 #Copyright (C) 2015 by Arash Bakhtiari
 #You may not use this file except in compliance with the License.

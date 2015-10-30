@@ -31,8 +31,6 @@ import pp
 TIMESTR       = time.strftime("%Y%m%d-%H%M%S")
 RESULT_TAG_HEADER  = '#TBSLAS-HEADER: '
 RESULT_TAG         = '#TBSLAS-RESULT: '
-MPI_TOTAL_NUM_PORCESSES = 1
-OMP_NUM_THREADS = 1
 
 ################################################################################
 # ENVIRONMENT VARIABLES
@@ -48,7 +46,6 @@ except KeyError as e:
 ################################################################################
 TBSLAS_EXAMPLES_DIR      = os.path.join(TBSLAS_DIR, "examples/")
 TBSLAS_EXAMPLES_BIN_DIR  = os.path.join(TBSLAS_EXAMPLES_DIR, "bin/")
-# TBSLAS_RESULT_DIR_PREFIX = ''
 
 ################################################################################
 # EXECUTION COMMAND
@@ -62,15 +59,17 @@ def parse_args():
         print USAGE
         sys.exit()
     if len(sys.argv) >= 3:
-        MPI_TOTAL_NUM_PORCESSES = int(sys.argv[1])
-        OMP_NUM_THREADS = int(sys.argv[2])
+        mpi_num_procs = int(sys.argv[1])
+        omp_num_threads = int(sys.argv[2])
+    return (mpi_num_procs, omp_num_threads)
 
 def get_output_prefix(num_proces):
     return SCRIPT_ID+'-np'+str(num_proces).zfill(5)+'-'+TIMESTR
 
 def get_result_dir_prefix():
     hostname      = socket.gethostname()
-    output_prefix = get_output_prefix(MPI_TOTAL_NUM_PORCESSES)
+    mpi_num_procs, omp_num_threads = parse_args()
+    output_prefix = get_output_prefix(mpi_num_procs)
     RESULT_DIR = os.environ['PWD']
     if 'stampede' in hostname:
         RESULT_DIR = os.environ['SCRATCH']

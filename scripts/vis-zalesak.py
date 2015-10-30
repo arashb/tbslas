@@ -15,10 +15,12 @@ import subprocess
 import math
 import sys
 from collections import OrderedDict
-from utils import *
+import utils
 
-def generate_command_args(max_depth):
-    EXEC = os.path.join(TBSLAS_EXAMPLES_BIN_DIR, "advection")
+def generate_command_args(max_depth, mpi_num_procs, omp_num_threads):
+
+    EXEC = os.path.join(utils.TBSLAS_EXAMPLES_BIN_DIR, "advection")
+
     # generate a dictionary data type of commands
     cmd_args = OrderedDict()
     cmd_id = 1
@@ -28,22 +30,22 @@ def generate_command_args(max_depth):
                '-dt'  , '0.0628', \
                '-tn'  , '500', \
                '-test', str(2), \
-               '-omp' , str(OMP_NUM_THREADS), \
+               '-omp' , str(omp_num_threads), \
                '-q'   , str(8), \
                # '-vs'  , '1'
                ]
-    cmd_args[cmd_id] = [EXEC] + ARGS
+    cmd_args[cmd_id] = utils.determine_command_prefix(mpi_num_procs) + [EXEC] + ARGS
+
     return cmd_args
+
 ################################################################################
 # MAIN
 ################################################################################
 if __name__ == '__main__':
-    prepare_environment(OUTPUT_PREFIX)
+    mpi_num_procs, omp_num_threads = utils.parse_args()
     max_depth = 7
-    if len(sys.argv) >= 4:
-        max_depth   = int(sys.argv[3])
     ############################################################################
     # TEST 1: TEMPORAL CONVERGENCE
     ############################################################################
-    cmd_args = generate_command_args(max_depth)
-    execute_commands(cmd_args, 'vis-zalesak')
+    cmd_args = generate_command_args(max_depth, mpi_num_procs, omp_num_threads)
+    utils.execute_commands(cmd_args, 'vis-zalesak')
