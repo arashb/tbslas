@@ -44,7 +44,7 @@ if len(sys.argv) >= 4:
     num_procs   = int(sys.argv[2])
     num_threads = int(sys.argv[3])
 if len(sys.argv) >= 5:
-    total_time = sys.argv[3]
+    total_time = sys.argv[4]
 
 ################################################################################
 # COMPILE CODE

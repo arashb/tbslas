@@ -38,7 +38,7 @@ def submit_job(job_id, num_nodes, num_proces, num_threads, total_time):
                   '--time='+str(total_time), \
                   '-J', job_id, \
                   './.run_python.sh', job_id, str(num_proces), str(num_threads)]
-        cmd_list.extend([CMD_FFTW3, CMD_PYTHON, CMD_JOB])
+        cmd_list.extend([CMD_FFTW3, CMD_JOB])
     elif 'maverick' in HOSTNAME:
         CMD_JOB =['sbatch', \
                   '-N'+str(num_nodes),\
@@ -48,16 +48,17 @@ def submit_job(job_id, num_nodes, num_proces, num_threads, total_time):
                   '--time='+str(total_time), \
                   '-J', job_id, \
                   './.run_python.sh', job_id, str(num_proces), str(num_threads)]
-        cmd_list.extend([CMD_PYTHON, CMD_JOB])
+        cmd_list.extend([CMD_JOB])
     elif 'zico' in HOSTNAME:
         CMD_JOB = ['./.run_python.sh', job_id, str(num_proces), str(num_threads)]
-        cmd_list.extend([CMD_FFTW3, CMD_PYTHON, CMD_JOB])
+        cmd_list.extend([CMD_FFTW3, CMD_JOB])
     else:
         CMD_JOB = ['./.run_python.sh', job_id, str(num_proces), str(num_threads)]
         cmd_list.extend([CMD_JOB])
     # execute commands
-    print cmd_list
+    # print cmd_list
     for cmd in cmd_list:
+        print cmd
         p = subprocess.Popen(cmd, shell=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         for line in p.stdout.readlines():
             sys.stdout.write(line)
