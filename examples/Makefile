@@ -26,7 +26,6 @@ OBJDIR = ./obj
 INCDIR = ./include
 
 TARGET_BIN = \
-       $(BINDIR)/semilag_tree \
        $(BINDIR)/advection  \
        $(BINDIR)/diffusion \
        $(BINDIR)/advdiff \

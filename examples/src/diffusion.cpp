@@ -21,12 +21,14 @@
 // TBSLAS
 #include <utils/common.h>
 #include <utils/reporter.h>
+#include <utils/fields.h>
 #include <diffusion/kernel.h>
 
 int NUM_TIME_STEPS = 1;
 double TBSLAS_DT;
 double TBSLAS_DIFF_COEFF;
 double TBSLAS_ALPHA;
+
 // current simulation time
 double tcurr = 25;
 

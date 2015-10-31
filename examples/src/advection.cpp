@@ -31,6 +31,8 @@
 #include <utils/common.h>
 #include <utils/metadata.h>
 #include <utils/reporter.h>
+#include <utils/fields.h>
+
 #include <tree/semilag_tree.h>
 #include <tree/utils_tree.h>
 
@@ -46,56 +48,74 @@ void (*fn_vel)(const double* , int , double*)=NULL;
 void (*fn_con)(const double* , int , double*)=NULL;
 
 
-template <class Real_t>
-void gaussian_kernel(const Real_t* coord,
-             int n,
-             Real_t* out) {
-  const Real_t xc = 0.7;
-  const Real_t yc = 0.7;
-  const Real_t zc = 0.7;
-  const int a  = -160;
-  const Real_t amp = 1.0;
-  tbslas::gaussian_kernel(coord,
-              n,
-              out,
-              xc,
-              yc,
-              zc);
+template<typename real_t, int sdim>
+void
+get_gaussian_field_cylinder_atT(const real_t* points_pos,
+                                int num_points,
+                                real_t* out) {
+  real_t xc      = 0.6;
+  real_t yc      = 0.5;
+  real_t r = sqrt((xc-0.5)*(xc-0.5) + (yc-0.5)*(yc-0.5));
+  xc = 0.5+r*cos(tcurr);
+  yc = 0.5+r*sin(tcurr);
+  const real_t theta   = 0.0;
+  const real_t sigma_x = 0.06;
+  const real_t sigma_y = 0.06;
+  const real_t A       = 1.0;
+
+  tbslas::get_gaussian_field_cylinder<real_t, sdim>(points_pos,
+                                                    num_points,
+                                                    out,
+                                                    xc,
+                                                    yc,
+                                                    theta,
+                                                    sigma_x,
+                                                    sigma_y,
+                                                    A);
+}
+
+template<typename real_t, int sdim>
+void
+get_slotted_cylinder_atT(const real_t* points_pos,
+                         int num_points,
+                         real_t* out) {
+  real_t xc = 0.5;
+  real_t yc = 0.5;
+  real_t zc = 0.5;
+  real_t R  = 0.3;
+  real_t w  = 0.1;
+  real_t a  = tcurr;
+  tbslas::get_slotted_cylinder<real_t, sdim>(points_pos,
+                                             num_points,
+                                             out,
+                                             xc,
+                                             yc,
+                                             zc,
+                                             R,
+                                             w,
+                                             a);
 }
 
 template <class Real_t>
-void diffusion_kernel_atT(const Real_t* coord,
-              int n,
-              Real_t* out) {
-  const Real_t TBSLAS_DIFF_COEFF = 0.0001;
-  const Real_t amp = 1e-2;
-  const Real_t xc = 0.5;
-  const Real_t yc = 0.5;
-  const Real_t zc = 0.5;
-  tbslas::diffusion_kernel(coord,
-                           n,
-                           out,
-                           TBSLAS_DIFF_COEFF,
-                           tcurr+25,
-                           amp,
-                           xc,
-                           yc,
-                           zc);
+void gaussian_kernel(const Real_t* coord,
+                     int n,
+                     Real_t* out) {
+  const Real_t xc  = 0.7;
+  const Real_t yc  = 0.7;
+  const Real_t zc  = 0.7;
+  const int a      = -160;
+  const Real_t amp = 1.0;
+  tbslas::gaussian_kernel(coord, n, out, xc, yc, zc);
 }
 
 template <class Real_t>
 void get_hopf_field(const Real_t* coord,
-            int n,
-            Real_t* out) {
+                    int n,
+                    Real_t* out) {
   const Real_t xc = 0.5;
   const Real_t yc = 0.5;
   const Real_t zc = 0.5;
-  tbslas::get_hopf_field(coord,
-             n,
-             out,
-             xc,
-             yc,
-             zc);
+  tbslas::get_hopf_field(coord, n, out, xc, yc, zc);
 }
 
 int main (int argc, char **argv) {
