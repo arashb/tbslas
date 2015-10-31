@@ -16,23 +16,26 @@ import sys
 from collections import OrderedDict
 import utils
 
-
-def generate_command_args(de_list, \
-                          dt_list, \
-                          tn_list, \
-                          test_list, \
-                          merge_type, \
-                          np_list, \
-                          nt_list, \
+def generate_command_args(de_init, de_factor,     \
+                          dt_init, dt_factor,     \
+                          tn_init, tn_factor,     \
+                          test_init, test_factor, \
+                          merge_type,             \
                           num_steps):
-
     EXEC = os.path.join(utils.TBSLAS_EXAMPLES_BIN_DIR, "advection")
+
+    de_list = [de_init+cnt*de_factor                  for cnt in range(0, num_steps)]
+    dt_list = [dt_init*math.pow(dt_factor,float(cnt)) for cnt in range(0,TOL_NUM_STEPS)]
+    tn_list = [tn_init*math.pow(tn_factor,float(cnt)) for cnt in range(0,TOL_NUM_STEPS)]
+    test_list = [test_init+cnt*test_factor            for cnt in range(0,TOL_NUM_STEPS)]
+    np_list = [utils.MPI_TOTAL_NUM_PORCESSES          for cnt in range(0,TOL_NUM_STEPS)]
+    nt_list = [utils.OMP_NUM_THREADS                  for cnt in range(0,TOL_NUM_STEPS)]
 
     # generate a dictionary data type of commands
     cmd_args = OrderedDict()
     cmd_id = 1;
     for counter in range(0,num_steps):
-        ARGS    = ['-N'   , str(8**math.ceil(math.log(np_list[counter],8))), \
+        ARGS    = ['-N'   , str(8**3), \
                    '-tol' , str(1e-10),                                      \
                    '-q'   , str(5),                                          \
                    '-d'   , str(de_list[counter]),                           \
@@ -52,8 +55,10 @@ def generate_command_args(de_list, \
 # MAIN
 ################################################################################
 if __name__ == '__main__':
-    mpi_num_procs, omp_num_threads = utils.parse_args()
-    num_steps = 2
+    utils.prepare_environment(utils.OUTPUT_PREFIX)
+    TOL_NUM_STEPS = 1
+    if len(sys.argv) >= 4:
+        TOL_NUM_STEPS   = int(sys.argv[3])
     for merge_type in range(1,4):
     # ############################################################################
     # # TEST 1: V,C depth: [6] config: regular V, regular C
@@ -90,41 +95,24 @@ if __name__ == '__main__':
         #                              tn_init, tn_factor, \
         #                              test_init, test_factor, \
         #                              merge_type, \
-        #                              num_steps)
+        #                              TOL_NUM_STEPS)
         # utils.execute_commands(cmd_args, 'test-2-merge-type-'+str(merge_type))
 
-    ############################################################################
-    # TEST 3: V,C depth: [5, 7, 9] config: irregular V, irregular C
-    ############################################################################
+    # ############################################################################
+    # # TEST 3: V,C depth: [5, 7, 9] config: irregular V, irregular C
+    # ############################################################################
         de_factor = 1
-        de_init   = 5
-        de_list = [de_init+cnt*de_factor                  for cnt in range(0, num_steps)]
-
+        de_init   = 6
         dt_factor = 1
         dt_init   = 0.25
-        dt_list = [dt_init*math.pow(dt_factor,float(cnt)) for cnt in range(0,num_steps)]
-
         tn_factor = 1.0
         tn_init   = 1
-        tn_list = [tn_init*math.pow(tn_factor,float(cnt)) for cnt in range(0,num_steps)]
-
         test_init = 6
         test_factor = 0;
-        test_list = [test_init+cnt*test_factor            for cnt in range(0,num_steps)]
-
-        # NUM MPI PROCESSES
-        np_list = [mpi_num_procs  for cnt in range(0, num_steps)]
-
-        # NUM OMP THREADS
-        nt_list = [omp_num_threads for cnt in range(0, num_steps)]
-
-        cmd_args = generate_command_args(de_list, \
-                                        dt_list, \
-                                        tn_list, \
-                                        test_list, \
-                                        merge_type, \
-                                        np_list, \
-                                        nt_list, \
-                                        num_steps)
-
+        cmd_args = generate_command_args(de_init, de_factor, \
+                                     dt_init, dt_factor, \
+                                     tn_init, tn_factor, \
+                                     test_init, test_factor, \
+                                     merge_type, \
+                                     TOL_NUM_STEPS)
         utils.execute_commands(cmd_args, 'test-3-merge-type-'+str(merge_type))

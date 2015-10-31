@@ -28,22 +28,9 @@ import pp
 ################################################################################
 # GLOBALS
 ################################################################################
-HOSTNAME      = socket.gethostname()
 TIMESTR       = time.strftime("%Y%m%d-%H%M%S")
 RESULT_TAG_HEADER  = '#TBSLAS-HEADER: '
 RESULT_TAG         = '#TBSLAS-RESULT: '
-
-################################################################################
-# COMMANDLINE ARGUMENTS
-################################################################################
-USAGE = 'USAGE: ./python PROGRAM <mpi-num-processes> <omp-num-threads> <num-steps=5>'
-print sys.argv
-if len(sys.argv) < 3:
-    print USAGE
-    sys.exit()
-if len(sys.argv) >= 3:
-    MPI_TOTAL_NUM_PORCESSES = int(sys.argv[1])
-    OMP_NUM_THREADS = int(sys.argv[2])
 
 ################################################################################
 # ENVIRONMENT VARIABLES
@@ -57,31 +44,55 @@ except KeyError as e:
 ################################################################################
 # DIRECTORIES
 ################################################################################
-PWD = os.environ['PWD']
-TBSLAS_EXAMPLES_DIR = os.path.join(TBSLAS_DIR, "examples/")
-TBSLAS_EXAMPLES_BIN_DIR = os.path.join(TBSLAS_EXAMPLES_DIR, "bin/")
-TBSLAS_RESULT_DIR_PREFIX = ''
+TBSLAS_EXAMPLES_DIR      = os.path.join(TBSLAS_DIR, "examples/")
+TBSLAS_EXAMPLES_BIN_DIR  = os.path.join(TBSLAS_EXAMPLES_DIR, "bin/")
 
 ################################################################################
 # EXECUTION COMMAND
 ################################################################################
 SCRIPT_ID       = sys.argv[0].replace('.py', '').replace('./','')
-OUTPUT_PREFIX   = SCRIPT_ID+'-np'+str(MPI_TOTAL_NUM_PORCESSES).zfill(5)+'-'+TIMESTR
 
-def prepare_environment(output_prefix):
-    global TBSLAS_RESULT_DIR_PREFIX
-    RESULT_DIR = PWD
-    if 'stampede' in HOSTNAME:
+def parse_args():
+    USAGE = 'USAGE: ./python PROGRAM <mpi-num-processes> <omp-num-threads> <num-steps=5>'
+    print sys.argv
+    if len(sys.argv) < 3:
+        print USAGE
+        sys.exit()
+    if len(sys.argv) >= 3:
+        mpi_num_procs = int(sys.argv[1])
+        omp_num_threads = int(sys.argv[2])
+    return (mpi_num_procs, omp_num_threads)
+
+def get_output_prefix(num_proces):
+    return SCRIPT_ID+'-np'+str(num_proces).zfill(5)+'-'+TIMESTR
+
+def get_result_dir_prefix():
+    hostname      = socket.gethostname()
+    mpi_num_procs, omp_num_threads = parse_args()
+    output_prefix = get_output_prefix(mpi_num_procs)
+    RESULT_DIR = os.environ['PWD']
+    if 'stampede' in hostname:
         RESULT_DIR = os.environ['SCRATCH']
-    elif 'maverick' in HOSTNAME:
+    elif 'maverick' in hostname:
         RESULT_DIR = os.environ['WORK']
     print "STORING OUTPUT IN: " + RESULT_DIR
-    TBSLAS_RESULT_DIR_PREFIX = os.path.join(RESULT_DIR, output_prefix)
+    return os.path.join(RESULT_DIR, output_prefix)
+
+def compile_code():
+    PWD = os.environ['PWD']
+    os.chdir(TBSLAS_EXAMPLES_DIR)
+    # execute command
+    cmd = ['make','-j']
+    p = subprocess.Popen(cmd, shell=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    for line in p.stdout.readlines():
+        sys.stdout.write(line)
+    os.chdir(PWD)
 
 def determine_command_prefix(mpi_num_procs):
-    if 'stampede' in HOSTNAME:
+    hostname      = socket.gethostname()
+    if 'stampede' in hostname:
         return ['ibrun', '-np', str(mpi_num_procs), 'tacc_affinity']
-    elif 'maverick' in HOSTNAME:
+    elif 'maverick' in hostname:
         return ['ibrun', '-np', str(mpi_num_procs), 'tacc_affinity']
     else:
         return ['mpirun', '-np', str(mpi_num_procs)]
@@ -116,6 +127,7 @@ def execute_commands(cmds, id):
     PRINT_PRFL_HEADER = True
 
     # open output files
+    TBSLAS_RESULT_DIR_PREFIX = get_result_dir_prefix()
     if not os.path.exists(TBSLAS_RESULT_DIR_PREFIX):
         os.makedirs(TBSLAS_RESULT_DIR_PREFIX)
     file_dt = open(os.path.join(TBSLAS_RESULT_DIR_PREFIX, id+'.data'), 'w')

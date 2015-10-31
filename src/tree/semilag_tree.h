@@ -26,7 +26,6 @@
 
 namespace tbslas {
 
-
 template <class TreeType>
 void SolveSemilagTree(TreeType& tvel_curr,
                       TreeType& tree_curr,

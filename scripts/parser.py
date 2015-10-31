@@ -1,5 +1,3 @@
-#!/bin/env python
-
 #*************************************************************************
 #Copyright (C) 2015 by Arash Bakhtiari
 #You may not use this file except in compliance with the License.
@@ -75,7 +73,7 @@ class pdoc(object):
         self.target_points_list = []
         self.np = 0
         for line in output:
-            if line.startswith('TRG_CNT'):
+            if line.startswith('TRG_CNT_IN_TOT:'):
                 trg_cnt_match = pattern_trg_value.findall(line)
                 self.target_points_list.append([int(trg_cnt) for trg_cnt in trg_cnt_match])
             if line.startswith('# CMD:'):

@@ -313,6 +313,18 @@ int main (int argc, char **argv) {
         tconc_curr.Write2File(tbslas::GetVTKFileName(timestep, sim_config->vtk_filename_variable).c_str(), sim_config->vtk_order);
       }
 
+      // print error every 100 time steps
+      if (timestep % 100 == 0) {
+        tcurr = timestep*sim_config->dt;
+        double al2,rl2,ali,rli;
+        CheckChebOutput<Tree_t>(&tconc_curr,
+                                fn_con,
+                                1,
+                                al2,rl2,ali,rli,
+                                std::string("Output_TN" + std::to_string(static_cast<long long>(timestep))));
+
+      }
+
       // (SEMI) MERGE TO FIX IMBALANCE
       switch(merge) {
         case 2:
