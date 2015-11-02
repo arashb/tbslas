@@ -70,11 +70,7 @@ def get_result_dir_prefix():
     hostname      = socket.gethostname()
     mpi_num_procs, omp_num_threads = parse_args()
     output_prefix = get_output_prefix(mpi_num_procs)
-    RESULT_DIR = os.environ['PWD']
-    if 'stampede' in hostname:
-        RESULT_DIR = os.environ['SCRATCH']
-    elif 'maverick' in hostname:
-        RESULT_DIR = os.environ['WORK']
+    RESULT_DIR = os.environ['TBSLAS_RESULT_DIR']
     print "STORING OUTPUT IN: " + RESULT_DIR
     return os.path.join(RESULT_DIR, output_prefix)
 
