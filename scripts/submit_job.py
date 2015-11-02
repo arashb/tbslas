@@ -38,7 +38,7 @@ def submit_job(job_id, num_nodes, num_proces, num_threads, total_time):
                   '--time='+str(total_time), \
                   '-J', job_id, \
                   './.run_python.sh', job_id, str(num_proces), str(num_threads)]
-        cmd_list.extend([CMD_FFTW3, CMD_JOB])
+        cmd_list.extend([CMD_JOB])
     elif 'maverick' in HOSTNAME:
         CMD_JOB =['sbatch', \
                   '-N'+str(num_nodes),\

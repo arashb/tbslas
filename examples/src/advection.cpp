@@ -295,6 +295,11 @@ int main (int argc, char **argv) {
 
       // print error every 100 time steps
       if (timestep % 100 == 0) {
+	//Write2File
+	if (!sim_config->vtk_save) {
+	  tconc_curr.Write2File(tbslas::GetVTKFileName(timestep, sim_config->vtk_filename_variable).c_str(), sim_config->vtk_order);
+	}
+
         tcurr = timestep*sim_config->dt;
         double al2,rl2,ali,rli;
         CheckChebOutput<Tree_t>(&tconc_curr,
