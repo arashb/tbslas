@@ -27,13 +27,15 @@
 #include <cheb_node.hpp>
 // LOCAL
 #include <utils.hpp>
-
 // TBSLAS
 #include <utils/common.h>
 #include <utils/reporter.h>
-#include <diffusion/kernel.h>
+#include <utils/fields.h>
+
 #include <tree/semilag_tree.h>
 #include <tree/utils_tree.h>
+
+#include <diffusion/kernel.h>
 
 int NUM_TIME_STEPS = 1;
 double TBSLAS_DT;

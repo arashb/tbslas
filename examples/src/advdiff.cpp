@@ -31,7 +31,10 @@
 // TBSLAS
 #include <utils/common.h>
 #include <utils/reporter.h>
+#include <utils/fields.h>
+
 #include <diffusion/kernel.h>
+
 #include <tree/semilag_tree.h>
 #include <tree/utils_tree.h>
 

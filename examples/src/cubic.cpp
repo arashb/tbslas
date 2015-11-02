@@ -31,8 +31,8 @@
 #include <utils/common.h>
 #include <utils/metadata.h>
 #include <utils/reporter.h>
+#include <utils/fields.h>
 
-// #include <utils/profile.h>
 #include <tree/semilag_tree.h>
 #include <tree/utils_tree.h>
 
@@ -43,6 +43,31 @@ typedef tbslas::MetaData<std::string,
                          std::string,
                          std::string> MetaData_t;
 double tcurr = 0;
+
+template<typename real_t, int sdim>
+void
+get_gaussian_field_cylinder_atT(const real_t* points_pos,
+                                int num_points,
+                                real_t* out) {
+  real_t xc      = 0.6;
+  real_t yc      = 0.5;
+  real_t r = sqrt((xc-0.5)*(xc-0.5) + (yc-0.5)*(yc-0.5));
+  xc = 0.5+r*cos(tcurr);
+  yc = 0.5+r*sin(tcurr);
+  const real_t theta   = 0.0;
+  const real_t sigma_x = 0.06;
+  const real_t sigma_y = 0.06;
+  const real_t A       = 1.0;
+  tbslas::get_gaussian_field_cylinder<real_t, sdim>(points_pos,
+                                                    num_points,
+                                                    out,
+                                                    xc,
+                                                    yc,
+                                                    theta,
+                                                    sigma_x,
+                                                    sigma_y,
+                                                    A);
+}
 
 const char* OUTPUT_FILE_FORMAT = "%s/%s-VAR_%s-TS_%04d-RNK";
 const char* OUTPUT_FILE_PREFIX = "cubic";
