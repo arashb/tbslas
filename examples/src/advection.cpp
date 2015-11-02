@@ -307,6 +307,7 @@ int main (int argc, char **argv) {
       pvfmm::Profile::Tic("RefineTree", &sim_config->comm, false, 5);
       tconc_curr.RefineTree();
       pvfmm::Profile::Toc();
+      int num_leaves = tbslas::CountNumLeafNodes(tconc_curr);
 
       //Write2File
       if (sim_config->vtk_save) {
