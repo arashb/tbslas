@@ -15,7 +15,7 @@ endif
 TBSLAS_INC = -I$(TBSLAS_DIR)/src
 # TBSLAS_LIBS = -ltricubic
 # TBSLAS_LDLIBS = -L$(TBSLAS_DIR)/ext/tricubic $(TBSLAS_LIBS)
-CXXFLAGS_TBSLAS = -std=c++0x
+# CXXFLAGS_TBSLAS = -std=c++0x
 
 RM = rm -f
 MKDIRS = mkdir -p

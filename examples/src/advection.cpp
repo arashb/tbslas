@@ -18,7 +18,7 @@
 #include <iostream>
 #include <cassert>
 #include <algorithm>
-#include <string>
+// #include <string>
 
 #include <pvfmm_common.hpp>
 #include <mpi_tree.hpp>
@@ -315,10 +315,10 @@ int main (int argc, char **argv) {
 
       // print error every 100 time steps
       if (timestep % 100 == 0) {
-	//Write2File
-	if (!sim_config->vtk_save) {
-	  tconc_curr.Write2File(tbslas::GetVTKFileName(timestep, sim_config->vtk_filename_variable).c_str(), sim_config->vtk_order);
-	}
+        //Write2File
+        if (!sim_config->vtk_save) {
+          tconc_curr.Write2File(tbslas::GetVTKFileName(timestep, sim_config->vtk_filename_variable).c_str(), sim_config->vtk_order);
+        }
 
         tcurr = timestep*sim_config->dt;
         double al2,rl2,ali,rli;
@@ -326,7 +326,7 @@ int main (int argc, char **argv) {
                                 fn_con,
                                 1,
                                 al2,rl2,ali,rli,
-                                std::string("Output_TN" + std::to_string(static_cast<long long>(timestep))));
+                                std::string("Output_TN" + tbslas::ToString(static_cast<long long>(timestep))));
 
       }
 

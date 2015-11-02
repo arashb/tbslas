@@ -567,7 +567,7 @@ ComputeTreeError(TreeType& tree,
 
   // tree values
   std::vector<RealType> points_val(num_points*data_dof);
-  auto tree_func = tbslas::NodeFieldFunctor<RealType, TreeType>(&tree);
+  tbslas::NodeFieldFunctor<RealType, TreeType> tree_func = tbslas::NodeFieldFunctor<RealType, TreeType>(&tree);
   tree_func(grid_points.data(), num_points, points_val.data());
 
   // local absolute error vector

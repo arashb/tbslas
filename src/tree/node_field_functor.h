@@ -14,7 +14,7 @@
 #define SRC_TREE_NODE_FIELD_FUNCTOR_H_
 
 #include <vector>
-
+#include <cmath>
 #include <pvfmm_common.hpp>
 #include <cheb_node.hpp>
 #include <profile.hpp>
@@ -163,7 +163,7 @@ void EvalNodesLocal(std::vector<typename Tree_t::Node_t*>& nodes,
         // ************************************************************
         // EVALUATE AT THE REGULAR GRID
         // ************************************************************
-        int reg_grid_num_points = std::pow(reg_grid_resolution, COORD_DIM);
+        int reg_grid_num_points = std::pow(static_cast<double>(reg_grid_resolution), COORD_DIM);
         std::vector<Real_t> reg_grid_vals(reg_grid_num_points*data_dof);
 
         // scale to [-1,1] -> used in cheb_eval

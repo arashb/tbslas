@@ -45,6 +45,15 @@ typedef Singleton<SimConfig> SimConfigSingleton;
 // ************************************************************
 // COMMON FUNCTIONS
 // ************************************************************
+
+template <typename T>
+std::string ToString(T val)
+{
+  std::stringstream stream;
+  stream << val;
+  return stream.str();
+}
+
 template<typename PointerType>
 void swap_pointers(PointerType** ta,
                    PointerType** tb) {
@@ -209,12 +218,12 @@ template <typename real_t, int sdim>
 void
 get_reg_grid_points(const size_t N,
                     real_t* out) {
-  size_t tN = std::pow(N, sdim);
+  size_t tN = std::pow(static_cast<double>(N), sdim);
   real_t dx = 1.0/(N-1);
   // regular grid points positions
   for (size_t i = 0; i < tN; i++)
     for ( int idim = 0; idim < sdim; idim++) {
-      size_t denom_shift = (size_t)std::pow(N, idim);
+      size_t denom_shift = (size_t)std::pow(static_cast<double>(N), idim);
       out[i*sdim+idim] = (((real_t)((i / denom_shift) % N))*dx);
     }
 }
@@ -223,7 +232,7 @@ get_reg_grid_points(const size_t N,
 template <typename real_t, int dim>
 std::vector<real_t>
 generate_reg_grid_points(const size_t N) {
-  size_t tN = std::pow(N, dim);
+  size_t tN = std::pow(static_cast<double>(N), dim);
   real_t dx = 1.0/(N-1);
   // regular grid points positions
   std::vector<real_t> reg_grid_points_pos(tN*dim);
