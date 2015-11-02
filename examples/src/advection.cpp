@@ -307,6 +307,7 @@ int main (int argc, char **argv) {
       pvfmm::Profile::Tic("RefineTree", &sim_config->comm, false, 5);
       tconc_curr.RefineTree();
       pvfmm::Profile::Toc();
+      int num_leaves = tbslas::CountNumLeafNodes(tconc_curr);
 
       //Write2File
       if (sim_config->vtk_save) {
@@ -315,10 +316,10 @@ int main (int argc, char **argv) {
 
       // print error every 100 time steps
       if (timestep % 100 == 0) {
-	//Write2File
-	if (!sim_config->vtk_save) {
-	  tconc_curr.Write2File(tbslas::GetVTKFileName(timestep, sim_config->vtk_filename_variable).c_str(), sim_config->vtk_order);
-	}
+        //Write2File
+        if (!sim_config->vtk_save) {
+          tconc_curr.Write2File(tbslas::GetVTKFileName(timestep, sim_config->vtk_filename_variable).c_str(), sim_config->vtk_order);
+        }
 
         tcurr = timestep*sim_config->dt;
         double al2,rl2,ali,rli;

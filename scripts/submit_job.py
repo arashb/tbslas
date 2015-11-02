@@ -51,7 +51,7 @@ def submit_job(job_id, num_nodes, num_proces, num_threads, total_time):
         cmd_list.extend([CMD_JOB])
     elif 'zico' in HOSTNAME:
         CMD_JOB = ['./.run_python.sh', job_id, str(num_proces), str(num_threads)]
-        cmd_list.extend([CMD_FFTW3, CMD_JOB])
+        cmd_list.extend([CMD_JOB])
     else:
         CMD_JOB = ['./.run_python.sh', job_id, str(num_proces), str(num_threads)]
         cmd_list.extend([CMD_JOB])

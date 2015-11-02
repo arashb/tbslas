@@ -34,8 +34,9 @@ SCALE_TAG_LIST = ['+-AdvDif',\
 #                   '+-MergeTree' \
 #                       ]
 
-PROFILE_TAG_LIST = ['+-EvalTree', \
-                    '+-Evaluation'\
+PROFILE_TAG_LIST = [\
+                    # '+-EvalTree', \
+                    '+-InEvaluation'\
                     ]
 
 def post_process_profile_node(node):
