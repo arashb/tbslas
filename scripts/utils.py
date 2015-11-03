@@ -53,7 +53,7 @@ TBSLAS_EXAMPLES_BIN_DIR  = os.path.join(TBSLAS_EXAMPLES_DIR, "bin/")
 SCRIPT_ID       = sys.argv[0].replace('.py', '').replace('./','')
 
 def parse_args():
-    USAGE = 'USAGE: ./python PROGRAM <mpi-num-processes> <omp-num-threads> <num-steps=5>'
+    USAGE = 'USAGE: ./python PROGRAM <mpi-num-processes> <omp-num-threads>'
     print sys.argv
     if len(sys.argv) < 3:
         print USAGE
@@ -70,9 +70,10 @@ def get_result_dir_prefix():
     hostname      = socket.gethostname()
     mpi_num_procs, omp_num_threads = parse_args()
     output_prefix = get_output_prefix(mpi_num_procs)
-    RESULT_DIR = os.environ['TBSLAS_RESULT_DIR']
-    print "STORING OUTPUT IN: " + RESULT_DIR
-    return os.path.join(RESULT_DIR, output_prefix)
+    tbslas_result_dir = os.environ['TBSLAS_RESULT_DIR']
+    # print "STORING OUTPUT IN: " + RESULT_DIR
+    # return os.path.join(RESULT_DIR, output_prefix)
+    return (tbslas_result_dir, output_prefix)
 
 def compile_code():
     PWD = os.environ['PWD']
@@ -123,18 +124,20 @@ def execute_commands(cmds, id):
     PRINT_PRFL_HEADER = True
 
     # open output files
-    TBSLAS_RESULT_DIR_PREFIX = get_result_dir_prefix()
+    tbslas_result_dir, output_prefix = get_result_dir_prefix()
+    TBSLAS_RESULT_DIR_PREFIX = os.path.join(tbslas_result_dir, output_prefix)
+
     if not os.path.exists(TBSLAS_RESULT_DIR_PREFIX):
         os.makedirs(TBSLAS_RESULT_DIR_PREFIX)
     file_dt = open(os.path.join(TBSLAS_RESULT_DIR_PREFIX, id+'.data'), 'w')
     file_pr = open(os.path.join(TBSLAS_RESULT_DIR_PREFIX, id+'.profile'), 'w')
     file_pp = open(os.path.join(TBSLAS_RESULT_DIR_PREFIX, id+'.profile.pp'), 'w')
+    file_list = [file_dt, file_pr, file_pp]
 
     # output current git revision
     revision = subprocess.check_output(["git", "describe"])
-    file_dt.write('# REVISION: ' + revision)
-    file_pr.write('# REVISION: ' + revision)
-    file_pp.write('# REVISION: ' + revision)
+    for f in file_list:
+        f.write('# REVISION: ' + revision)
 
     # execute generated commands
     for counter, cmd in cmds.iteritems():
@@ -142,26 +145,22 @@ def execute_commands(cmds, id):
           os.path.join(TBSLAS_RESULT_DIR_PREFIX,'{0}-cmd{1:03}'.format(id,counter))
         out_file_name = out_dir_name+'.out'
         file_out = open(out_file_name, 'w')
+
         os.environ['TBSLAS_RESULT_DIR'] = out_dir_name
         os.makedirs(out_dir_name)
 
         # output command
         cmd_msg = '# CMD: ' +  ' '.join(cmd) + '\n'
-
-        sys.stdout.write('# ============================================================================================================================================\n')
+        sys.stdout.write('# ==================================\n')
+        sys.stdout.write("# STORING OUTPUT IN: " + out_dir_name +" \n")
         sys.stdout.write(cmd_msg)
 
-        file_out.write('# ============================================================================================================================================\n')
+        file_out.write('# ==================================\n')
         file_out.write(cmd_msg)
 
-        file_dt.write('# ============================================================================================================================================\n')
-        file_dt.write(cmd_msg)
-
-        file_pr.write('# ============================================================================================================================================\n')
-        file_pr.write(cmd_msg)
-
-        file_pp.write('# ============================================================================================================================================\n')
-        file_pp.write (cmd_msg)
+        for f in file_list:
+            f.write('# ==================================\n')
+            f.write(cmd_msg)
 
         # execute command
         p = subprocess.Popen(cmd,                    \
@@ -180,7 +179,10 @@ def execute_commands(cmds, id):
         file_dt.flush()
         file_pr.flush()
         file_pp.flush()
+
         file_out.close()
     file_dt.close()
     file_pr.close()
     file_pp.close()
+    # reset the env. variable
+    os.environ['TBSLAS_RESULT_DIR'] = tbslas_result_dir

@@ -30,7 +30,7 @@ def generate_command_args(tl_list,\
     cmd_args = OrderedDict()
     cmd_id = 1;
     for counter in range(0,num_steps):
-        ARGS    = ['-N'   , str(8**math.ceil(math.log(np_list[counter],8))), \
+        ARGS    = ['-N'   , str(8), \
                    '-tol' , str(tl_list[counter]),                              \
                    '-q'   , str(cq_list[counter]),                              \
                    '-cuf' , str(uf_list[counter]),                              \
@@ -79,9 +79,9 @@ if __name__ == '__main__':
     print cmd_args
     utils.execute_commands(cmd_args, 'table1')
 
-    # ############################################################################
+    # ##########################################################################
     # # TEST 2:
-    # ############################################################################
+    # ##########################################################################
     tl_list = [1e-2, 1e-4, 1e-7]
     cq_list = [3, 6 , 10, 14]
     uf_list = [1]
