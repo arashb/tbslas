@@ -71,8 +71,6 @@ def get_result_dir_prefix():
     mpi_num_procs, omp_num_threads = parse_args()
     output_prefix = get_output_prefix(mpi_num_procs)
     tbslas_result_dir = os.environ['TBSLAS_RESULT_DIR']
-    # print "STORING OUTPUT IN: " + RESULT_DIR
-    # return os.path.join(RESULT_DIR, output_prefix)
     return (tbslas_result_dir, output_prefix)
 
 def compile_code():
