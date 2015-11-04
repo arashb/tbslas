@@ -148,7 +148,7 @@ def execute_commands(cmds, id):
         os.makedirs(out_dir_name)
 
         # output command
-        cmd_msg = '# CMD: ' +  ' '.join(cmd) + '\n'
+        cmd_msg = '# CMD '+str(counter)+' : ' +  ' '.join(cmd) + '\n'
         sys.stdout.write('# ==================================\n')
         sys.stdout.write("# STORING OUTPUT IN: " + out_dir_name +" \n")
         sys.stdout.write(cmd_msg)

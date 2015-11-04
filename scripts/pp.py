@@ -113,80 +113,11 @@ def post_process_scaling_data(mydoc, file_pp, PRINT_HEADER = True):
         header_string_format += "\n"
         file_pp.write(header_string_format)
     ppnode.print_me(file_pp)
-
-def post_process_tree_eval_data(mydoc, file_pp, PRINT_HEADER = True):
-    """
-    post processing of data
-    Arguments:
-    - `output`:
-    - `file_pp`:
-    """
-    SCALE_TAG_LIST = ['+-LclSort',\
-                      '+-GlobalSort'
-                      ]
-
-    ppnode_title = mydoc.np
-    ppnode_values = OrderedDict()
-
-    for scale_tag in SCALE_TAG_LIST:
-        for node in mydoc.node_list:
-            if scale_tag in node.title:
-                print node.title
-                ppnode_values[node.title] = node.values['t_avg']
-                # if '+-SL' in node.title:
-                #     ppnode_values['f/s_total'] = node.values['f/s_total']
-                #     print node.values['f/s_total']
-                # break
-    ppnode = parser.pnode(ppnode_title, ppnode_values)
-    if PRINT_HEADER:
-        header_string_format = "{:<50}".format('NP')
-        for key, val in ppnode_values.iteritems():
-            header_string_format += "{:>10}".format(key)
-        header_string_format += "\n"
-        file_pp.write(header_string_format)
-    ppnode.print_me(file_pp)
-
-def list_raw_files(raw_dir_name):
-    """
-    """
-    import os
-    outfiles = [os.path.join(root, filename) \
-              for root, dirnames, filenames in os.walk(raw_dir_name) \
-              for filename in filenames if filename.endswith('.out')]
-    return sorted(outfiles)
-    # return sorted(glob.glob(raw_dir_name + "*.out"))
-
-def post_process(output, file_pp, pp_func, PRINT_HEADER):
-    # PARSE PROFILE OUTPUT
-    # PRINT HEADER
-    mydoc = parser.pdoc(output)
-    pp_func(mydoc, file_pp, PRINT_HEADER);
-
-if __name__ == '__main__':
-    if len(sys.argv) >= 2:
-        raw_dir_name = sys.argv[1]
-    else:
-        sys.exit()
-    raw_file_names = list_raw_files(raw_dir_name)
-    print raw_file_names
-    file_pp_path = os.path.join(raw_dir_name, "sscal"+'.pp')
-    file_pp = open(file_pp_path, 'w')
-
-    # create scalability output file
-    PRINT_HEADER = True
-    for file_name in raw_file_names:
-        f = open(file_name, 'r')
-        # post_process(f, file_pp, post_process_scaling_data, PRINT_HEADER)
-        post_process(f, file_pp, post_process_tree_eval_data, PRINT_HEADER)
-        PRINT_HEADER = False
-
-    file_pp.close()
-
     # create efficiency output file
-    # file_eff_path = os.path.join(raw_dir_name, "eff"+'.pp')
+    # file_eff_path = os.path.join(raw_files_dir, "eff"+'.pp')
     # file_eff = open(file_eff_path, 'w')
 
-    # file_eff_input = open(file_pp_path, 'r')
+    # file_eff_input = open(pp_output_path, 'r')
     # table = []
     # num_col = 0
     # for line in file_eff_input:
@@ -222,3 +153,80 @@ if __name__ == '__main__':
     #         string_format += "{0:>10.4f}".format(val)
     #     string_format += "\n"
     #     file_eff.write(string_format)
+
+def post_process_tree_eval_data(mydoc, file_pp, PRINT_HEADER = True):
+    """
+    post processing of data
+    Arguments:
+    - `output`:
+    - `file_pp`:
+    """
+    SCALE_TAG_LIST = ['+-LclSort',\
+                      '+-GlobalSort'
+                      ]
+
+    ppnode_title = mydoc.np
+    ppnode_values = OrderedDict()
+
+    for scale_tag in SCALE_TAG_LIST:
+        for node in mydoc.node_list:
+            if scale_tag in node.title:
+                print node.title
+                ppnode_values[node.title] = node.values['t_avg']
+                # if '+-SL' in node.title:
+                #     ppnode_values['f/s_total'] = node.values['f/s_total']
+                #     print node.values['f/s_total']
+                # break
+    ppnode = parser.pnode(ppnode_title, ppnode_values)
+    if PRINT_HEADER:
+        header_string_format = "{:<50}".format('NP')
+        for key, val in ppnode_values.iteritems():
+            header_string_format += "{:>10}".format(key)
+        header_string_format += "\n"
+        file_pp.write(header_string_format)
+    ppnode.print_me(file_pp)
+
+def post_process_error_data(mydoc, file_pp, PRINT_HEADER = True):
+    print mydoc.reporter_output_header
+    print mydoc.reporter_output_list
+    file_pp.write(str(mydoc.reporter_output_list))
+
+
+def list_raw_files(raw_dir_name):
+    """
+    """
+    import os
+    outfiles = [os.path.join(root, filename) \
+              for root, dirnames, filenames in os.walk(raw_dir_name) \
+              for filename in filenames if filename.endswith('.out')]
+    return sorted(outfiles)
+    # return sorted(glob.glob(raw_dir_name + "*.out"))
+
+def post_process(output, file_pp, pp_func, PRINT_HEADER):
+    mydoc = parser.pdoc(output)
+    pp_func(mydoc, file_pp, PRINT_HEADER);
+
+if __name__ == '__main__':
+    if len(sys.argv) >= 2:
+        raw_files_dir = sys.argv[1]
+    else:
+        sys.exit()
+
+    ############################################################
+    # collect a list of all avaiable raw output files
+    ############################################################
+    raw_files_list = list_raw_files(raw_files_dir)
+    print raw_files_list
+
+    # create post processing output file
+    pp_output_path = os.path.join(raw_files_dir, 'pp_output'+'.pp')
+    pp_output_file = open(pp_output_path, 'w')
+
+    PRINT_HEADER = True
+    for raw_file in raw_files_list:
+        f = open(raw_file, 'r')
+        # post_process(f, pp_output_file, post_process_scaling_data, PRINT_HEADER)
+        post_process(f, pp_output_file, post_process_tree_eval_data, PRINT_HEADER)
+        PRINT_HEADER = False
+
+    pp_output_file.close()
