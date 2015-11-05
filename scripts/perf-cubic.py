@@ -59,7 +59,8 @@ if __name__ == '__main__':
             1e-7,\
             ]
     cq_list = [\
-            3,\
+            # 3,\
+            4,\
             6,\
             10,\
             14,\
@@ -79,6 +80,8 @@ if __name__ == '__main__':
                 my_uf_list = [1]
             else:
                 my_uf_list = uf_list
+            if cq is 4 and tl is 1e-7:
+                continue
             for uf in my_uf_list:
                 cmd_args[cmd_id] = generate_command_args([tl],\
                                                  [cq],\
@@ -88,7 +91,7 @@ if __name__ == '__main__':
                                                  [omp_num_threads],\
                                                 1)[1]
                 cmd_id = cmd_id + 1
-
+    # print cmd_args
     utils.execute_commands(cmd_args, 'table1')
 
     # ##########################################################################
@@ -100,7 +103,8 @@ if __name__ == '__main__':
             1e-7,\
             ]
     cq_list = [\
-            3,\
+            # 3,\
+            4,\
             6,\
             10,\
             14,\
@@ -117,6 +121,8 @@ if __name__ == '__main__':
                 my_uf_list = [1]
             else:
                 my_uf_list = uf_list
+            if cq is 4 and tl is 1e-7:
+                continue
             for uf in my_uf_list:
                 cmd_args[cmd_id] = generate_command_args([tl],\
                                                  [cq],\
@@ -126,5 +132,5 @@ if __name__ == '__main__':
                                                  [omp_num_threads],\
                                                 1)[1]
                 cmd_id = cmd_id + 1
-
+    # print cmd_args
     utils.execute_commands(cmd_args, 'table2')

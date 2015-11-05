@@ -36,7 +36,7 @@ def submit_job(job_id, num_nodes, num_procs, num_threads, total_time, queue=None
                   '-N'+str(num_nodes),\
                   '-n'+str(num_procs), \
                   '-p', queue, \
-                  '-o '+ job_id + TIMESTR + '.out', \
+                  '-o'+ job_id + TIMESTR + '.out', \
                   '--time='+str(total_time), \
                   '-J', job_id, \
                   './.run_python.sh', job_id, str(num_procs), str(num_threads)]
