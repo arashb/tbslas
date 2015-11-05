@@ -16,9 +16,11 @@ import parser
 import glob
 import sys
 import os
+import time
 import parser
 import copy
 from collections import OrderedDict
+
 
 SCALE_TAG_LIST = ['+-AdvDif',\
                   # '+-InitFMM_Cheb', \
@@ -27,19 +29,14 @@ SCALE_TAG_LIST = ['+-AdvDif',\
                   '+-CMerge' \
                   '+-SMerge' \
                       ]
-# SCALE_TAG_LIST = ['+-AdvDif',\
-#                   '+-InitFMM_Cheb', \
-#                   '+-SolveSemilag', \
-#                   '+-FMM', \
-#                   '+-MergeTree' \
-#                       ]
 
 PROFILE_TAG_LIST = [\
+                    # '+-SL', \
                     # '+-EvalTree', \
                     '+-InEvaluation'\
                     ]
 
-def post_process_profile_node(node):
+def pp_profile_node(node):
     if not node:
         return
     for profile_tag in PROFILE_TAG_LIST:
@@ -48,15 +45,21 @@ def post_process_profile_node(node):
             node.values.append(imb_val)
     return node
 
-def post_process_profile_data(mydoc, file_pp, PRINT_HEADER = True):
+def pp_profile_data(mydoc, file_pp, PRINT_HEADER = True):
     """
     post processing of data
     Arguments:
     - `output`:
     - `file_pp`:
     """
+    # OUTOUT THE COMMAND
+    file_pp.write(mydoc.cmd)
+    print mydoc.cmd
+
     eval_tree_counter = 0
+    # ITERATE OVER ALL PROFILE NODES
     for node in mydoc.node_list:
+        # ITERATE OVER PROFILE TAGS
         for profile_tag in PROFILE_TAG_LIST:
             if profile_tag in node.title:
                 time_imb = "{0:>10.4f}".format( float(node.values['t_max'])/float(node.values['t_min']) )
@@ -86,14 +89,61 @@ def post_process_profile_data(mydoc, file_pp, PRINT_HEADER = True):
                     PRINT_HEADER = False
                 node.print_me(file_pp)
 
-def post_process_scaling_data(mydoc, file_pp, PRINT_HEADER = True):
+def pp_cubic_perf_data(mydoc, file_pp, PRINT_HEADER = True):
     """
     post processing of data
     Arguments:
     - `output`:
     - `file_pp`:
     """
-    ppnode_title = mydoc.np
+    ##############################
+    # print command
+    ##############################
+    file_pp.write(mydoc.cmd)
+    print mydoc.cmd
+
+    ##############################
+    # add interpolation time average
+    ##############################
+    t_min_sum = 0
+    t_max_sum = 0
+    t_avg_sum = 0
+    counter = 0
+    for node in mydoc.node_list:
+        # ITERATE OVER PROFILE TAGS
+        if '+-InEvaluation' in node.title:
+            counter = counter + 1
+            t_min_sum += float(node.values['t_min'])
+            t_avg_sum += float(node.values['t_avg'])
+            t_max_sum += float(node.values['t_max'])
+    ppnode_title  = '+-InEvaluation'
+    ppnode_values = OrderedDict()
+    if counter:
+        ppnode_values['t_min'] = "{0:>10.4f}".format(t_min_sum/counter)
+        # ppnode_values['t_avg'] = "{0:>10.4f}".format(t_avg_sum/counter)
+        # ppnode_values['t_max'] = "{0:>10.4f}".format(t_max_sum/counter)
+
+    ##############################
+    # add the leaves count average
+    ##############################
+    # avoiding the float casting here on purpose
+    if len(mydoc.leaves_count_list):
+        ppnode_values['lvs_cnt'] = sum(mydoc.leaves_count_list)/len(mydoc.leaves_count_list)
+
+    ##############################
+    # create pp node to print
+    ##############################
+    ppnode = parser.pnode(ppnode_title, ppnode_values)
+    ppnode.print_me(file_pp)
+
+def pp_scaling_data(mydoc, file_pp, PRINT_HEADER = True):
+    """
+    post processing of data
+    Arguments:
+    - `output`:
+    - `file_pp`:
+    """
+    ppnode_title  = mydoc.np
     ppnode_values = OrderedDict()
 
     for scale_tag in SCALE_TAG_LIST:
@@ -113,48 +163,8 @@ def post_process_scaling_data(mydoc, file_pp, PRINT_HEADER = True):
         header_string_format += "\n"
         file_pp.write(header_string_format)
     ppnode.print_me(file_pp)
-    # create efficiency output file
-    # file_eff_path = os.path.join(raw_files_dir, "eff"+'.pp')
-    # file_eff = open(file_eff_path, 'w')
 
-    # file_eff_input = open(pp_output_path, 'r')
-    # table = []
-    # num_col = 0
-    # for line in file_eff_input:
-    #     if line.startswith("#"):
-    #         continue
-    #     if line.startswith("NP"):
-    #         titles = line.split();
-    #         num_col = len(titles)
-    #     else:
-    #         vals = line.split()
-    #         if len(vals) == num_col:
-    #             table.append(line.split())
-    # # print header
-    # string_format = ""
-    # for val in titles:
-    #         string_format += "{:>10}".format(val)
-    # string_format += "\n"
-    # file_eff.write(string_format)
-
-    # eff_table =  copy.deepcopy(table)
-    # num_rows = len(table)
-    # for c in range(0,num_col):
-    #     for r in range(0,num_rows):
-    #         np_fact = float(table[r][0])/float(table[0][0])
-    #         if c == 0:
-    #             eff_table[r][c] = float(table[r][c])
-    #         else:
-    #             eff_table[r][c] = float(table[0][c])/float(table[r][c])/np_fact
-
-    # for li in eff_table:
-    #     string_format = ""
-    #     for val in li:
-    #         string_format += "{0:>10.4f}".format(val)
-    #     string_format += "\n"
-    #     file_eff.write(string_format)
-
-def post_process_tree_eval_data(mydoc, file_pp, PRINT_HEADER = True):
+def pp_tree_eval_data(mydoc, file_pp, PRINT_HEADER = True):
     """
     post processing of data
     Arguments:
@@ -186,11 +196,6 @@ def post_process_tree_eval_data(mydoc, file_pp, PRINT_HEADER = True):
         file_pp.write(header_string_format)
     ppnode.print_me(file_pp)
 
-def post_process_error_data(mydoc, file_pp, PRINT_HEADER = True):
-    print mydoc.reporter_output_header
-    print mydoc.reporter_output_list
-    file_pp.write(str(mydoc.reporter_output_list))
-
 
 def list_raw_files(raw_dir_name):
     """
@@ -219,14 +224,19 @@ if __name__ == '__main__':
     print raw_files_list
 
     # create post processing output file
+    TIMESTR       = time.strftime("%Y%m%d-%H%M%S")
+    pp_output_path = os.path.join(raw_files_dir, 'pp_output_'+TIMESTR+'.pp')
     pp_output_path = os.path.join(raw_files_dir, 'pp_output'+'.pp')
+
     pp_output_file = open(pp_output_path, 'w')
 
     PRINT_HEADER = True
     for raw_file in raw_files_list:
         f = open(raw_file, 'r')
-        # post_process(f, pp_output_file, post_process_scaling_data, PRINT_HEADER)
-        post_process(f, pp_output_file, post_process_tree_eval_data, PRINT_HEADER)
+        # post_process(f, pp_output_file, pp_scaling_data, PRINT_HEADER)
+        # post_process(f, pp_output_file, pp_tree_eval_data, PRINT_HEADER)
+        # post_process(f, pp_output_file, pp_profile_data, PRINT_HEADER)
+        post_process(f, pp_output_file, pp_cubic_perf_data, PRINT_HEADER)
         PRINT_HEADER = False
 
     pp_output_file.close()

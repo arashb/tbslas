@@ -13,12 +13,6 @@ import re
 from collections import OrderedDict
 
 PROFILE_TAG_HEADER = 't_min'
-# PROFILE_TAG_LIST = ['+-RunSemilag', '+-RunFMM', '+-EvalTree', \
-#                     '+-MortonId', '+-ScatterIndex', '+-ScatterForward',\
-#                     '+-Evaluation', '+-ScatterReverse']
-PROFILE_TAG_LIST = ['+-EvalTree', \
-                    '+-Evaluation'\
-                    ]
 
 # POINT TARGET VALUES RE PATTERN
 pattern_trg_value_string = "(\d+)"
@@ -68,33 +62,61 @@ class pdoc(object):
     def __init__(self, output):
         """
         """
-        self.node_list = []
-        self.header = []
+        self.node_list          = []
+        self.header             = []
         self.target_points_list = []
-        self.np = 0
+        self.np                 = 0
+        self.cmd                = ''
+        self.reporter_header    = []
+        self.reporter_results   = []
+        self.reporter           = OrderedDict()
+        self.leaves_count_list  = []
+
         for line in output:
+            # CAPTURE TOTAL TARGET POINTS COUNT
             if line.startswith('TRG_CNT_IN_TOT:'):
                 trg_cnt_match = pattern_trg_value.findall(line)
                 self.target_points_list.append([int(trg_cnt) for trg_cnt in trg_cnt_match])
-            if line.startswith('# CMD:'):
+
+            # CAPTURE THE RUNNING COMMAND + NUM PROCS
+            if line.startswith('# CMD '):
+                self.cmd = line
                 np_match = pattern_np.findall(line)
-                print np_match
                 self.np = np_match[0]
-            # CATCH PROFILE HEADER
+
+            # CAPTURE TBSLAS HEADER
+            if line.startswith('#TBSLAS-HEADER:'):
+                self.reporter_header = line.split()[1:]    # remove the line tag (first element)
+
+            # CAPTURE TBSLAS RESULT
+            if line.startswith('#TBSLAS-RESULT:'):
+                self.reporter_results = line.split()[1:]   # remove the line tag (first element)
+
+            # CAPTURE LEAVES COUNT
+            if line.startswith('# TOT_LEAVES_CNT'):
+                self.leaves_count_list.append(int(line.split()[2]))
+                # print line.split()[2:]
+
+            # CAPTURE PROFILE HEADER
             header = self.__parse_profile_header(line)
             if len(header):
                 self.header = header
-            # CATCH PROFILE NODE
+
+            # CAPTURE PROFILE NODE DATA
             node_data = self.__parse_profile_node(line)
             if node_data:
                 node = pnode(node_data[0], OrderedDict(zip(self.header, node_data[1])))
                 self.node_list.append(node)
 
+        self.reporter = OrderedDict(zip(self.reporter_header, self.reporter_results))
+        # print self.reporter
+        print self.leaves_count_list
+
+
     def print_me(self, file_out):
         self.__print_profile_header(self.header, file_out)
         for node in self.node_list:
             node.print_me(file_out)
-
 
     def __parse_profile_header(self, line):
         """
