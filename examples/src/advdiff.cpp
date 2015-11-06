@@ -268,15 +268,16 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
   double in_al2,in_rl2,in_ali,in_rli;
   double al2,rl2,ali,rli;
   CheckChebOutput<FMM_Tree_t>(tree,
-			      fn_poten_,
-			      mykernel->ker_dim[1],
-			      in_al2,
-			      in_rl2,
-			      in_ali,
-			      in_rli,
-			      std::string("Input"));
+                              fn_poten_,
+                              mykernel->ker_dim[1],
+                              in_al2,
+                              in_rl2,
+                              in_ali,
+                              in_rli,
+                              std::string("Input"));
 
   int timestep = 1;
+  pvfmm::Profile::Tic("Solve", &comm, true);
   for (; timestep < 2*NUM_TIME_STEPS+1; timestep +=2) {
     // **********************************************************************
     // SOLVE DIFFUSION: FMM
@@ -292,7 +293,7 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
     if (sim_config->vtk_save) {
       tree->Write2File(tbslas::GetVTKFileName(timestep, sim_config->vtk_filename_variable).c_str(), sim_config->vtk_order);
     }
-    
+
     // **********************************************************************
     // SOLVE ADVECTION: SEMI-LAGRANGIAN
     // **********************************************************************
@@ -328,8 +329,8 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
       pvfmm::Profile::Toc();
       break;
     }
-
   }
+  pvfmm::Profile::Toc();        // solve
 
   // =========================================================================
   // REPORT RESULTS
@@ -426,7 +427,7 @@ int main (int argc, char **argv) {
                         sim_config->tree_adap,
                         sim_config->tree_tolerance,
                         comm,
-			merge);
+                        merge);
   pvfmm::Profile::Toc();
 
   //Output Profiling results.

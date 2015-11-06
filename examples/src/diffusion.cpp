@@ -171,6 +171,7 @@ void RunDiffusion(int test_case, size_t N, size_t M, bool unif, int mult_order,
   // ======================================================================
   char out_name_buffer[300];
   double in_al2,in_rl2,in_ali,in_rli;
+  pvfmm::Profile::Tic("Solve", &comm, true);
   for (int ts_counter = 1; ts_counter < NUM_TIME_STEPS+1; ts_counter++) {
     // Setup FMM
     tree->InitFMM_Tree(false,bndry);
@@ -211,6 +212,8 @@ void RunDiffusion(int test_case, size_t N, size_t M, bool unif, int mult_order,
       tree->Write2File(out_name_buffer,tree_data.cheb_deg);
     }
   }
+  pvfmm::Profile::Toc();        // solve
+
   // =========================================================================
   // REPORT RESULTS
   // =========================================================================

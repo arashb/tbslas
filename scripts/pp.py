@@ -233,10 +233,10 @@ if __name__ == '__main__':
     PRINT_HEADER = True
     for raw_file in raw_files_list:
         f = open(raw_file, 'r')
-        # post_process(f, pp_output_file, pp_scaling_data, PRINT_HEADER)
+        post_process(f, pp_output_file, pp_scaling_data, PRINT_HEADER)
         # post_process(f, pp_output_file, pp_tree_eval_data, PRINT_HEADER)
         # post_process(f, pp_output_file, pp_profile_data, PRINT_HEADER)
-        post_process(f, pp_output_file, pp_cubic_perf_data, PRINT_HEADER)
+        # post_process(f, pp_output_file, pp_cubic_perf_data, PRINT_HEADER)
         PRINT_HEADER = False
 
     pp_output_file.close()

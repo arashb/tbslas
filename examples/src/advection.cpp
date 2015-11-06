@@ -294,6 +294,7 @@ int main (int argc, char **argv) {
     int num_leaves = tbslas::CountNumLeafNodes(tconc_curr);
 
     int timestep = 1;
+    pvfmm::Profile::Tic("Solve", &comm, true);
     for (; timestep < sim_config->total_num_timestep+1; timestep++) {
       pvfmm::Profile::Tic("SL", &sim_config->comm, false, 5);
       tbslas::SolveSemilagInSitu(tvel_curr,
@@ -345,6 +346,7 @@ int main (int argc, char **argv) {
           break;
       }
     }  // end for
+    pvfmm::Profile::Toc();        // solve
 
     // =========================================================================
     // COMPUTE ERROR

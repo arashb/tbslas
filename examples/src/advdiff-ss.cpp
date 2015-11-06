@@ -310,12 +310,13 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
 
   int timestep = 1;
   int num_leaves = 0;
+  pvfmm::Profile::Tic("Solve", &comm, true);
   for (; timestep < NUM_TIME_STEPS+1; timestep +=1) {
     // =========================================================================
     // CREATE THE NEW TREE BEI MERGING THE PREVIOUS TREE & THE CURRENT TREE
     // =========================================================================
     // MERGE TREES
-    pvfmm::Profile::Tic("CMerge",&comm,true);
+    pvfmm::Profile::Tic("Merge",&comm,true);
     tbslas::MergeTree(*treec, *treep);
     // TODO: merge with velocity trees
     pvfmm::Profile::Toc();
@@ -347,7 +348,7 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
     tbslas::CollectChebTreeGridPoints(*treen, treen_points_pos);
 
     int treen_num_points = treen_points_pos.size()/3;
-    // std::cout << "TREEN-NUM-POINTS: " << treen_num_points << std::endl;   
+    // std::cout << "TREEN-NUM-POINTS: " << treen_num_points << std::endl;
 
     tbslas::NodeFieldFunctor<double,FMM_Tree_t> vel_evaluator(tvel_curr);
     tbslas::NodeFieldFunctor<double,FMM_Tree_t> trc_evaluator(treec);
@@ -436,6 +437,8 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
     treep = treec;
     treec = treen;
   }
+  pvfmm::Profile::Toc();        // solve
+
 
   // =========================================================================
   // REPORT RESULTS

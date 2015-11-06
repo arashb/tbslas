@@ -74,6 +74,7 @@ def get_result_dir_prefix():
     return (tbslas_result_dir, output_prefix)
 
 def compile_code():
+    print '--> compile code ...'
     PWD = os.environ['PWD']
     os.chdir(TBSLAS_EXAMPLES_DIR)
     # execute command
@@ -83,18 +84,19 @@ def compile_code():
         sys.stdout.write(line)
     os.chdir(PWD)
 
-def determine_command_prefix(mpi_num_procs):
-    hostname      = socket.gethostname()
+def determine_command_prefix(mpi_num_procs, offset=0):
+    hostname = socket.gethostname()
     if 'stampede' in hostname:
-        return ['ibrun', '-np', str(mpi_num_procs), 'tacc_affinity']
+        return ['ibrun', '-n', str(mpi_num_procs), '-o', str(offset), 'tacc_affinity']
     elif 'maverick' in hostname:
-        return ['ibrun', '-np', str(mpi_num_procs), 'tacc_affinity']
+        return ['ibrun', '-n', str(mpi_num_procs), '-o', str(offset), 'tacc_affinity']
     else:
         return ['mpirun', '-np', str(mpi_num_procs)]
 
 def analyse_command_output(output, \
                            file_dt, file_pr, file_out, file_pp, \
                            PRINT_RSLT_HEADER, PRINT_PRFL_HEADER):
+    print '--> analysing command output ...'
     for line in output:
         file_out.write(line)
         # CATCH RESULTS HEADER
@@ -111,7 +113,7 @@ def analyse_command_output(output, \
     # PARSE PROFILE OUTPUT
     mydoc = parser.pdoc(output)
     mydoc.print_me(file_pr)
-    pp.post_process_profile_data(mydoc, file_pp, PRINT_PRFL_HEADER);
+    pp.pp_profile_data(mydoc, file_pp, PRINT_PRFL_HEADER);
 
 def execute_commands(cmds, id):
     id = SCRIPT_ID+'-'+id
@@ -150,7 +152,8 @@ def execute_commands(cmds, id):
         # output command
         cmd_msg = '# CMD '+str(counter)+' : ' +  ' '.join(cmd) + '\n'
         sys.stdout.write('# ==================================\n')
-        sys.stdout.write("# STORING OUTPUT IN: " + out_dir_name +" \n")
+        sys.stdout.write("--> storing output in: " + out_dir_name +" \n")
+        sys.stdout.write("--> executing command ... \n")
         sys.stdout.write(cmd_msg)
 
         file_out.write('# ==================================\n')

@@ -16,20 +16,16 @@ import sys
 from collections import OrderedDict
 import utils
 
-def generate_command_args(de_init, de_factor,     \
-                          dt_init, dt_factor,     \
-                          tn_init, tn_factor,     \
-                          test_init, test_factor, \
-                          merge_type,             \
+def generate_command_args(de_list, \
+                          dt_list, \
+                          tn_list, \
+                          test_list, \
+                          merge_type, \
+                          np_list, \
+                          nt_list, \
                           num_steps):
-    EXEC = os.path.join(utils.TBSLAS_EXAMPLES_BIN_DIR, "advection")
 
-    de_list = [de_init+cnt*de_factor                  for cnt in range(0, num_steps)]
-    dt_list = [dt_init*math.pow(dt_factor,float(cnt)) for cnt in range(0,TOL_NUM_STEPS)]
-    tn_list = [tn_init*math.pow(tn_factor,float(cnt)) for cnt in range(0,TOL_NUM_STEPS)]
-    test_list = [test_init+cnt*test_factor            for cnt in range(0,TOL_NUM_STEPS)]
-    np_list = [utils.MPI_TOTAL_NUM_PORCESSES          for cnt in range(0,TOL_NUM_STEPS)]
-    nt_list = [utils.OMP_NUM_THREADS                  for cnt in range(0,TOL_NUM_STEPS)]
+    EXEC = os.path.join(utils.TBSLAS_EXAMPLES_BIN_DIR, "advection")
 
     # generate a dictionary data type of commands
     cmd_args = OrderedDict()
@@ -55,14 +51,11 @@ def generate_command_args(de_init, de_factor,     \
 # MAIN
 ################################################################################
 if __name__ == '__main__':
-    utils.prepare_environment(utils.OUTPUT_PREFIX)
-    TOL_NUM_STEPS = 1
-    if len(sys.argv) >= 4:
-        TOL_NUM_STEPS   = int(sys.argv[3])
+    mpi_num_procs, omp_num_threads = utils.parse_args()
     for merge_type in range(1,4):
-    # ############################################################################
-    # # TEST 1: V,C depth: [6] config: regular V, regular C
-    # ############################################################################
+        # ######################################################################
+        # # TEST 1: V,C depth: [6] config: regular V, regular C
+        # ######################################################################
         # de_factor = 1
         # de_init   = 5
         # dt_factor = 1
@@ -79,9 +72,9 @@ if __name__ == '__main__':
         #                              1)
         # utils.execute_commands(cmd_args, 'test-1-merge-type-'+str(merge_type))
 
-    # ############################################################################
-    # # TEST 2: V depth: [6] C depth: [5, 7, 9] config: regular V, irregular C
-    # ############################################################################
+        # ######################################################################
+        # # TEST 2: V depth: [6] C depth: [5, 7, 9] config: regular V, irregular C
+        # ######################################################################
         # de_factor = 1
         # de_init   = 5
         # dt_factor = 1
@@ -95,24 +88,44 @@ if __name__ == '__main__':
         #                              tn_init, tn_factor, \
         #                              test_init, test_factor, \
         #                              merge_type, \
-        #                              TOL_NUM_STEPS)
+        #                              num_steps)
         # utils.execute_commands(cmd_args, 'test-2-merge-type-'+str(merge_type))
 
-    # ############################################################################
-    # # TEST 3: V,C depth: [5, 7, 9] config: irregular V, irregular C
-    # ############################################################################
-        de_factor = 1
-        de_init   = 6
-        dt_factor = 1
+        # ######################################################################
+        # # TEST 3: V,C depth: [5, 7, 9] config: irregular V, irregular C
+        # ######################################################################
+        # de_factor = 1
+        # de_init   = 6
+        # de_list   = [de_init+cnt*de_factor                  for cnt in range(0,num_steps)]
+
+        np_list = [\
+                1,\
+                2,\
+                4,\
+                # 8,\
+                # 16,\
+                # 32,\
+                ]
+
+        num_steps = len(np_list)
+        nt_list   = [omp_num_threads  for cnt in range(0,num_steps)]
+
         dt_init   = 0.25
-        tn_factor = 1.0
+        dt_list   = [dt_init for cnt in range(0,num_steps)]
+
         tn_init   = 1
+        tn_list   = [tn_init for cnt in range(0,num_steps)]
+
         test_init = 6
-        test_factor = 0;
-        cmd_args = generate_command_args(de_init, de_factor, \
-                                     dt_init, dt_factor, \
-                                     tn_init, tn_factor, \
-                                     test_init, test_factor, \
-                                     merge_type, \
-                                     TOL_NUM_STEPS)
+        test_list = [test_init for cnt in range(0,num_steps)]
+
+        cmd_args = generate_command_args(de_list, \
+                                             dt_list, \
+                                             tn_list, \
+                                             test_list, \
+                                             merge_type, \
+                                             np_list, \
+                                             nt_list, \
+                                             num_steps)
+
         utils.execute_commands(cmd_args, 'test-3-merge-type-'+str(merge_type))

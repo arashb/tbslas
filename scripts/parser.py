@@ -29,7 +29,7 @@ pattern_prof_value = re.compile(pattern_prof_value_string)
 pattern_prof_title_string = "([\|\s]*\+\-\w+)"
 pattern_prof_title = re.compile(pattern_prof_title_string)
 
-pattern_np_string = "-np\s(\d+\.?\d*)"
+pattern_np_string = "-np?\s(\d+\.?\d*)"
 pattern_np = re.compile(pattern_np_string)
 
 class pnode(object):
@@ -110,7 +110,7 @@ class pdoc(object):
 
         self.reporter = OrderedDict(zip(self.reporter_header, self.reporter_results))
         # print self.reporter
-        print self.leaves_count_list
+        # print self.leaves_count_list
 
 
     def print_me(self, file_out):
