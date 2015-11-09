@@ -190,6 +190,29 @@ InitTree(TreeType& tree,
   pvfmm::Profile::Toc();
 }
 
+template<typename TreeType>
+void
+GetTreeMaxDepth(TreeType& tree,
+                int& max_depth) {
+  typedef typename TreeType::Real_t RealType;
+  typedef typename TreeType::Node_t NodeType;
+  int lcl_max_depth = 0;
+  int glb_max_depth = 0;
+  NodeType* n_curr = tree.PostorderFirst();
+
+  while (n_curr != NULL) {
+    if (n_curr->IsLeaf() && !n_curr->IsGhost()) {
+      if (n_curr->Depth()>lcl_max_depth)
+        lcl_max_depth = n_curr->Depth();
+    }
+    n_curr = tree.PostorderNxt(n_curr);
+  }
+
+  MPI_Allreduce(&lcl_max_depth, &glb_max_depth, 1,
+                MPI_INT, MPI_MAX, *(tree.Comm()));
+  max_depth = glb_max_depth;
+}
+
 // in case of the multi-dimensional values
 // maximum value of all dimensions together will be returend
 // and not the maximum norm value.

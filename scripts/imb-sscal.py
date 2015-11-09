@@ -94,10 +94,6 @@ if __name__ == '__main__':
         # ######################################################################
         # # TEST 3: V,C depth: [5, 7, 9] config: irregular V, irregular C
         # ######################################################################
-        # de_factor = 1
-        # de_init   = 6
-        # de_list   = [de_init+cnt*de_factor                  for cnt in range(0,num_steps)]
-
         np_list = [\
                 1,\
                 2,\
@@ -108,6 +104,11 @@ if __name__ == '__main__':
                 ]
 
         num_steps = len(np_list)
+
+        de_factor = 1
+        de_init   = 6
+        de_list   = [de_init for cnt in range(0,num_steps)]
+
         nt_list   = [omp_num_threads  for cnt in range(0,num_steps)]
 
         dt_init   = 0.25

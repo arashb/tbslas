@@ -354,7 +354,7 @@ void parse_command_line_options(int argc, char** argv) {
   int omp =
       atoi(
           commandline_option(argc, argv, "-omp", "1", false,
-                             "-omp  <int> = (1)    : Number of OpenMP threads."));
+                             "-omp  <int> = (1)    : Number of OpenMP threads"));
 
   int np;
   MPI_Comm_size(MPI_COMM_WORLD,&np);
@@ -367,68 +367,64 @@ void parse_command_line_options(int argc, char** argv) {
   size_t N =
       (size_t)strtod(
           commandline_option(argc, argv, "-N", str.c_str(), false,
-                             "-N    <int>          : Number of point sources."),
+                             "-N    <int>          : Number of point sources"),
           NULL);
 
   size_t M =
       (size_t)strtod(
           commandline_option(argc, argv, "-M", "1", false,
-                             "-M    <int>          : Number of points per octant."),
+                             "-M    <int>          : Number of points per octant"),
           NULL);
 
   int q =
       strtoul(
           commandline_option(argc, argv, "-q", "14", false,
-                             "-q    <int> = (14)   : Chebyshev order (+ve integer)."),
+                             "-q    <int> = (14)   : Chebyshev order (+ve integer)"),
           NULL,10);
 
   int d =
       strtoul(
           commandline_option(argc, argv, "-d", "15", false,
-                             "-d    <int> = (15)   : Maximum tree depth."),
+                             "-d    <int> = (15)   : Maximum tree depth"),
           NULL,10);
 
   double tol =
       strtod(
           commandline_option(argc, argv, "-tol", "1e-5", false,
-                             "-tol <real> = (1e-5) : Tolerance for adaptive refinement.")
+                             "-tol <real> = (1e-5) : Tolerance for adaptive refinement")
           ,NULL);
   bool adap =
       (commandline_option(argc, argv, "-adap", NULL, false,
-                          "-adap                : Adaptive tree refinement." )!=NULL);
+                          "-adap                : Adaptive tree refinement" )!=NULL);
 
   int tn =
       strtoul(
           commandline_option(argc, argv, "-tn", "1", false,
-                             "-tn   <int> = (1)    : Number of time steps."),
+                             "-tn   <int> = (1)    : Number of time steps"),
           NULL,10);
 
   double dt =
       strtod(
           commandline_option(argc, argv,  "-dt",  "1e-2", false,
-                             "-dt <real> = (0.1e-2) : Temporal resolution." ), NULL);
+                             "-dt <real> = (0.1e-2) : Temporal resolution" ), NULL);
 
   bool cubic =
       (commandline_option(argc, argv, "-cubic", NULL, false,
-                          "-cubic               : Cubic Interpolation  used to evaluate tree values.")!=NULL);
+                          "-cubic               : Cubic Interpolation used to evaluate tree values")!=NULL);
 
   int cuf =
       strtoul(
           commandline_option(argc, argv, "-cuf", "4", false,
-                             "-cuf   <int> = (4)    : Upsampling factor used for cubic interpolation."),
+                             "-cuf   <int> = (4)    : Upsampling factor used for cubic interpolation"),
           NULL,10);
-
-  // bool cubic_analytical =
-  //     (commandline_option(argc, argv, "-ca", NULL, false,
-  //                         "-ca                  : Analytical values used in cubic interpolation upsampling.")!=NULL);
 
   bool profile =
       (commandline_option(argc, argv, "-p", NULL, false,
-                          "-p                  : Analytical values used in cubic interpolation upsampling.")==NULL);
+                          "-p                  : Deactivate profiling")==NULL);
 
   bool vtk_save =
       (commandline_option(argc, argv, "-vs", NULL, false,
-                          "-vs                  : Save VTK files")==NULL);
+                          "-vs                  : Deactivate saving of the VTK files")==NULL);
 
   commandline_option_end(argc, argv);
   // =========================================================================
@@ -441,8 +437,7 @@ void parse_command_line_options(int argc, char** argv) {
   sim_config->vtk_order               = q;
   sim_config->vtk_save                = vtk_save;
   sim_config->use_cubic               = cubic;
-  sim_config->cubic_upsampling_factor = cuf;
-  // sim_config->cubic_use_analytical    = cubic_analytical;
+  sim_config->cubic_upsampling_factor = cubic?cuf:0;
   sim_config->num_omp_threads         = omp;
   omp_set_num_threads(omp);
   // *************************************************************************

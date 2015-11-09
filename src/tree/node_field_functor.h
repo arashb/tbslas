@@ -533,32 +533,33 @@ void EvalTree(Tree_t* tree,
   //////////////////////////////////////////////////
   // PRINT TARGET COUNTS INFO
   //////////////////////////////////////////////////
-  size_t sbuff[4] = {trg_cnt_inside,
-                     trg_cnt_outside,
-                     trg_value_outsider.Dim()/data_dof,
-                     trg_cnt_others};
-  size_t* rbuff = (size_t *)malloc(np*4*sizeof(size_t));
-  MPI_Gather(sbuff, 4, pvfmm::par::Mpi_datatype<size_t>::value(),
-             rbuff, 4, pvfmm::par::Mpi_datatype<size_t>::value(),
-             0, *tree->Comm());
-  if (myrank == 0) {
-    std::ostringstream os;
-    os << "TRG_CNT_IN_TOT: ";
-    for (int i = 0 ; i < np; i++) {
-      size_t* data = &rbuff[i*4];
-      std::cout
-          << " PROC: " << i
-          << " TRG_CNT_IN: "     << data[0]
-          << " TRG_CNT_OUT: "    << data[1]
-          << " TRG_CNT_RCV: "    << data[2]
-          << " TRG_CNT_OTHRS: "  << data[3]
-          << std::endl;
-      os << data[0] + data[3] << " ";
+  if (sim_config->profile) {
+    size_t sbuff[4] = {trg_cnt_inside,
+                       trg_cnt_outside,
+                       trg_value_outsider.Dim()/data_dof,
+                       trg_cnt_others};
+    size_t* rbuff = (size_t *)malloc(np*4*sizeof(size_t));
+    MPI_Gather(sbuff, 4, pvfmm::par::Mpi_datatype<size_t>::value(),
+               rbuff, 4, pvfmm::par::Mpi_datatype<size_t>::value(),
+               0, *tree->Comm());
+    if (myrank == 0) {
+      std::ostringstream os;
+      os << "TRG_CNT_IN_TOT: ";
+      for (int i = 0 ; i < np; i++) {
+        size_t* data = &rbuff[i*4];
+        std::cout
+            << " PROC: " << i
+            << " TRG_CNT_IN: "     << data[0]
+            << " TRG_CNT_OUT: "    << data[1]
+            << " TRG_CNT_RCV: "    << data[2]
+            << " TRG_CNT_OTHRS: "  << data[3]
+            << std::endl;
+        os << data[0] + data[3] << " ";
+      }
+      std::cout << os.str() << std::endl;
     }
-    std::cout << os.str() << std::endl;
+    delete rbuff;
   }
-  delete rbuff;
-
   //////////////////////////////////////////////////////////////
   // GLOBAL SORT
   //////////////////////////////////////////////////////////////

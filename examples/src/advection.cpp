@@ -121,6 +121,8 @@ void get_hopf_field(const Real_t* coord,
 int main (int argc, char **argv) {
   MPI_Init(&argc, &argv);
   MPI_Comm comm=MPI_COMM_WORLD;
+  int np;
+  MPI_Comm_size(comm, &np);
   int myrank;
   MPI_Comm_rank(comm, &myrank);
 
@@ -274,29 +276,17 @@ int main (int argc, char **argv) {
                             1,
                             in_al2,in_rl2,in_ali,in_rli,
                             std::string("Input"));
-    typedef tbslas::Reporter<double> Rep;
-    if(!myrank) {
-      Rep::AddData("TOL", sim_config->tree_tolerance);
-      Rep::AddData("ChbOrder", sim_config->tree_chebyshev_order);
-      Rep::AddData("MaxDEPTHC", (max_depth_con)?max_depth_con:sim_config->tree_max_depth);
-      Rep::AddData("MaxDEPTHV", (max_depth_vel)?max_depth_vel:sim_config->tree_max_depth);
 
-      Rep::AddData("DT", sim_config->dt);
-      Rep::AddData("TN", sim_config->total_num_timestep);
-
-      Rep::AddData("InAL2", in_al2);
-      Rep::AddData("InRL2", in_rl2);
-      Rep::AddData("InALINF", in_ali);
-      Rep::AddData("InRLINF", in_rli);
-    }
-
-
-    int num_leaves = tbslas::CountNumLeafNodes(tconc_curr);
+    int noct_sum = 0;
+    if(sim_config->profile)
+        noct_sum += tbslas::CountNumLeafNodes(tconc_curr);
 
     int timestep = 1;
     pvfmm::Profile::Tic("Solve", &comm, true);
     for (; timestep < sim_config->total_num_timestep+1; timestep++) {
-      pvfmm::Profile::Tic("SL", &sim_config->comm, false, 5);
+
+
+      pvfmm::Profile::Tic(std::string("SL_TN" + tbslas::ToString(static_cast<long long>(timestep))).c_str(), &sim_config->comm, false, 5);
       tbslas::SolveSemilagInSitu(tvel_curr,
                                  tconc_curr,
                                  timestep,
@@ -308,7 +298,23 @@ int main (int argc, char **argv) {
       pvfmm::Profile::Tic("RefineTree", &sim_config->comm, false, 5);
       tconc_curr.RefineTree();
       pvfmm::Profile::Toc();
-      int num_leaves = tbslas::CountNumLeafNodes(tconc_curr);
+
+      // (SEMI) MERGE TO FIX IMBALANCE
+      switch(merge) {
+        case 2:
+          pvfmm::Profile::Tic("CMerge", &sim_config->comm, false, 5);
+          tbslas::MergeTree(tvel_curr, tconc_curr);
+          pvfmm::Profile::Toc();
+          break;
+        case 3:
+          pvfmm::Profile::Tic("SMerge", &sim_config->comm, false, 5);
+          tbslas::SemiMergeTree(tvel_curr, tconc_curr);
+          pvfmm::Profile::Toc();
+          break;
+      }
+
+      if(sim_config->profile)
+        noct_sum += tbslas::CountNumLeafNodes(tconc_curr);
 
       //Write2File
       if (sim_config->vtk_save) {
@@ -332,19 +338,7 @@ int main (int argc, char **argv) {
 
       }
 
-      // (SEMI) MERGE TO FIX IMBALANCE
-      switch(merge) {
-        case 2:
-          pvfmm::Profile::Tic("CMerge", &sim_config->comm, false, 5);
-          tbslas::MergeTree(tvel_curr, tconc_curr);
-          pvfmm::Profile::Toc();
-          break;
-        case 3:
-          pvfmm::Profile::Tic("SMerge", &sim_config->comm, false, 5);
-          tbslas::SemiMergeTree(tvel_curr, tconc_curr);
-          pvfmm::Profile::Toc();
-          break;
-      }
+
     }  // end for
     pvfmm::Profile::Toc();        // solve
 
@@ -362,13 +356,43 @@ int main (int argc, char **argv) {
     // =========================================================================
     // REPORT RESULTS
     // =========================================================================
+
+    int tcon_max_depth=0;
+    int tvel_max_depth=0;
+    tbslas::GetTreeMaxDepth(tconc_curr, tcon_max_depth);
+    tbslas::GetTreeMaxDepth(tvel_curr, tvel_max_depth);
+
+    typedef tbslas::Reporter<double> Rep;
     if(!myrank) {
+      Rep::AddData("NP", np);
+
+      Rep::AddData("TOL", sim_config->tree_tolerance);
+      Rep::AddData("Q", sim_config->tree_chebyshev_order);
+
+      Rep::AddData("CMaxD", tcon_max_depth);
+      Rep::AddData("VMaxD", tvel_max_depth);
+
+      Rep::AddData("CBC", sim_config->use_cubic?1:0);
+      Rep::AddData("CUF", sim_config->cubic_upsampling_factor);
+
+      Rep::AddData("DT", sim_config->dt);
+      Rep::AddData("TN", sim_config->total_num_timestep);
+
+      Rep::AddData("InAL2", in_al2);
+      Rep::AddData("InRL2", in_rl2);
+      Rep::AddData("InALINF", in_ali);
+      Rep::AddData("InRLINF", in_rli);
+
       Rep::AddData("OutAL2", al2);
       Rep::AddData("OutRL2", rl2);
       Rep::AddData("OutALINF", ali);
       Rep::AddData("OutRLINF", rli);
+
+      Rep::AddData("NOCT", noct_sum/(sim_config->total_num_timestep+1));
+
       Rep::Report();
     }
+
     //Output Profiling results.
     pvfmm::Profile::print(&comm);
   }

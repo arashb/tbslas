@@ -456,6 +456,8 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
     Rep::AddData("MaxDEPTH", sim_config->tree_max_depth);
     Rep::AddData("NOCT", num_leaves);
     Rep::AddData("ChbOrder", sim_config->tree_chebyshev_order);
+    Rep::AddData("CBC", sim_config->use_cubic?1:0);
+    Rep::AddData("CUF", sim_config->cubic_upsampling_factor);
 
     Rep::AddData("DT", sim_config->dt);
     Rep::AddData("TN", sim_config->total_num_timestep);
@@ -464,15 +466,13 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
     Rep::AddData("ALPHA", TBSLAS_ALPHA);
 
     Rep::AddData("InAL2", in_al2);
-    Rep::AddData("OutAL2", al2);
-
     Rep::AddData("InRL2", in_rl2);
-    Rep::AddData("OutRL2", rl2);
-
     Rep::AddData("InALINF", in_ali);
-    Rep::AddData("OutALINF", ali);
-
     Rep::AddData("InRLINF", in_rli);
+
+    Rep::AddData("OutAL2", al2);
+    Rep::AddData("OutRL2", rl2);
+    Rep::AddData("OutALINF", ali);
     Rep::AddData("OutRLINF", rli);
 
     Rep::Report();
