@@ -136,6 +136,7 @@ int main (int argc, char **argv) {
   {
     tbslas::SimConfig* sim_config       = tbslas::SimConfigSingleton::Instance();
     pvfmm::Profile::Enable(sim_config->profile);
+
     // =========================================================================
     // PRINT METADATA
     // =========================================================================
@@ -200,7 +201,7 @@ int main (int argc, char **argv) {
     // =========================================================================
     // INIT THE VELOCITY TREE
     // =========================================================================
-    Tree_t tvel_curr(comm);
+    Tree_t tvel(comm);
     tbslas::ConstructTree<Tree_t>(sim_config->tree_num_point_sources,
                                   sim_config->tree_num_points_per_octanct,
                                   sim_config->tree_chebyshev_order,
@@ -210,13 +211,13 @@ int main (int argc, char **argv) {
                                   comm,
                                   fn_vel,
                                   3,
-                                  tvel_curr);
+                                  tvel);
 
     // =========================================================================
     // INIT THE CONCENTRATION TREE
     // =========================================================================
     tcurr = 0;
-    Tree_t tconc_curr(comm);
+    Tree_t tcon(comm);
     tbslas::ConstructTree<Tree_t>(sim_config->tree_num_point_sources,
                                   sim_config->tree_num_points_per_octanct,
                                   sim_config->tree_chebyshev_order,
@@ -226,7 +227,7 @@ int main (int argc, char **argv) {
                                   comm,
                                   fn_con,
                                   1,
-                                  tconc_curr);
+                                  tcon);
     char out_name_buffer[300];
     if (sim_config->vtk_save) {
       snprintf(out_name_buffer,
@@ -236,7 +237,7 @@ int main (int argc, char **argv) {
                sim_config->vtk_filename_prefix.c_str(),
                "vel",
                0);
-      tvel_curr.Write2File(out_name_buffer, sim_config->vtk_order);
+      tvel.Write2File(out_name_buffer, sim_config->vtk_order);
 
       snprintf(out_name_buffer,
                sizeof(out_name_buffer),
@@ -245,109 +246,150 @@ int main (int argc, char **argv) {
                sim_config->vtk_filename_prefix.c_str(),
                sim_config->vtk_filename_variable.c_str(),
                0);
-      tconc_curr.Write2File(out_name_buffer, sim_config->vtk_order);
+      tcon.Write2File(out_name_buffer, sim_config->vtk_order);
     }
 
     // =========================================================================
     // RUN
     // =========================================================================
     // set the input_fn to NULL -> needed for adaptive refinement
-    std::vector<Node_t*>  ncurr_list = tconc_curr.GetNodeList();
+    std::vector<Node_t*>  ncurr_list = tcon.GetNodeList();
     for(int i = 0; i < ncurr_list.size(); i++) {
       ncurr_list[i]->input_fn = (void (*)(const double* , int , double*))NULL;
+    }
+
+    if (sim_config->profile) {
+      tbslas::CountNumLeafNodes(tcon);
+      tbslas::CountNumLeafNodes(tvel);
     }
 
     switch(merge) {
       case 2:
         pvfmm::Profile::Tic("CMerge", &sim_config->comm, false, 5);
-        tbslas::MergeTree(tvel_curr, tconc_curr);
+        tbslas::MergeTree(tvel, tcon);
         pvfmm::Profile::Toc();
         break;
       case 3:
         pvfmm::Profile::Tic("SMerge", &sim_config->comm, false, 5);
-        tbslas::SemiMergeTree(tvel_curr, tconc_curr);
+        tbslas::SemiMergeTree(tvel, tcon);
         pvfmm::Profile::Toc();
         break;
     }
+    // TODO: REMOVE THIS PART
+    // if (sim_config->vtk_save) {
+    //   snprintf(out_name_buffer,
+    //            sizeof(out_name_buffer),
+    //            sim_config->vtk_filename_format.c_str(),
+    //            tbslas::get_result_dir().c_str(),
+    //            sim_config->vtk_filename_prefix.c_str(),
+    //            "vel",
+    //            1);
+    //   tvel.Write2File(out_name_buffer, sim_config->vtk_order);
+
+    //   snprintf(out_name_buffer,
+    //            sizeof(out_name_buffer),
+    //            sim_config->vtk_filename_format.c_str(),
+    //            tbslas::get_result_dir().c_str(),
+    //            sim_config->vtk_filename_prefix.c_str(),
+    //            sim_config->vtk_filename_variable.c_str(),
+    //            1);
+    //   tcon.Write2File(out_name_buffer, sim_config->vtk_order);
+    // }
 
     double in_al2,in_rl2,in_ali,in_rli;
-    CheckChebOutput<Tree_t>(&tconc_curr,
+    CheckChebOutput<Tree_t>(&tcon,
                             fn_con,
                             1,
                             in_al2,in_rl2,in_ali,in_rli,
                             std::string("Input"));
 
-    int noct_sum = 0;
-    if(sim_config->profile)
-        noct_sum += tbslas::CountNumLeafNodes(tconc_curr);
+    // =====================================================================
+    // SOLVE SEMILAG
+    // =====================================================================
+    int con_noct_sum = 0;
+    int vel_noct_sum = 0;
+    if (sim_config->profile) {
+      con_noct_sum += tbslas::CountNumLeafNodes(tcon);
+      vel_noct_sum += tbslas::CountNumLeafNodes(tvel);
+    }
 
     int timestep = 1;
-    pvfmm::Profile::Tic("Solve", &comm, true);
     for (; timestep < sim_config->total_num_timestep+1; timestep++) {
 
+      pvfmm::Profile::Tic(std::string("Solve_TN" + tbslas::ToString(static_cast<long long>(timestep))).c_str(), &comm, true);
+      {
+        // =====================================================================
+        // SOLVE SEMILAG
+        // =====================================================================
+        pvfmm::Profile::Tic(std::string("SL_TN" + tbslas::ToString(static_cast<long long>(timestep))).c_str(), &sim_config->comm, false, 5);
+        tbslas::SolveSemilagInSitu(tvel,
+                                   tcon,
+                                   timestep,
+                                   sim_config->dt,
+                                   sim_config->num_rk_step);
+        pvfmm::Profile::Toc();
 
-      pvfmm::Profile::Tic(std::string("SL_TN" + tbslas::ToString(static_cast<long long>(timestep))).c_str(), &sim_config->comm, false, 5);
-      tbslas::SolveSemilagInSitu(tvel_curr,
-                                 tconc_curr,
-                                 timestep,
-                                 sim_config->dt,
-                                 sim_config->num_rk_step);
-      pvfmm::Profile::Toc();
+        // =====================================================================
+        // REFINE TREE
+        // =====================================================================
+        pvfmm::Profile::Tic("RefineTree", &sim_config->comm, false, 5);
+        tcon.RefineTree();
+        pvfmm::Profile::Toc();
 
-      // refine the tree according to the computed values
-      pvfmm::Profile::Tic("RefineTree", &sim_config->comm, false, 5);
-      tconc_curr.RefineTree();
-      pvfmm::Profile::Toc();
+        // =====================================================================
+        // (SEMI) MERGE TO FIX IMBALANCE
+        // =====================================================================
+        switch(merge) {
+          case 2:
+            pvfmm::Profile::Tic("CMerge", &sim_config->comm, false, 5);
+            tbslas::MergeTree(tvel, tcon);
+            pvfmm::Profile::Toc();
+            break;
+          case 3:
+            pvfmm::Profile::Tic("SMerge", &sim_config->comm, false, 5);
+            tbslas::SemiMergeTree(tvel, tcon);
+            pvfmm::Profile::Toc();
+            break;
+        }
+      }
+      pvfmm::Profile::Toc();        // solve
 
-      // (SEMI) MERGE TO FIX IMBALANCE
-      switch(merge) {
-        case 2:
-          pvfmm::Profile::Tic("CMerge", &sim_config->comm, false, 5);
-          tbslas::MergeTree(tvel_curr, tconc_curr);
-          pvfmm::Profile::Toc();
-          break;
-        case 3:
-          pvfmm::Profile::Tic("SMerge", &sim_config->comm, false, 5);
-          tbslas::SemiMergeTree(tvel_curr, tconc_curr);
-          pvfmm::Profile::Toc();
-          break;
+      if(sim_config->profile) {
+        con_noct_sum += tbslas::CountNumLeafNodes(tcon);
+        vel_noct_sum += tbslas::CountNumLeafNodes(tvel);
       }
 
-      if(sim_config->profile)
-        noct_sum += tbslas::CountNumLeafNodes(tconc_curr);
-
-      //Write2File
+      // ======================================================================
+      // Write2File
+      // ======================================================================
       if (sim_config->vtk_save) {
-        tconc_curr.Write2File(tbslas::GetVTKFileName(timestep, sim_config->vtk_filename_variable).c_str(), sim_config->vtk_order);
+        tcon.Write2File(tbslas::GetVTKFileName(timestep, sim_config->vtk_filename_variable).c_str(), sim_config->vtk_order);
       }
-
+      // ======================================================================
       // print error every 100 time steps
+      // ======================================================================
       if (timestep % 100 == 0) {
         //Write2File
         if (!sim_config->vtk_save) {
-          tconc_curr.Write2File(tbslas::GetVTKFileName(timestep, sim_config->vtk_filename_variable).c_str(), sim_config->vtk_order);
+          tcon.Write2File(tbslas::GetVTKFileName(timestep, sim_config->vtk_filename_variable).c_str(), sim_config->vtk_order);
         }
-
         tcurr = timestep*sim_config->dt;
         double al2,rl2,ali,rli;
-        CheckChebOutput<Tree_t>(&tconc_curr,
+        CheckChebOutput<Tree_t>(&tcon,
                                 fn_con,
                                 1,
                                 al2,rl2,ali,rli,
                                 std::string("Output_TN" + tbslas::ToString(static_cast<long long>(timestep))));
 
       }
-
-
     }  // end for
-    pvfmm::Profile::Toc();        // solve
 
     // =========================================================================
     // COMPUTE ERROR
     // =========================================================================
     tcurr = sim_config->total_num_timestep*sim_config->dt;
     double al2,rl2,ali,rli;
-    CheckChebOutput<Tree_t>(&tconc_curr,
+    CheckChebOutput<Tree_t>(&tcon,
                             fn_con,
                             1,
                             al2,rl2,ali,rli,
@@ -356,11 +398,10 @@ int main (int argc, char **argv) {
     // =========================================================================
     // REPORT RESULTS
     // =========================================================================
-
     int tcon_max_depth=0;
     int tvel_max_depth=0;
-    tbslas::GetTreeMaxDepth(tconc_curr, tcon_max_depth);
-    tbslas::GetTreeMaxDepth(tvel_curr, tvel_max_depth);
+    tbslas::GetTreeMaxDepth(tcon, tcon_max_depth);
+    tbslas::GetTreeMaxDepth(tvel, tvel_max_depth);
 
     typedef tbslas::Reporter<double> Rep;
     if(!myrank) {
@@ -388,7 +429,8 @@ int main (int argc, char **argv) {
       Rep::AddData("OutALINF", ali);
       Rep::AddData("OutRLINF", rli);
 
-      Rep::AddData("NOCT", noct_sum/(sim_config->total_num_timestep+1));
+      Rep::AddData("CNOCT", con_noct_sum/(sim_config->total_num_timestep+1));
+      Rep::AddData("VNOCT", vel_noct_sum/(sim_config->total_num_timestep+1));
 
       Rep::Report();
     }

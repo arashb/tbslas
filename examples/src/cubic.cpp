@@ -130,11 +130,11 @@ int main (int argc, char **argv) {
                                   node_pos,
                                   grid_points);
 
-    tbslas::ComputeTreeError(tree,
-                             get_gaussian_field_cylinder_atT<double,3>,
-                             grid_points,
-                             ali,
-                             al2);
+    // tbslas::ComputeTreeError(tree,
+    //                          get_gaussian_field_cylinder_atT<double,3>,
+    //                          grid_points,
+    //                          ali,
+    //                          al2);
     int num_leaves = tbslas::CountNumLeafNodes(tree);
     // =========================================================================
     // REPORT RESULTS

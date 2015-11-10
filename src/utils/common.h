@@ -246,56 +246,6 @@ generate_reg_grid_points(const size_t N) {
   return reg_grid_points_pos;
 }
 
-// template<typename real_t>
-// std::vector<real_t>
-// generate_vorticity_field(const std::vector<real_t>& points_pos,
-//                          const real_t time,
-//                          const real_t omega) {
-//   real_t time_factor = 1+sin(2*3.14159*time);
-//   size_t tN = points_pos.size()/3;
-//   std::vector<real_t> points_values(3*tN);
-//   for (size_t i = 0; i < tN; i++) {
-//     points_values[i]      = omega*(0.5           - points_pos[i+tN])*time_factor;
-//     points_values[i+tN]   = omega*(points_pos[i] - 0.5             )*time_factor;
-//     points_values[i+2*tN] = 0;
-//   }
-//   return points_values;
-// }
-
-// template<typename real_t>
-// std::vector<real_t>
-// generate_gaussian_field(const std::vector<real_t>& points_pos,
-//                         const real_t xc      ,
-//                         const real_t yc      ,
-//                         const real_t theta   ,
-//                         const real_t sigma_x ,
-//                         const real_t sigma_y) {
-//   real_t A           = 1.0;
-//   real_t cos_theta   = cos(theta);
-//   real_t cos_2theta  = cos(2*theta);
-//   real_t cos_theta_2 = cos_theta * cos_theta;
-//   real_t sin_theta   = sin(theta);
-//   real_t sin_2theta  = sin(2*theta);
-//   real_t sin_theta_2 = sin_theta * sin_theta;
-//   real_t sigma_x_2   = sigma_x*sigma_x;
-//   real_t sigma_y_2   = sigma_y*sigma_y;
-
-//   real_t a = cos_theta_2*0.5/sigma_x_2 + sin_theta_2*0.5/sigma_y_2;
-//   real_t b = -sin_2theta*0.5/sigma_x_2 + sin_2theta*0.5/sigma_y_2;
-//   real_t c = sin_theta_2*0.5/sigma_x_2 + cos_theta_2*0.5/sigma_y_2;
-
-//   size_t tN = points_pos.size()/3;
-//   std::vector<real_t> points_values(tN);
-//   for (size_t i = 0; i < tN; i++) {
-//     points_values[i]  = A*exp(-(a * (points_pos[i]-xc)    * (points_pos[i]-xc)    +
-//                                 b * (points_pos[i]-xc)    * (points_pos[i+tN]-yc) +
-//                                 c * (points_pos[i+tN]-yc) * (points_pos[i+tN]-yc)
-//                                 )
-//                               );
-//   }
-//   return points_values;
-// }
-
 template<typename real_t>
 inline int
 find_grid_index_1d(const std::vector<real_t>& grid,

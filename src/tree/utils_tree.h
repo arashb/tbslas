@@ -23,7 +23,6 @@
 #include <profile.hpp>
 
 #include "utils/common.h"
-#include "tree/node_field_functor.h"
 
 namespace tbslas {
 
@@ -318,7 +317,7 @@ GetTreeMortonIdMins(TreeType& tree,
 
 template<typename TreeType>
 int
-CountNumLeafNodes(TreeType& tree) {
+CountNumLeafNodes(TreeType& tree, std::vector<int>& leaves_cnt_list) {
   typedef typename TreeType::Real_t RealType;
   typedef typename TreeType::Node_t NodeType;
 
@@ -334,29 +333,33 @@ CountNumLeafNodes(TreeType& tree) {
       num_leaf_nodes++;
     n_next = tree.PostorderNxt(n_next);
   }
-  // int total_num_leaf_nodes = 0;
-  // MPI_Allreduce(&num_leaf_nodes, &total_num_leaf_nodes, 1, MPI_INT,
-  //            MPI_SUM, *tree.Comm());
 
-  /* print number of leaf nodes in current process */
-  int* rbuf = (int *)malloc(np*sizeof(int));
-  MPI_Allgather(&num_leaf_nodes, 1, MPI_INT, rbuf, 1, MPI_INT, *tree.Comm());
+  leaves_cnt_list.resize(np);
+  MPI_Allgather(&num_leaf_nodes, 1, MPI_INT,
+                leaves_cnt_list.data(), 1, MPI_INT, *tree.Comm());
   if (!myrank) {
     std::cout << "# LEAVES_CNT: ";
     for (int i = 0 ; i < np; i++) {
-      std::cout << " " << rbuf[i];
+      std::cout << " " << leaves_cnt_list[i];
     }
     std::cout << std::endl;
   }
   int total_num_leaf_nodes = 0;
   for (int i = 0; i < np; i++) {
-    total_num_leaf_nodes += rbuf[i];
+    total_num_leaf_nodes += leaves_cnt_list[i];
   }
   if (!myrank)
     std::cout << "# TOT_LEAVES_CNT: " << total_num_leaf_nodes << std::endl;
 
-  delete rbuf;
+  // delete rbuf;
   return total_num_leaf_nodes;
+}
+
+template<typename TreeType>
+int
+CountNumLeafNodes(TreeType& tree) {
+  std::vector<int> leaves_cnt_list;
+  return CountNumLeafNodes(tree, leaves_cnt_list);
 }
 
 template<typename NodeType>
@@ -567,57 +570,57 @@ void CollectTreeGridPoints(TreeType& tree,
   pvfmm::Profile::Toc();
 }
 
-template<typename TreeType,
-         typename AnalyticalFunctor>
-void
-ComputeTreeError(TreeType& tree,
-                 AnalyticalFunctor anal_func,
-                 std::vector<typename TreeType::Real_t> grid_points,
-                 typename TreeType::Real_t& l_inf_error,
-                 typename TreeType::Real_t& l_two_error) {
-  typedef typename TreeType::Node_t NodeType;
-  typedef typename TreeType::Real_t RealType;
-  tbslas::SimConfig* sim_config = tbslas::SimConfigSingleton::Instance();
+// template<typename TreeType,
+//          typename AnalyticalFunctor>
+// void
+// ComputeTreeError(TreeType& tree,
+//                  AnalyticalFunctor anal_func,
+//                  std::vector<typename TreeType::Real_t> grid_points,
+//                  typename TreeType::Real_t& l_inf_error,
+//                  typename TreeType::Real_t& l_two_error) {
+//   typedef typename TreeType::Node_t NodeType;
+//   typedef typename TreeType::Real_t RealType;
+//   tbslas::SimConfig* sim_config = tbslas::SimConfigSingleton::Instance();
 
-  pvfmm::Profile::Tic("ComputeTreeError",&sim_config->comm, false,5);
-  int data_dof = 1;
-  int sdim     = tree.Dim();
-  int num_points = grid_points.size()/sdim;
+//   pvfmm::Profile::Tic("ComputeTreeError",&sim_config->comm, false,5);
+//   int data_dof = 1;
+//   int sdim     = tree.Dim();
+//   int num_points = grid_points.size()/sdim;
 
-  // analytical values
-  std::vector<RealType> points_val_analytical(num_points*data_dof);
-  anal_func(grid_points.data(), num_points, points_val_analytical.data());
+//   // analytical values
+//   std::vector<RealType> points_val_analytical(num_points*data_dof);
+//   anal_func(grid_points.data(), num_points, points_val_analytical.data());
 
-  // tree values
-  std::vector<RealType> points_val(num_points*data_dof);
-  tbslas::NodeFieldFunctor<RealType, TreeType> tree_func = tbslas::NodeFieldFunctor<RealType, TreeType>(&tree);
-  tree_func(grid_points.data(), num_points, points_val.data());
+//   // tree values
+//   std::vector<RealType> points_val(num_points*data_dof);
+//   tbslas::NodeFieldFunctor<RealType, TreeType> tree_func = tbslas::NodeFieldFunctor<RealType, TreeType>(&tree);
+//   tree_func(grid_points.data(), num_points, points_val.data());
 
-  // local absolute error vector
-  RealType local_max = 0;
-  RealType local_sum_2 = 0;
-  std::vector<RealType> abs_error(points_val.size());
-  for (int i = 0; i < points_val.size(); i++) {
-    abs_error[i] = std::abs(points_val[i] - points_val_analytical[i]);
-    local_sum_2 += abs_error[i]*abs_error[i];
-    if (abs_error[i] > local_max)
-      local_max = abs_error[i];
-  }
-  size_t lcl_num_points = grid_points.size()/sdim;
-  size_t glb_num_points = 0;
-  MPI_Allreduce(&lcl_num_points, &glb_num_points, 1,
-                MPI_INT, MPI_SUM, *(tree.Comm()));
-  // compute the error vector's norm
-  RealType global_max;
-  MPI_Allreduce(&local_max, &global_max, 1,
-                MPI_DOUBLE, MPI_MAX, *(tree.Comm()));
-  RealType global_sum_2;
-  MPI_Allreduce(&local_sum_2, &global_sum_2, 1,
-                MPI_DOUBLE, MPI_SUM, *(tree.Comm()));
-  l_inf_error = global_max;
-  l_two_error = sqrt(global_sum_2/glb_num_points);
-  pvfmm::Profile::Toc();
-}
+//   // local absolute error vector
+//   RealType local_max = 0;
+//   RealType local_sum_2 = 0;
+//   std::vector<RealType> abs_error(points_val.size());
+//   for (int i = 0; i < points_val.size(); i++) {
+//     abs_error[i] = std::abs(points_val[i] - points_val_analytical[i]);
+//     local_sum_2 += abs_error[i]*abs_error[i];
+//     if (abs_error[i] > local_max)
+//       local_max = abs_error[i];
+//   }
+//   size_t lcl_num_points = grid_points.size()/sdim;
+//   size_t glb_num_points = 0;
+//   MPI_Allreduce(&lcl_num_points, &glb_num_points, 1,
+//                 MPI_INT, MPI_SUM, *(tree.Comm()));
+//   // compute the error vector's norm
+//   RealType global_max;
+//   MPI_Allreduce(&local_max, &global_max, 1,
+//                 MPI_DOUBLE, MPI_MAX, *(tree.Comm()));
+//   RealType global_sum_2;
+//   MPI_Allreduce(&local_sum_2, &global_sum_2, 1,
+//                 MPI_DOUBLE, MPI_SUM, *(tree.Comm()));
+//   l_inf_error = global_max;
+//   l_two_error = sqrt(global_sum_2/glb_num_points);
+//   pvfmm::Profile::Toc();
+// }
 
 template<typename TreeType>
 void
