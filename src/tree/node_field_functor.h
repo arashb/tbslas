@@ -319,7 +319,7 @@ void EvalTree(Tree_t* tree,
   int myrank;
   int np;
   MPI_Comm_rank(sim_config->comm, &myrank);
-  MPI_Comm_size(MPI_COMM_WORLD, &np);
+  MPI_Comm_size(sim_config->comm, &np);
 
   //////////////////////////////////////////////////////////////
   // GET LEAF NODES AND MINIMUM MORTON ID OF THE CURRENT PROCESS

@@ -629,42 +629,110 @@ SemiMergeTree(TreeType& tree1,
   typedef typename TreeType::Real_t RealType;
   typedef typename TreeType::Node_t NodeType;
 
-  // GET TREE LEAVES MORTON IDS
+  tbslas::SimConfig* sim_config = tbslas::SimConfigSingleton::Instance();
+  int myrank;
+  int np;
+  MPI_Comm_rank(sim_config->comm, &myrank);
+  MPI_Comm_size(sim_config->comm, &np);
+
+  //============================================================
+  // GET THE FIRST TREE LEAVES' MORTON IDS
+  //============================================================
   std::vector<pvfmm::MortonId> lcl_mids_merged;
-  NodeType* n_in = tree1.PreorderFirst();
-  while (n_in != NULL) {
-    if(!n_in->IsGhost() && n_in->IsLeaf())
-      lcl_mids_merged.push_back(n_in->GetMortonId());
-    n_in = tree1.PreorderNxt(n_in);
+  NodeType* n1 = tree1.PostorderFirst();
+  while (n1 != NULL) {
+    if(!n1->IsGhost() && n1->IsLeaf())
+      lcl_mids_merged.push_back(n1->GetMortonId());
+    n1 = tree1.PostorderNxt(n1);
   }
+  int t1_size = lcl_mids_merged.size();
 
-  // GET TREE LEAVES MORTON IDS
-  NodeType* n_out = tree2.PreorderFirst();
-  while (n_out != NULL) {
-    if(!n_out->IsGhost() && n_out->IsLeaf())
-      lcl_mids_merged.push_back(n_out->GetMortonId());
-    n_out = tree2.PreorderNxt(n_out);
+  //============================================================
+  // GET THE SECOND TREE LEAVES' MORTON IDS
+  //============================================================
+  NodeType* n2 = tree2.PostorderFirst();
+  while (n2 != NULL) {
+    if(!n2->IsGhost() && n2->IsLeaf())
+      lcl_mids_merged.push_back(n2->GetMortonId());
+    n2 = tree2.PostorderNxt(n2);
   }
+  int t2_size = lcl_mids_merged.size() - t1_size;
 
-  // SORT
-  std::vector<pvfmm::MortonId> lcl_mids_sorted;
-  pvfmm::par::HyperQuickSort(lcl_mids_merged, lcl_mids_sorted, *tree1.Comm());
+  //============================================================
+  // CREATE THE GLOBAL MINS ARRAY
+  //============================================================
+  std::vector<pvfmm::MortonId> t1_glb_mins;
+  t1_glb_mins.resize(np);
+  MPI_Allgather(&lcl_mids_merged[0], 1, pvfmm::par::Mpi_datatype<pvfmm::MortonId>::value(),
+                &t1_glb_mins[0], 1, pvfmm::par::Mpi_datatype<pvfmm::MortonId>::value(), *tree1.Comm());
 
-  // REMOVE LOCAL DUPLICATES
+  std::vector<pvfmm::MortonId> t2_glb_mins;
+  t2_glb_mins.resize(np);
+  MPI_Allgather(&lcl_mids_merged[t1_size], 1, pvfmm::par::Mpi_datatype<pvfmm::MortonId>::value(),
+                &t2_glb_mins[0], 1, pvfmm::par::Mpi_datatype<pvfmm::MortonId>::value(), *tree1.Comm());
+
+  //============================================================
+  // SORT MERGED MORTON IDS GLOBALLY
+  //============================================================
+  std::vector<pvfmm::MortonId> tm_lcl_mids;
+  pvfmm::par::HyperQuickSort(lcl_mids_merged, tm_lcl_mids, sim_config->comm);
+
+  // REMOVE LOCAL DUPLICATES??
   // lcl_mids_sorted.erase( unique(lcl_mids_sorted.begin(), lcl_mids_sorted.end()), lcl_mids_sorted.end() );
 
-  // TODO: REMOVE GLOBAL DUPLICATES
+  // TODO: REMOVE GLOBAL DUPLICATES??
 
+  //============================================================
   // PARTITION (TODO: WEIGHTED PARTITIONING)
-  pvfmm::par::partitionW<pvfmm::MortonId>(lcl_mids_sorted, NULL, *tree1.Comm());
+  //============================================================
+  pvfmm::par::partitionW<pvfmm::MortonId>(tm_lcl_mids, NULL, *tree1.Comm());
 
+  //============================================================
+  // CREATE THE GLOBAL MINS ARRAY FOR MERGED PARTITIONING
+  //============================================================
+  std::vector<pvfmm::MortonId> tm_glb_mins;
+  tm_glb_mins.resize(np);
+  MPI_Allgather(&tm_lcl_mids[0], 1, pvfmm::par::Mpi_datatype<pvfmm::MortonId>::value(),
+                &tm_glb_mins[0], 1, pvfmm::par::Mpi_datatype<pvfmm::MortonId>::value(), *tree1.Comm());
+
+  //============================================================
+  // FIRST TREE: CREATE THE BREAKPOINTS FOR CURRENT PARTITION
+  //============================================================
+  int iindx, findx;
+  iindx = std::lower_bound(&tm_glb_mins[0],
+                           &tm_glb_mins[0]+tm_glb_mins.size(),
+                           t1_glb_mins[myrank]) - &tm_glb_mins[0];
+  if (myrank+1<np) {
+    findx = std::lower_bound(&tm_glb_mins[0],
+                             &tm_glb_mins[0]+tm_glb_mins.size(),
+                             t1_glb_mins[myrank+1]) - &tm_glb_mins[0];
+  } else {
+    findx = tm_glb_mins.size();
+  }
   // CREATE THE NEW BREAKPOINTS
-  tree1.FindNode(lcl_mids_sorted[0],true,NULL);
-  tree2.FindNode(lcl_mids_sorted[0],true,NULL);
+  for (int i = iindx; i < findx; i++)
+    tree1.FindNode(tm_glb_mins[i], true, NULL);
+
+  //============================================================
+  // SECOND TREE: CREATE THE BREAKPOINTS FOR CURRENT PARTITION
+  //============================================================
+  iindx = std::lower_bound(&tm_glb_mins[0],
+                           &tm_glb_mins[0]+tm_glb_mins.size(),
+                           t2_glb_mins[myrank]) - &tm_glb_mins[0];
+  if (myrank+1<np) {
+    findx = std::lower_bound(&tm_glb_mins[0],
+                             &tm_glb_mins[0]+tm_glb_mins.size(),
+                             t2_glb_mins[myrank+1]) - &tm_glb_mins[0];
+  } else {
+    findx = tm_glb_mins.size();
+  }
+  // CREATE THE NEW BREAKPOINTS
+  for (int i = iindx; i < findx; i++)
+    tree2.FindNode(tm_glb_mins[i], true, NULL);
 
   // REDISTRIBUTE BASED ON THE NEW BREAK POINTS
-  tree1.RedistNodes(&lcl_mids_sorted[0]);
-  tree2.RedistNodes(&lcl_mids_sorted[0]);
+  tree1.RedistNodes(&tm_glb_mins[myrank]);
+  tree2.RedistNodes(&tm_glb_mins[myrank]);
 }
 
 

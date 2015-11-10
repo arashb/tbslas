@@ -258,11 +258,6 @@ int main (int argc, char **argv) {
       ncurr_list[i]->input_fn = (void (*)(const double* , int , double*))NULL;
     }
 
-    if (sim_config->profile) {
-      tbslas::CountNumLeafNodes(tcon);
-      tbslas::CountNumLeafNodes(tvel);
-    }
-
     switch(merge) {
       case 2:
         pvfmm::Profile::Tic("CMerge", &sim_config->comm, false, 5);
@@ -275,26 +270,6 @@ int main (int argc, char **argv) {
         pvfmm::Profile::Toc();
         break;
     }
-    // TODO: REMOVE THIS PART
-    // if (sim_config->vtk_save) {
-    //   snprintf(out_name_buffer,
-    //            sizeof(out_name_buffer),
-    //            sim_config->vtk_filename_format.c_str(),
-    //            tbslas::get_result_dir().c_str(),
-    //            sim_config->vtk_filename_prefix.c_str(),
-    //            "vel",
-    //            1);
-    //   tvel.Write2File(out_name_buffer, sim_config->vtk_order);
-
-    //   snprintf(out_name_buffer,
-    //            sizeof(out_name_buffer),
-    //            sim_config->vtk_filename_format.c_str(),
-    //            tbslas::get_result_dir().c_str(),
-    //            sim_config->vtk_filename_prefix.c_str(),
-    //            sim_config->vtk_filename_variable.c_str(),
-    //            1);
-    //   tcon.Write2File(out_name_buffer, sim_config->vtk_order);
-    // }
 
     double in_al2,in_rl2,in_ali,in_rli;
     CheckChebOutput<Tree_t>(&tcon,
