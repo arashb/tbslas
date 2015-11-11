@@ -37,7 +37,7 @@ void SolveSemilagTree(TreeType& tvel_curr,
   typedef typename TreeType::Real_t RealType;
   tbslas::SimConfig* sim_config = tbslas::SimConfigSingleton::Instance();
 
-  pvfmm::Profile::Tic("SolveSemilagTree", &sim_config->comm, false,5);
+  // pvfmm::Profile::Tic("SemilagTree", &sim_config->comm, false,5);
   ////////////////////////////////////////////////////////////////////////
   // (1) collect the starting positions of the backward traj computation
   ////////////////////////////////////////////////////////////////////////
@@ -92,7 +92,7 @@ void SolveSemilagTree(TreeType& tvel_curr,
     }
     n_next = tree_next.PostorderNxt(n_next);
   }
-  pvfmm::Profile::Toc();
+  // pvfmm::Profile::Toc();
 }
 
 template <class TreeType>
@@ -106,7 +106,7 @@ void SolveSemilagInSitu(TreeType& tvel_curr,
   typedef typename TreeType::Real_t RealType;
   tbslas::SimConfig* sim_config = tbslas::SimConfigSingleton::Instance();
 
-  pvfmm::Profile::Tic("SolveSemilagTree", &sim_config->comm, false,5);
+  // pvfmm::Profile::Tic("SemilagTree", &sim_config->comm, false,5);
   ////////////////////////////////////////////////////////////////////////
   // (1) collect the starting positions of the backward traj computation
   ////////////////////////////////////////////////////////////////////////
@@ -161,7 +161,7 @@ void SolveSemilagInSitu(TreeType& tvel_curr,
     }
     n_next = tree_curr.PostorderNxt(n_next);
   }
-  pvfmm::Profile::Toc();
+  // pvfmm::Profile::Toc();
 }
 
 }  // namespace tbslas

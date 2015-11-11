@@ -36,7 +36,7 @@ SolveSemilagRK2(VFieldFunctor vel_evaluator,
                 const int num_rk_step,
                 std::vector<real_t>& points_vals) {
   tbslas::SimConfig* sim_config = tbslas::SimConfigSingleton::Instance();
-  pvfmm::Profile::Tic("SolveSemilagRK2", &sim_config->comm, false,5);
+  // pvfmm::Profile::Tic("SemilagRK2", &sim_config->comm, false,5);
   const size_t num_points = points_pos.size()/sdim;
   real_t tinit  = timestep*dt;
   real_t tfinal = tinit - dt;  // backward in time
@@ -52,7 +52,7 @@ SolveSemilagRK2(VFieldFunctor vel_evaluator,
                  departure_points_pos);
 
   con_evaluator(departure_points_pos.data(), num_points,  points_vals.data());
-  pvfmm::Profile::Toc();
+  // pvfmm::Profile::Toc();
 }
 
 }  // namespace tbslas

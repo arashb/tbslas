@@ -23,7 +23,6 @@ import os
 # LOCAL IMPORT
 ################################################################################
 import parser
-import pp
 
 ################################################################################
 # GLOBALS
@@ -93,97 +92,92 @@ def determine_command_prefix(mpi_num_procs, offset=0):
     else:
         return ['mpirun', '-np', str(mpi_num_procs)]
 
-def analyse_command_output(output, \
-                           file_dt, file_pr, file_out, file_pp, \
-                           PRINT_RSLT_HEADER, PRINT_PRFL_HEADER):
+def analyse_command_output(output, fout, fdata, fprof,
+                           PRINT_RSLT_HEADER, PRINT_PRFL_HEADER,\
+                           pp_func = None, fpost= None):
     print '--> analysing command output ...'
     for line in output:
-        file_out.write(line)
+        fout.write(line)
         # CATCH RESULTS HEADER
         if line.startswith(RESULT_TAG_HEADER) and PRINT_RSLT_HEADER:
             li = line.replace(RESULT_TAG_HEADER, '')
-            file_dt.write(li)
+            fdata.write(li)
             sys.stdout.write(li)
         # CATCH RESULTS DATA
         if line.startswith(RESULT_TAG):
             li = line.replace(RESULT_TAG, '')
-            file_dt.write(li)
+            fdata.write(li)
             sys.stdout.write(li)
-
     # PARSE PROFILE OUTPUT
     mydoc = parser.pdoc(output)
-    mydoc.print_me(file_pr)
-    pp.pp_profile_data(mydoc, file_pp, PRINT_PRFL_HEADER);
+    mydoc.print_me(fprof)
+    # POST PROCESSING
+    if pp_func and fpost:
+        pp_func(mydoc, fpost, PRINT_PRFL_HEADER);
+        # pp.pp_profile_data(mydoc, fpost, PRINT_PRFL_HEADER);
 
-def execute_commands(cmds, id):
+def execute_commands(cmds, id, pp_func = None):
     id = SCRIPT_ID+'-'+id
     sys.stdout.write("##############################\n")
     sys.stdout.write("# "+id+"\n")
     sys.stdout.write("##############################\n")
     PRINT_RSLT_HEADER = True
     PRINT_PRFL_HEADER = True
-
     # open output files
     tbslas_result_dir, output_prefix = get_result_dir_prefix()
     TBSLAS_RESULT_DIR_PREFIX = os.path.join(tbslas_result_dir, output_prefix)
-
     if not os.path.exists(TBSLAS_RESULT_DIR_PREFIX):
         os.makedirs(TBSLAS_RESULT_DIR_PREFIX)
-    file_dt = open(os.path.join(TBSLAS_RESULT_DIR_PREFIX, id+'.data'), 'w')
-    file_pr = open(os.path.join(TBSLAS_RESULT_DIR_PREFIX, id+'.profile'), 'w')
-    file_pp = open(os.path.join(TBSLAS_RESULT_DIR_PREFIX, id+'.profile.pp'), 'w')
-    file_list = [file_dt, file_pr, file_pp]
-
-    # output current git revision
-    revision = subprocess.check_output(["git", "describe"])
-    for f in file_list:
-        f.write('# REVISION: ' + revision)
-
+    flist = []
+    # reporter output
+    fdata = open(os.path.join(TBSLAS_RESULT_DIR_PREFIX, id+'.data'), 'w')
+    flist.append(fdata)
+    # profiling output
+    fprof = open(os.path.join(TBSLAS_RESULT_DIR_PREFIX, id+'.prof'), 'w')
+    flist.append(fprof)
+    # post processing output
+    fpost = None
+    if pp_func:
+        fpost = open(os.path.join(TBSLAS_RESULT_DIR_PREFIX, id+'.prof.pp'), 'w')
+        flist.append(fpost)
+    # output env metadata (git revision, host, ...)
+    for f in flist:
+        f.write('# REVISION: ' + subprocess.check_output(["git", "describe"]))
+        f.write('# HOST: ' + socket.gethostname()+'\n')
     # execute generated commands
     for counter, cmd in cmds.iteritems():
         out_dir_name = \
           os.path.join(TBSLAS_RESULT_DIR_PREFIX,'{0}-cmd{1:03}'.format(id,counter))
         out_file_name = out_dir_name+'.out'
-        file_out = open(out_file_name, 'w')
-
+        fout = open(out_file_name, 'w')
         os.environ['TBSLAS_RESULT_DIR'] = out_dir_name
         os.makedirs(out_dir_name)
-
         # output command
         cmd_msg = '# CMD '+str(counter)+' : ' +  ' '.join(cmd) + '\n'
         sys.stdout.write('# ==================================\n')
         sys.stdout.write("--> storing output in: " + out_dir_name +" \n")
         sys.stdout.write("--> executing command ... \n")
         sys.stdout.write(cmd_msg)
-
-        file_out.write('# ==================================\n')
-        file_out.write(cmd_msg)
-
-        for f in file_list:
+        fout.write('# ==================================\n')
+        fout.write(cmd_msg)
+        for f in flist:
             f.write('# ==================================\n')
             f.write(cmd_msg)
-
         # execute command
         p = subprocess.Popen(cmd,                    \
                              shell=False,            \
                              stdout=subprocess.PIPE, \
                              stderr=subprocess.STDOUT)
-
         # analyse command
-        analyse_command_output(p.stdout.readlines(),                \
-                               file_dt, file_pr, file_out, file_pp, \
-                               PRINT_RSLT_HEADER, PRINT_PRFL_HEADER)
+        analyse_command_output(p.stdout.readlines(),\
+                               fout, fdata, fprof,\
+                               PRINT_RSLT_HEADER, PRINT_PRFL_HEADER,\
+                               pp_func, fpost)
         PRINT_RSLT_HEADER = False
         PRINT_PRFL_HEADER = False
-
         # flush output
-        file_dt.flush()
-        file_pr.flush()
-        file_pp.flush()
-
-        file_out.close()
-    file_dt.close()
-    file_pr.close()
-    file_pp.close()
+        [f.flush() for f in flist]
+        fout.close()
+    [f.flush() for f in flist]
     # reset the env. variable
     os.environ['TBSLAS_RESULT_DIR'] = tbslas_result_dir

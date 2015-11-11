@@ -469,7 +469,7 @@ void CollectChebTreeGridPoints(TreeType& tree,
   typedef typename TreeType::Real_t RealType;
   tbslas::SimConfig* sim_config = tbslas::SimConfigSingleton::Instance();
 
-  pvfmm::Profile::Tic("CollecGridPoints", &sim_config->comm, false,5);
+  // pvfmm::Profile::Tic("CollecGridPoints", &sim_config->comm, false,5);
   int cheb_deg = tree.RootNode()->ChebDeg();
   int sdim     = tree.Dim();
 
@@ -513,7 +513,7 @@ void CollectChebTreeGridPoints(TreeType& tree,
     }
     n_next = tree.PostorderNxt(n_next);
   }
-  pvfmm::Profile::Toc();
+  // pvfmm::Profile::Toc();
 }
 
 template<typename TreeType>

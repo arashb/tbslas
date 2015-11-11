@@ -22,28 +22,11 @@ import copy
 from collections import OrderedDict
 
 
-SCALE_TAG_LIST = ['+-AdvDif',\
-                  # '+-InitFMM_Cheb', \
-                  '+-SL', \
-                  '+-FMM', \
-                  '+-CMerge' \
-                  '+-SMerge' \
-                      ]
-
 PROFILE_TAG_LIST = [\
                     # '+-SL', \
                     # '+-EvalTree', \
                     '+-InEvaluation'\
                     ]
-
-def pp_profile_node(node):
-    if not node:
-        return
-    for profile_tag in PROFILE_TAG_LIST:
-        if profile_tag in node.title:
-            imb_val = "{0:>10.4f}".format( float(node.values[2])/float(node.values[0]) )
-            node.values.append(imb_val)
-    return node
 
 def pp_profile_data(mydoc, file_pp, PRINT_HEADER = True):
     """
@@ -52,12 +35,15 @@ def pp_profile_data(mydoc, file_pp, PRINT_HEADER = True):
     - `output`:
     - `file_pp`:
     """
+    ##############################
     # OUTOUT THE COMMAND
+    ##############################
     file_pp.write(mydoc.cmd)
     print mydoc.cmd
-
     eval_tree_counter = 0
+    ##############################
     # ITERATE OVER ALL PROFILE NODES
+    ##############################
     for node in mydoc.node_list:
         # ITERATE OVER PROFILE TAGS
         for profile_tag in PROFILE_TAG_LIST:
@@ -65,21 +51,32 @@ def pp_profile_data(mydoc, file_pp, PRINT_HEADER = True):
                 time_imb = "{0:>10.4f}".format( float(node.values['t_max'])/float(node.values['t_min']) )
                 node.values['t_imb'] = time_imb
                 if '+-EvalTree' in node.title:
-                    # COMPUTE THE EVAL TREE MIN DIFFERENTELY
+                    ##############################
+                    # COMPUTE THE EVAL TREE MIN TIME DIFFERENTELY
+                    ##############################
                     node_indx = mydoc.node_list.index(node)
                     t_min = 0.0;
                     for i in range(1, 6):
                         # print mydoc.node_list[node_indx+i].title
                         t_min += float(mydoc.node_list[node_indx+i].values['t_min'])
                     node.values['t_min'] = str(t_min)
+                    ##############################
+                    # CALCULATE THE TIME IMBALANCE
+                    ##############################
                     time_imb = "{0:>10.4f}".format( float(node.values['t_max'])/float(node.values['t_min']))
                     node.values['t_imb'] = time_imb
+                    ##############################
+                    # CALCULATE THE PARTICLES IMBALANCE
+                    ##############################
                     if len(mydoc.target_points_list) != 0:
                         max_points = max(mydoc.target_points_list[eval_tree_counter])
                         min_points = min(mydoc.target_points_list[eval_tree_counter])
                         target_points_imb = "{0:>10.4f}".format( float(max_points)/ min_points) 
                         node.values['p_imb'] = target_points_imb
                         eval_tree_counter += 1
+                ##############################
+                # PRINT HEADER/NODE
+                ##############################
                 if PRINT_HEADER:
                     header_string_format = "{:<50}".format('# FUNCTION')
                     for key, val in node.values.iteritems():
@@ -89,7 +86,7 @@ def pp_profile_data(mydoc, file_pp, PRINT_HEADER = True):
                     PRINT_HEADER = False
                 node.print_me(file_pp)
 
-def pp_cubic_perf_data(mydoc, file_pp, PRINT_HEADER = True):
+def pp_perf_cubic(mydoc, file_pp, PRINT_HEADER = True):
     """
     post processing of data
     Arguments:
@@ -101,7 +98,6 @@ def pp_cubic_perf_data(mydoc, file_pp, PRINT_HEADER = True):
     ##############################
     file_pp.write(mydoc.cmd)
     print mydoc.cmd
-
     ##############################
     # add interpolation time average
     ##############################
@@ -122,30 +118,34 @@ def pp_cubic_perf_data(mydoc, file_pp, PRINT_HEADER = True):
         ppnode_values['t_min'] = "{0:>10.4f}".format(t_min_sum/counter)
         # ppnode_values['t_avg'] = "{0:>10.4f}".format(t_avg_sum/counter)
         # ppnode_values['t_max'] = "{0:>10.4f}".format(t_max_sum/counter)
-
     ##############################
     # add the leaves count average
     ##############################
     # avoiding the float casting here on purpose
     if len(mydoc.leaves_count_list):
         ppnode_values['lvs_cnt'] = sum(mydoc.leaves_count_list)/len(mydoc.leaves_count_list)
-
     ##############################
     # create pp node to print
     ##############################
     ppnode = parser.pnode(ppnode_title, ppnode_values)
     ppnode.print_me(file_pp)
 
-def pp_scaling_data(mydoc, file_pp, PRINT_HEADER = True):
+def pp_scal_s(mydoc, file_pp, PRINT_HEADER = True):
     """
     post processing of data
     Arguments:
     - `output`:
     - `file_pp`:
     """
+    SCALE_TAG_LIST = ['+-AdvDif',\
+                      # '+-InitFMM_Cheb', \
+                      '+-SL', \
+                      '+-FMM', \
+                      '+-CMerge' \
+                      '+-SMerge' \
+                      ]
     ppnode_title  = mydoc.np
     ppnode_values = OrderedDict()
-
     for scale_tag in SCALE_TAG_LIST:
         for node in mydoc.node_list:
             if scale_tag in node.title:
@@ -155,6 +155,47 @@ def pp_scaling_data(mydoc, file_pp, PRINT_HEADER = True):
                     ppnode_values['f/s_total'] = node.values['f/s_total']
                     print node.values['f/s_total']
                 break
+    ppnode = parser.pnode(ppnode_title, ppnode_values)
+    if PRINT_HEADER:
+        header_string_format = "{:<50}".format('NP')
+        for key, val in ppnode_values.iteritems():
+            header_string_format += "{:>10}".format(key)
+        header_string_format += "\n"
+        file_pp.write(header_string_format)
+    ppnode.print_me(file_pp)
+
+def pp_scal_ws(mydoc, file_pp, PRINT_HEADER = True):
+    """
+    post processing of scal-ws.py outputs
+    Arguments:
+    - `output`:
+    - `file_pp`:
+    """
+    ##############################
+    # OUTOUT THE COMMAND
+    ##############################
+    file_pp.write(mydoc.cmd)
+    print mydoc.cmd
+    ##############################
+    # CREATE THE PP LINE
+    ##############################
+    ppnode_title  = mydoc.np
+    ppnode_values = OrderedDict()
+    ##############################
+    # CREATE THE PP VALUES LIST
+    ##############################
+    solve_tavg_sum = 0.0
+    tn_counter = 0
+    for node in mydoc.node_list:
+        if "Solve_TN" in node.title:
+            print node.title
+            solve_tavg_sum = solve_tavg_sum + float(node.values['t_avg'])
+            tn_counter = tn_counter + 1
+    if tn_counter:
+        ppnode_values['T_AVG'] = solve_tavg_sum/tn_counter
+    ##############################
+    # PRINT THE PP LINE
+    ##############################
     ppnode = parser.pnode(ppnode_title, ppnode_values)
     if PRINT_HEADER:
         header_string_format = "{:<50}".format('NP')
@@ -233,10 +274,11 @@ if __name__ == '__main__':
     PRINT_HEADER = True
     for raw_file in raw_files_list:
         f = open(raw_file, 'r')
-        post_process(f, pp_output_file, pp_scaling_data, PRINT_HEADER)
+        # post_process(f, pp_output_file, pp_scal_s, PRINT_HEADER)
         # post_process(f, pp_output_file, pp_tree_eval_data, PRINT_HEADER)
-        # post_process(f, pp_output_file, pp_profile_data, PRINT_HEADER)
-        # post_process(f, pp_output_file, pp_cubic_perf_data, PRINT_HEADER)
+        post_process(f, pp_output_file, pp_profile_data, PRINT_HEADER)
+        # post_process(f, pp_output_file, pp_perf_cubic, PRINT_HEADER)
+        # post_process(f, pp_output_file, pp_scal_ws, PRINT_HEADER)
         PRINT_HEADER = False
 
     pp_output_file.close()

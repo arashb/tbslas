@@ -53,7 +53,7 @@ ComputeTrajRK2(FieldFunctor field_fn,
                const int num_rk_step,
                std::vector<real_t>& xsol) {
   tbslas::SimConfig* sim_config = tbslas::SimConfigSingleton::Instance();
-  pvfmm::Profile::Tic("ComputeTrajRK2", &sim_config->comm, false,5);
+  pvfmm::Profile::Tic("TrajRK2", &sim_config->comm, false,5);
   // FIXME: currently only time independent
   real_t tau = (tfinal - tinit)/num_rk_step;
 
