@@ -22,12 +22,6 @@ import copy
 from collections import OrderedDict
 
 
-PROFILE_TAG_LIST = [\
-                    # '+-SL', \
-                    # '+-EvalTree', \
-                    '+-InEvaluation'\
-                    ]
-
 def pp_profile_data(mydoc, file_pp, PRINT_HEADER = True):
     """
     post processing of data
@@ -35,6 +29,13 @@ def pp_profile_data(mydoc, file_pp, PRINT_HEADER = True):
     - `output`:
     - `file_pp`:
     """
+
+    PROFILE_TAG_LIST = [\
+                    # '+-SL', \
+                    # '+-EvalTree', \
+                    '+-InEvaluation'\
+                    ]
+
     ##############################
     # OUTOUT THE COMMAND
     ##############################
@@ -96,8 +97,7 @@ def pp_perf_cubic(mydoc, file_pp, PRINT_HEADER = True):
     ##############################
     # print command
     ##############################
-    file_pp.write(mydoc.cmd)
-    print mydoc.cmd
+    print '--> post processing command:\n'+mydoc.cmd
     ##############################
     # add interpolation time average
     ##############################
@@ -174,8 +174,7 @@ def pp_scal_ws(mydoc, file_pp, PRINT_HEADER = True):
     ##############################
     # OUTOUT THE COMMAND
     ##############################
-    file_pp.write(mydoc.cmd)
-    print mydoc.cmd
+    print '--> post processing command:\n'+mydoc.cmd
     ##############################
     # CREATE THE PP LINE
     ##############################
@@ -188,22 +187,30 @@ def pp_scal_ws(mydoc, file_pp, PRINT_HEADER = True):
     tn_counter = 0
     for node in mydoc.node_list:
         if "Solve_TN" in node.title:
-            print node.title
+            # print node.title
             solve_tavg_sum = solve_tavg_sum + float(node.values['t_avg'])
             tn_counter = tn_counter + 1
     if tn_counter:
+        # ppnode_values['T_AVG'] = "{0:<10.4f}".format(solve_tavg_sum/tn_counter)
         ppnode_values['T_AVG'] = solve_tavg_sum/tn_counter
+
     ##############################
-    # PRINT THE PP LINE
+    # FORMAT/PRINT THE PP LINE
     ##############################
     ppnode = parser.pnode(ppnode_title, ppnode_values)
+    titlew = 10
+    valuew = 10
+    title_format = "{:<"+str(titlew)+"}"
+    title_value_format = "{:<"+str(valuew)+"}"
+    value_format = "{:<"+str(valuew)+".4f}"
     if PRINT_HEADER:
-        header_string_format = "{:<50}".format('NP')
+        header_string_format = title_format.format('NP')
         for key, val in ppnode_values.iteritems():
-            header_string_format += "{:>10}".format(key)
+            header_string_format += title_value_format.format(key)
         header_string_format += "\n"
         file_pp.write(header_string_format)
-    ppnode.print_me(file_pp)
+    ppnode.print_me(file_pp, title_format, value_format)
+    file_pp.flush()
 
 def pp_tree_eval_data(mydoc, file_pp, PRINT_HEADER = True):
     """
@@ -248,9 +255,27 @@ def list_raw_files(raw_dir_name):
     return sorted(outfiles)
     # return sorted(glob.glob(raw_dir_name + "*.out"))
 
-def post_process(output, file_pp, pp_func, PRINT_HEADER):
-    mydoc = parser.pdoc(output)
-    pp_func(mydoc, file_pp, PRINT_HEADER);
+def post_process(raw_files_dir, pp_func):
+    ############################################################
+    # COLLECT A LIST OF ALL AVAIABLE RAW OUTPUT FILES
+    ############################################################
+    raw_files_list = list_raw_files(raw_files_dir)
+    ############################################################
+    # CREATE/OPEN THE PP OUTPUT FILE
+    ############################################################
+    TIMESTR       = time.strftime("%Y%m%d-%H%M%S")
+    pp_output_path = os.path.join(raw_files_dir, 'pp_output_'+pp_func.__name__+'_'+TIMESTR+'.pp')
+    fpp = open(pp_output_path, 'w')
+    ############################################################
+    # POST PROCESS FILES
+    ############################################################
+    # print '--> printing commands'
+    # [fpp.write(parser.pdoc(open(raw_file, 'r')).cmd)  for raw_file in raw_files_list]
+    PRINT_HEADER = True
+    for raw_file in raw_files_list:
+        pp_func(parser.pdoc(open(raw_file, 'r')), fpp, PRINT_HEADER)
+        PRINT_HEADER = False
+    # [pp_func(parser.pdoc(open(raw_file, 'r')), fpp, PRINT_HEADER) for raw_file in raw_files_list]
 
 if __name__ == '__main__':
     if len(sys.argv) >= 2:
@@ -258,27 +283,9 @@ if __name__ == '__main__':
     else:
         sys.exit()
 
-    ############################################################
-    # collect a list of all avaiable raw output files
-    ############################################################
-    raw_files_list = list_raw_files(raw_files_dir)
-    print raw_files_list
-
-    # create post processing output file
-    TIMESTR       = time.strftime("%Y%m%d-%H%M%S")
-    pp_output_path = os.path.join(raw_files_dir, 'pp_output_'+TIMESTR+'.pp')
-    pp_output_path = os.path.join(raw_files_dir, 'pp_output'+'.pp')
-
-    pp_output_file = open(pp_output_path, 'w')
-
-    PRINT_HEADER = True
-    for raw_file in raw_files_list:
-        f = open(raw_file, 'r')
-        # post_process(f, pp_output_file, pp_scal_s, PRINT_HEADER)
-        # post_process(f, pp_output_file, pp_tree_eval_data, PRINT_HEADER)
-        post_process(f, pp_output_file, pp_profile_data, PRINT_HEADER)
-        # post_process(f, pp_output_file, pp_perf_cubic, PRINT_HEADER)
-        # post_process(f, pp_output_file, pp_scal_ws, PRINT_HEADER)
-        PRINT_HEADER = False
-
-    pp_output_file.close()
+    # pp_func = pp_scal_s
+    # pp_func = pp_tree_eval_data
+    # pp_func = pp_profile_data
+    # pp_func = pp_perf_cubic
+    pp_func = pp_scal_ws
+    post_process(raw_files_dir, pp_func)

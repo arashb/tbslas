@@ -94,7 +94,7 @@ def determine_command_prefix(mpi_num_procs, offset=0):
 
 def analyse_command_output(output, fout, fdata, fprof,
                            PRINT_RSLT_HEADER, PRINT_PRFL_HEADER,\
-                           pp_func = None, fpost= None):
+                           pp_func = None, fpp= None):
     print '--> analysing command output ...'
     for line in output:
         fout.write(line)
@@ -112,9 +112,9 @@ def analyse_command_output(output, fout, fdata, fprof,
     mydoc = parser.pdoc(output)
     mydoc.print_me(fprof)
     # POST PROCESSING
-    if pp_func and fpost:
-        pp_func(mydoc, fpost, PRINT_PRFL_HEADER);
-        # pp.pp_profile_data(mydoc, fpost, PRINT_PRFL_HEADER);
+    if pp_func and fpp:
+        pp_func(mydoc, fpp, PRINT_PRFL_HEADER);
+        # pp.pp_profile_data(mydoc, fpp, PRINT_PRFL_HEADER);
 
 def execute_commands(cmds, id, pp_func = None):
     id = SCRIPT_ID+'-'+id
@@ -136,10 +136,10 @@ def execute_commands(cmds, id, pp_func = None):
     fprof = open(os.path.join(TBSLAS_RESULT_DIR_PREFIX, id+'.prof'), 'w')
     flist.append(fprof)
     # post processing output
-    fpost = None
+    fpp = None
     if pp_func:
-        fpost = open(os.path.join(TBSLAS_RESULT_DIR_PREFIX, id+'.prof.pp'), 'w')
-        flist.append(fpost)
+        fpp = open(os.path.join(TBSLAS_RESULT_DIR_PREFIX, id+'.prof.pp'), 'w')
+        flist.append(fpp)
     # output env metadata (git revision, host, ...)
     for f in flist:
         f.write('# REVISION: ' + subprocess.check_output(["git", "describe"]))
@@ -154,14 +154,14 @@ def execute_commands(cmds, id, pp_func = None):
         os.makedirs(out_dir_name)
         # output command
         cmd_msg = '# CMD '+str(counter)+' : ' +  ' '.join(cmd) + '\n'
-        sys.stdout.write('# ==================================\n')
+        sys.stdout.write('# ------------------------------\n')
         sys.stdout.write("--> storing output in: " + out_dir_name +" \n")
         sys.stdout.write("--> executing command ... \n")
         sys.stdout.write(cmd_msg)
-        fout.write('# ==================================\n')
+        fout.write('# ------------------------------\n')
         fout.write(cmd_msg)
         for f in flist:
-            f.write('# ==================================\n')
+            f.write('# ------------------------------\n')
             f.write(cmd_msg)
         # execute command
         p = subprocess.Popen(cmd,                    \
@@ -172,7 +172,7 @@ def execute_commands(cmds, id, pp_func = None):
         analyse_command_output(p.stdout.readlines(),\
                                fout, fdata, fprof,\
                                PRINT_RSLT_HEADER, PRINT_PRFL_HEADER,\
-                               pp_func, fpost)
+                               pp_func, fpp)
         PRINT_RSLT_HEADER = False
         PRINT_PRFL_HEADER = False
         # flush output

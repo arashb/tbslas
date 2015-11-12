@@ -42,18 +42,18 @@ class pnode(object):
         self.title = title
         self.values = values
 
-    def print_me(self, file_prf):
+    def print_me(self, file_prf, title_format="{:<50}", value_format="{:<10}"):
         """
         print one node of profile tree
         Arguments:
         - `profile_node`:
         - `file_prf`:
         """
-        string_format = "{:<50}".format(self.title)
+        line_string = title_format.format(self.title)
         for key, val in self.values.iteritems():
-            string_format += "{:>10}".format(val)
-        string_format += "\n"
-        file_prf.write(string_format)
+            line_string += value_format.format(val)
+        line_string += "\n"
+        file_prf.write(line_string)
 
 class pdoc(object):
     """
@@ -118,14 +118,6 @@ class pdoc(object):
         for node in self.node_list:
             node.print_me(file_out)
 
-    def __parse_profile_header(self, line):
-        """
-        """
-        header_match = []
-        if PROFILE_TAG_HEADER in line:
-            header_match = pattern_prof_header.findall(line)
-        return header_match
-
     def __print_profile_header(self, header_list, file_pr):
         if len(header_list) == 0:
             return
@@ -138,6 +130,14 @@ class pdoc(object):
         file_pr.write('# ============================================================================================================================================\n')
         file_pr.write(string_format)
         file_pr.write('# ============================================================================================================================================\n')
+
+    def __parse_profile_header(self, line):
+        """
+        """
+        header_match = []
+        if PROFILE_TAG_HEADER in line:
+            header_match = pattern_prof_header.findall(line)
+        return header_match
 
     def __parse_profile_node(self, line):
         title_match = pattern_prof_title.findall(line)

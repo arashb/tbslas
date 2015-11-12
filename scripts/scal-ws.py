@@ -28,7 +28,6 @@ def generate_command_args(prog,\
                           num_steps):
 
     EXEC = os.path.join(utils.TBSLAS_EXAMPLES_BIN_DIR, prog)
-
     # generate a dictionary data type of commands
     cmd_args = OrderedDict()
     cmd_id = 1;
@@ -48,12 +47,11 @@ def generate_command_args(prog,\
         cmd_id = cmd_id + 1
     return cmd_args
 
-################################################################################
+s################################################################################
 # MAIN
 ################################################################################
 if __name__ == '__main__':
     mpi_num_procs, omp_num_threads = utils.parse_args()
-
     ############################################################################
     # TEST 1:
     ############################################################################
@@ -70,23 +68,19 @@ if __name__ == '__main__':
             ]
     np_list = [\
             1,\
-            # 2,\
-            # 4,\
-            # 8,\
+            2,\
+            4,\
+            8,\
             16,\
             32,\
             ]
-
-    use_cubic = True
-
-    max_np = max(np_list)
-    num_pnts = 8**( math.floor(math.log(max_np,8)+1))
-
-
-    uf = 2
+    use_cubic     = True
+    max_np        = max(np_list)
+    num_pnts      = 8**(math.floor(math.log(max_np,8)+1))
+    uf            = 2
     table_counter = 0
-    for tl in tl_list:
-        for cq in cq_list:
+    for cq in cq_list:
+        for tl in tl_list:
             if cq is 14:
                 uf = 4
             cmd_args = OrderedDict()
@@ -106,7 +100,6 @@ if __name__ == '__main__':
             # print(json.dumps(cmd_args, indent=4))
             utils.execute_commands(cmd_args, prog+'-table-'+str(table_counter))
             table_counter = table_counter + 1
-
     ############################################################################
     # TEST 2:
     ############################################################################

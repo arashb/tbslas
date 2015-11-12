@@ -18,7 +18,6 @@
 #include <iostream>
 #include <cassert>
 #include <algorithm>
-// #include <string>
 
 #include <pvfmm_common.hpp>
 #include <mpi_tree.hpp>
@@ -381,10 +380,12 @@ int main (int argc, char **argv) {
     typedef tbslas::Reporter<double> Rep;
     if(!myrank) {
       Rep::AddData("NP", np);
+      Rep::AddData("OMP",  sim_config->num_omp_threads);
 
       Rep::AddData("TOL", sim_config->tree_tolerance);
       Rep::AddData("Q", sim_config->tree_chebyshev_order);
 
+      Rep::AddData("MaxD", sim_config->tree_max_depth);
       Rep::AddData("CMaxD", tcon_max_depth);
       Rep::AddData("VMaxD", tvel_max_depth);
 
@@ -393,15 +394,19 @@ int main (int argc, char **argv) {
 
       Rep::AddData("DT", sim_config->dt);
       Rep::AddData("TN", sim_config->total_num_timestep);
+      Rep::AddData("TEST", test);
+      Rep::AddData("MERGE", merge);
 
       Rep::AddData("InAL2", in_al2);
-      Rep::AddData("InRL2", in_rl2);
-      Rep::AddData("InALINF", in_ali);
-      Rep::AddData("InRLINF", in_rli);
-
       Rep::AddData("OutAL2", al2);
+
+      Rep::AddData("InRL2", in_rl2);
       Rep::AddData("OutRL2", rl2);
+
+      Rep::AddData("InALINF", in_ali);
       Rep::AddData("OutALINF", ali);
+
+      Rep::AddData("InRLINF", in_rli);
       Rep::AddData("OutRLINF", rli);
 
       Rep::AddData("CNOCT", con_noct_sum/(sim_config->total_num_timestep+1));
