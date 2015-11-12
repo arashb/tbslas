@@ -38,7 +38,7 @@ def generate_command_args(prog,\
                    '-cuf'   , str(uf_list[counter]), \
                    '-tn'    , str(200),              \
                    '-dt'    , str(0.0628),           \
-                   # '-vs'  , str(1),                  \
+                   '-vs'  , str(1),                  \
                    '-merge' , str(3),\
                    '-omp'   , str(nt_list[counter])]
         if use_cubic:
@@ -80,9 +80,12 @@ if __name__ == '__main__':
     uf            = 2
     table_counter = 0
     for cq in cq_list:
+        # USE UF 4 FOR Q 14 
+        if cq is 14:
+            uf = 4
         for tl in tl_list:
-            if cq is 14:
-                uf = 4
+            if cq is 4 and tl is 1e-7:
+                continue
             cmd_args = OrderedDict()
             cmd_id = 0
             for np in np_list:
