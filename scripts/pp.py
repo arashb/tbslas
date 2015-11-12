@@ -191,7 +191,7 @@ def pp_scal_ws(mydoc, file_pp, PRINT_HEADER = True):
             solve_tavg_sum = solve_tavg_sum + float(node.values['t_avg'])
             tn_counter = tn_counter + 1
     if tn_counter:
-        # ppnode_values['T_AVG'] = "{0:<10.4f}".format(solve_tavg_sum/tn_counter)
+        ppnode_values['T_SUM'] = solve_tavg_sum
         ppnode_values['T_AVG'] = solve_tavg_sum/tn_counter
 
     ##############################
