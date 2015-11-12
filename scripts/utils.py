@@ -73,14 +73,20 @@ def get_result_dir_prefix():
     return (tbslas_result_dir, output_prefix)
 
 def compile_code():
-    print '--> compile code ...'
+    print '--> compiling code ...'
     PWD = os.environ['PWD']
     os.chdir(TBSLAS_EXAMPLES_DIR)
     # execute command
-    cmd = ['make','-j']
-    p = subprocess.Popen(cmd, shell=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    for line in p.stdout.readlines():
-        sys.stdout.write(line)
+    CMD_CLEAN = ['make', 'clean']
+    CMD_MAKE = ['make', '-j']
+    cmd_list = [CMD_CLEAN, CMD_MAKE]
+    for cmd in cmd_list:
+        try:
+            proc = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
+            # print proc
+        except subprocess.CalledProcessError as err:
+            print err.output
+            sys.exit()
     os.chdir(PWD)
 
 def determine_command_prefix(mpi_num_procs, offset=0):
