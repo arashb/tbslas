@@ -16,13 +16,14 @@ import sys
 from collections import OrderedDict
 import utils
 
-def generate_command_args(tl_list, \
-                          dt_list, \
-                          tn_list, \
-                          # de_list, \
-                          # q_list,  \
-                          np_list, \
-                          nt_list, \
+def generate_command_args(tl_list,\
+                          dt_list,\
+                          tn_list,\
+                          # de_list,\
+                          # q_list, \
+                          np_list,\
+                          nt_list,\
+                          use_cubic,\
                           num_steps):
 
     EXEC = os.path.join(utils.TBSLAS_EXAMPLES_BIN_DIR, "advdiff-ss")
@@ -33,10 +34,12 @@ def generate_command_args(tl_list, \
     for counter in range(0,num_steps):
         ARGS    = ['-N'   , str(8**( math.ceil(math.log(np_list[counter],8))+1 ) ), \
                    '-tol' , str(tl_list[counter]),                                  \
-                   '-dt'  , str(2*dt_list[counter]),                                \
+                   '-dt'  , str(dt_list[counter]),                                  \
                    '-tn'  , str(tn_list[counter]),                                  \
-                   '-vs'  , str(1),                                                 \
+                   # '-vs'  , str(1),                                                 \
                    '-omp' , str(nt_list[counter])]
+        if use_cubic:
+            ARGS = ARGS + ['-cubic', '1']
         cmd_args[cmd_id] = utils.determine_command_prefix(np_list[counter]) + [EXEC] + ARGS
         cmd_id = cmd_id + 1
     return cmd_args
@@ -47,11 +50,10 @@ def generate_command_args(tl_list, \
 if __name__ == '__main__':
     mpi_num_procs, omp_num_threads = utils.parse_args()
     num_steps = 8
-    T_END = 1.0
-
     ############################################################################
     # TEST 1: TEMPORAL CONVERGENCE
     ############################################################################
+    use_cubic     = True
     # TREE TOLERANCE
     tl_factor = 1#0.1
     tl_init   = 1e-5
@@ -59,10 +61,11 @@ if __name__ == '__main__':
 
     # TIME RESOLUTION
     dt_factor = 0.5
-    dt_init   = 1
+    dt_init   = 0.5**1
     dt_list = [dt_init*math.pow(dt_factor,float(cnt)) for cnt in range(0,num_steps)]
 
     # NUM TIME STEPS
+    T_END = 1.0
     tn_factor = 1.0/dt_factor
     tn_init   = T_END/dt_init
     tn_list = [tn_init*math.pow(tn_factor,float(cnt)) for cnt in range(0,num_steps)]
@@ -80,6 +83,7 @@ if __name__ == '__main__':
                                      # q_list, \
                                      np_list,\
                                      nt_list,\
+                                     use_cubic,\
                                      num_steps)
 
     utils.execute_commands(cmd_args,'table1')
@@ -87,6 +91,7 @@ if __name__ == '__main__':
     ############################################################################
     # TEST 2: SPATIAL CONVERGENCE
     ############################################################################
+    use_cubic     = True
     # TREE TOLERANCE
     tl_factor = 0.1
     tl_init   = 1e-1
@@ -115,6 +120,7 @@ if __name__ == '__main__':
                                      # q_list, \
                                      np_list,\
                                      nt_list,\
+                                     use_cubic,\
                                      num_steps)
 
     utils.execute_commands(cmd_args,'table2')
@@ -122,6 +128,7 @@ if __name__ == '__main__':
     ############################################################################
     # TEST 3: TEMPORAL/SPATIAL CONVERGENCE
     ############################################################################
+    use_cubic     = True
     # TREE TOLERANCE
     tl_factor = 0.1
     tl_init   = 1e-1
@@ -150,6 +157,7 @@ if __name__ == '__main__':
                                      # q_list, \
                                      np_list,\
                                      nt_list,\
+                                     use_cubic,\
                                      num_steps)
 
     utils.execute_commands(cmd_args,'table3')

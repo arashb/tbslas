@@ -31,7 +31,6 @@
 #include <utils/common.h>
 #include <utils/reporter.h>
 #include <utils/fields.h>
-
 #include <tree/semilag_tree.h>
 #include <tree/utils_tree.h>
 
@@ -51,7 +50,7 @@ typedef tbslas::MetaData<std::string,
                          std::string> MetaData_t;
 
 template <class Real_t>
-void fn_input_t1(const Real_t* coord,
+void get_diffusion_kernel_atT(const Real_t* coord,
                  int n,
                  Real_t* out) {
   const Real_t amp = 1e-2;
@@ -70,7 +69,7 @@ void fn_input_t1(const Real_t* coord,
 }
 
 template <class Real_t>
-void fn_input_t1_hom(const Real_t* coord,
+void get_diffusion_kernel_atT_hom(const Real_t* coord,
               int n,
               Real_t* out) {
   const Real_t amp = 1e-2;
@@ -108,8 +107,8 @@ void fn_poten_t2(const Real_t* coord,
 }
 
 template <class Real_t>
-void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
-                   int cheb_deg, int depth, bool adap, Real_t tol, MPI_Comm comm) {
+void RunAdvectDiff(int test, size_t N, size_t M, bool unif, int mult_order,
+                   int cheb_deg, int depth, bool adap, Real_t tol, int merge, MPI_Comm comm) {
   typedef pvfmm::FMM_Node<pvfmm::Cheb_Node<Real_t> > FMMNode_t;
   typedef pvfmm::FMM_Cheb<FMMNode_t> FMM_Mat_t;
   typedef pvfmm::FMM_Tree<FMM_Mat_t> FMM_Tree_t;
@@ -136,10 +135,10 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
   void (*fn_poten_)(const Real_t* , int , Real_t*)=NULL;
   void (*fn_veloc_)(const Real_t* , int , Real_t*)=NULL;
 
-  switch (test_case) {
+  switch (test) {
     case 1:
-      fn_input_ = fn_input_t1<Real_t>;
-      fn_poten_ = fn_input_t1<Real_t>;
+      fn_input_ = get_diffusion_kernel_atT<Real_t>;
+      fn_poten_ = get_diffusion_kernel_atT<Real_t>;
       fn_veloc_ = tbslas::get_vorticity_field<double,3>;
       mykernel  = &modified_laplace_kernel_d;
       bndry = pvfmm::FreeSpace;
@@ -152,8 +151,8 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
       bndry = pvfmm::FreeSpace;
       break;
     case 3:
-      fn_input_ = fn_input_t1_hom<Real_t>;
-      fn_poten_ = fn_input_t1_hom<Real_t>;
+      fn_input_ = get_diffusion_kernel_atT_hom<Real_t>;
+      fn_poten_ = get_diffusion_kernel_atT_hom<Real_t>;
       fn_veloc_ = tbslas::get_vel_field_hom_x<double,3>;//tbslas::get_vorticity_field<double,3>,
       mykernel  = &modified_laplace_kernel_d;
       bndry = pvfmm::Periodic;
@@ -172,9 +171,9 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
       break;
   }
   // Find out my identity in the default communicator
-  int myrank, p;
+  int myrank, np;
   MPI_Comm_rank(comm, &myrank);
-  MPI_Comm_size(comm,&p);
+  MPI_Comm_size(comm, &np);
 
   // =========================================================================
   // SIMULATION PARAMETERS
@@ -213,7 +212,7 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
   //Print various parameters.
   if (!myrank) {
     std::cout<<std::setprecision(2)<<std::scientific;
-    std::cout<<"Number of MPI processes: "<<p<<'\n';
+    std::cout<<"Number of MPI processes: "<<np<<'\n';
     std::cout<<"Number of OpenMP threads: "<<omp_p<<'\n';
     std::cout<<"Order of multipole expansions: "<<mult_order<<'\n';
     std::cout<<"Order of Chebyshev polynomials: "<<tree_data.cheb_deg<<'\n';
@@ -230,7 +229,7 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
   // **********************************************************************
   // SETUP VELOCITY FIELD TREE
   // **********************************************************************
-  FMM_Tree_t* tvel_curr = new FMM_Tree_t(comm);
+  FMM_Tree_t* tvel = new FMM_Tree_t(comm);
   tbslas::ConstructTree<FMM_Tree_t>(N,
                                     M,
                                     cheb_deg,
@@ -240,9 +239,9 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
                                     comm,
                                     fn_veloc_,
                                     3,
-                                    *tvel_curr);
+                                    *tvel);
   if (sim_config->vtk_save) {
-    tvel_curr->Write2File(tbslas::GetVTKFileName(0, "velocity").c_str(), cheb_deg);
+    tvel->Write2File(tbslas::GetVTKFileName(0, "velocity").c_str(), cheb_deg);
   }
 
   // **********************************************************************
@@ -251,10 +250,6 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
   FMM_Tree_t* treep = new FMM_Tree_t(comm);
   treep->Initialize(&tree_data);
   treep->InitFMM_Tree(adap,bndry);
-  // Write2File
-  if (sim_config->vtk_save) {
-    treep->Write2File(tbslas::GetVTKFileName(0, "previous").c_str(), sim_config->vtk_order);
-  }
 
   // **********************************************************************
   // SETUP CURRENT TIMESTEP TREE
@@ -276,7 +271,7 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
   //   // **********************************************************************
   //   // SOLVE ADVECTION: SEMI-LAGRANGIAN
   //   // **********************************************************************
-  //   tbslas::SolveSemilagInSitu(*tvel_curr,
+  //   tbslas::SolveSemilagInSitu(*tvel,
   //                              *treec,
   //                              1,
   //                              ts_dt,
@@ -291,11 +286,6 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
   treec->Initialize(&tree_data);
   treec->InitFMM_Tree(adap,bndry);
 
-  // Write2File
-  if (sim_config->vtk_save) {
-    treec->Write2File(tbslas::GetVTKFileName(0, "current").c_str(), sim_config->vtk_order);
-  }
-
   double in_al2,in_rl2,in_ali,in_rli;
   CheckChebOutput<FMM_Tree_t>(treec,
                               fn_poten_,
@@ -306,28 +296,34 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
                               in_rli,
                               std::string("Input"));
 
-
+  int con_noct_sum = 0;
+  int vel_noct_sum = 0;
 
   int timestep = 1;
-  int num_leaves = 0;
-  pvfmm::Profile::Tic("Solve", &comm, true);
   for (; timestep < NUM_TIME_STEPS+1; timestep +=1) {
+
     // =========================================================================
     // CREATE THE NEW TREE BEI MERGING THE PREVIOUS TREE & THE CURRENT TREE
     // =========================================================================
     // MERGE TREES
-    pvfmm::Profile::Tic("Merge",&comm,true);
+    pvfmm::Profile::Tic("CMerge",&comm,true);
     tbslas::MergeTree(*treec, *treep);
-    // TODO: merge with velocity trees
     pvfmm::Profile::Toc();
 
     // use previous time step's tree for the next time step
     FMM_Tree_t* treen = treep;
-    num_leaves = tbslas::CountNumLeafNodes(*treec);
+
+    // TODO: (semi) merge concentration and velocity trees
 
     // UPDATE THE SIMULATION CURRENT TIME
     tcurr += TBSLAS_DT;
 
+    if (sim_config->profile) {
+      con_noct_sum += tbslas::CountNumLeafNodes(*treen);
+      vel_noct_sum += tbslas::CountNumLeafNodes(*tvel);
+    }
+
+    pvfmm::Profile::Tic(std::string("Solve_TN" + tbslas::ToString(static_cast<long long>(timestep))).c_str(), &comm, true);
     // =========================================================================
     // SOLVE SEMILAG
     // =========================================================================
@@ -339,21 +335,25 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
       n_curr = treen->PostorderNxt(n_curr);
     }
     int data_dof = n_curr->DataDOF();
-    // int cheb_deg = n_curr->ChebDeg();
     int sdim     = treen->Dim();
 
-    pvfmm::Profile::Tic("SL",&comm,true);
+    // =====================================================================
+    // SOLVE SEMILAG
+    // =====================================================================
+    pvfmm::Profile::Tic(std::string("SL_TN" + tbslas::ToString(static_cast<long long>(timestep))).c_str(), &sim_config->comm, false, 5);
     // COLLECT THE MERGED TREE POINTS
     std::vector<double> treen_points_pos;
     tbslas::CollectChebTreeGridPoints(*treen, treen_points_pos);
 
-    int treen_num_points = treen_points_pos.size()/3;
-    // std::cout << "TREEN-NUM-POINTS: " << treen_num_points << std::endl;
+    int treen_num_points = treen_points_pos.size()/COORD_DIM;
 
-    tbslas::NodeFieldFunctor<double,FMM_Tree_t> vel_evaluator(tvel_curr);
+    tbslas::NodeFieldFunctor<double,FMM_Tree_t> vel_evaluator(tvel);
     tbslas::NodeFieldFunctor<double,FMM_Tree_t> trc_evaluator(treec);
     tbslas::NodeFieldFunctor<double,FMM_Tree_t> trp_evaluator(treep);
 
+    // ===================================
+    // FIRST STEP BACKWARD TRAJ COMPUTATION
+    // ===================================
     std::vector<double> tc_departure_points_pos(treen_points_pos.size());
     // computing the departure points
     ComputeTrajRK2(vel_evaluator,
@@ -362,10 +362,12 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
                    tcurr - TBSLAS_DT,
                    sim_config->num_rk_step,
                    tc_departure_points_pos);
-    // evaluate current tree values at the departure poin
     std::vector<double> treec_points_val(treen_num_points*data_dof);
     trc_evaluator(tc_departure_points_pos.data(), treen_num_points, treec_points_val.data());
 
+    // ===================================
+    // SECOND STEP BACKWARD TRAJ COMPUTATION
+    // ===================================
     std::vector<double> tp_departure_points_pos(treen_points_pos.size());
     ComputeTrajRK2(vel_evaluator,
                    tc_departure_points_pos,
@@ -376,11 +378,13 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
     std::vector<double> treep_points_val(treen_num_points*data_dof);
     trp_evaluator(tp_departure_points_pos.data(), treen_num_points,  treep_points_val.data());
 
+    // ===================================
+    // COMNIME AND STORE THE SEMILAG VALUES
+    // ===================================
     std::vector<double> treen_points_val(treen_num_points*data_dof);
-    // combination of treep and treec vals
+    // combining of treep and treec vals
     double ccoeff = 4.0/3;
     double pcoeff = 1.0/3;
-
     for (int i = 0; i < treen_points_val.size(); i++) {
       treen_points_val[i] = ccoeff*treec_points_val[i] - pcoeff*treep_points_val[i] ;
     }
@@ -400,17 +404,12 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
             &treen_points_val[tree_next_node_counter*num_points_per_node*data_dof],
             cheb_deg,
             data_dof,
-            &(n_next->ChebData()[0])
-                                           );
+            &(n_next->ChebData()[0]));
         tree_next_node_counter++;
       }
       n_next = treen->PostorderNxt(n_next);
     }
-    pvfmm::Profile::Toc();
-
-    if (sim_config->vtk_save) {
-      treen->Write2File(tbslas::GetVTKFileName(timestep, "next").c_str(), sim_config->vtk_order);
-    }
+    pvfmm::Profile::Toc();  // SL
 
     // =========================================================================
     // RUN FMM
@@ -427,40 +426,64 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
     treen->Copy_FMMOutput(); //Copy FMM output to tree Data.
     pvfmm::Profile::Toc();
 
-    if (adap)
-      treen->RefineTree();
+    // =====================================================================
+    // REFINE TREE
+    // =====================================================================
+    pvfmm::Profile::Tic("RefineTree", &sim_config->comm, false, 5);
+    treen->RefineTree();
+    pvfmm::Profile::Toc();
 
+    pvfmm::Profile::Toc();        // solve
+
+    //TODO: ONLY FOR STEADY VELOCITY TREES
+    tvel.RefineTree();
+
+    // ======================================================================
     // Write2File
+    // ======================================================================
     if (sim_config->vtk_save) {
       treen->Write2File(tbslas::GetVTKFileName(timestep, sim_config->vtk_filename_variable).c_str(), sim_config->vtk_order);
     }
     treep = treec;
     treec = treen;
   }
-  pvfmm::Profile::Toc();        // solve
 
 
   // =========================================================================
   // REPORT RESULTS
   // =========================================================================
   double al2,rl2,ali,rli;
-  // int num_leaves = tbslas::CountNumLeafNodes(*treec);
   CheckChebOutput<FMM_Tree_t>(treec,
                               fn_poten_,
                               mykernel->ker_dim[1],
                               al2,rl2,ali,rli,
                               std::string("Output"));
+
+  int tcon_max_depth=0;
+  int tvel_max_depth=0;
+  tbslas::GetTreeMaxDepth<FMM_Tree_t>(*treec, tcon_max_depth);
+  tbslas::GetTreeMaxDepth<FMM_Tree_t>(*tvel, tvel_max_depth);
+
   typedef tbslas::Reporter<Real_t> Rep;
   if(!myrank) {
+    Rep::AddData("NP", np);
+    Rep::AddData("OMP", sim_config->num_omp_threads);
+
     Rep::AddData("TOL", sim_config->tree_tolerance);
-    Rep::AddData("MaxDEPTH", sim_config->tree_max_depth);
-    Rep::AddData("NOCT", num_leaves);
-    Rep::AddData("ChbOrder", sim_config->tree_chebyshev_order);
+    Rep::AddData("Q", sim_config->tree_chebyshev_order);
+
+    Rep::AddData("MaxD", sim_config->tree_max_depth);
+    Rep::AddData("CMaxD", tcon_max_depth);
+    Rep::AddData("VMaxD", tvel_max_depth);
+
     Rep::AddData("CBC", sim_config->use_cubic?1:0);
     Rep::AddData("CUF", sim_config->cubic_upsampling_factor);
 
     Rep::AddData("DT", sim_config->dt);
     Rep::AddData("TN", sim_config->total_num_timestep);
+
+    Rep::AddData("TEST", test);
+    Rep::AddData("MERGE", merge);
 
     Rep::AddData("DIFF", TBSLAS_DIFF_COEFF);
     Rep::AddData("ALPHA", TBSLAS_ALPHA);
@@ -475,6 +498,9 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
     Rep::AddData("OutALINF", ali);
     Rep::AddData("OutRLINF", rli);
 
+    Rep::AddData("CNOCT", con_noct_sum/(sim_config->total_num_timestep+1));
+    Rep::AddData("VNOCT", vel_noct_sum/(sim_config->total_num_timestep+1));
+
     Rep::Report();
   }
 
@@ -488,6 +514,7 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
   //Delete the tree.
   delete treep;
   delete treec;
+  delete tvel;
 }
 
 int main (int argc, char **argv) {
@@ -502,6 +529,8 @@ int main (int argc, char **argv) {
   int      m=       strtoul(commandline_option(argc, argv,    "-m",    "10", false, "-m    <int> = (10)   : Multipole order (+ve even integer)."),NULL,10);
   int   test=       strtoul(commandline_option(argc, argv, "-test",     "1", false,
                                                "-test <int> = (1)    : 1) Laplace, Smooth Gaussian, Periodic Boundary"),NULL,10);
+  int   merge = strtoul(commandline_option(argc, argv, "-merge",     "1", false,
+                                          "-merge <int> = (1)    : 1) no merge 2) complete merge 3) Semi-Merge"),NULL,10);
 
   // =========================================================================
   // SIMULATION PARAMETERS
@@ -535,6 +564,7 @@ int main (int argc, char **argv) {
                         sim_config->tree_max_depth,
                         sim_config->tree_adap,
                         sim_config->tree_tolerance,
+                        merge,
                         comm);
   pvfmm::Profile::Toc();
   //Output Profiling results.
