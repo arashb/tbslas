@@ -257,19 +257,6 @@ int main (int argc, char **argv) {
       ncurr_list[i]->input_fn = (void (*)(const double* , int , double*))NULL;
     }
 
-    switch(merge) {
-      case 2:
-        pvfmm::Profile::Tic("CMerge", &sim_config->comm, false, 5);
-        tbslas::MergeTree(tvel, tcon);
-        pvfmm::Profile::Toc();
-        break;
-      case 3:
-        pvfmm::Profile::Tic("SMerge", &sim_config->comm, false, 5);
-        tbslas::SemiMergeTree(tvel, tcon);
-        pvfmm::Profile::Toc();
-        break;
-    }
-
     double in_al2,in_rl2,in_ali,in_rli;
     CheckChebOutput<Tree_t>(&tcon,
                             fn_con,
@@ -277,21 +264,38 @@ int main (int argc, char **argv) {
                             in_al2,in_rl2,in_ali,in_rli,
                             std::string("Input"));
 
-    // =====================================================================
-    // SOLVE SEMILAG
-    // =====================================================================
+
     int con_noct_sum = 0;
     int vel_noct_sum = 0;
-    if (sim_config->profile) {
-      con_noct_sum += tbslas::CountNumLeafNodes(tcon);
-      vel_noct_sum += tbslas::CountNumLeafNodes(tvel);
-    }
-
     int timestep = 1;
     for (; timestep < sim_config->total_num_timestep+1; timestep++) {
 
-      pvfmm::Profile::Tic(std::string("Solve_TN" + tbslas::ToString(static_cast<long long>(timestep))).c_str(), &comm, true);
-      {
+        // =====================================================================
+        // (SEMI) MERGE TO FIX IMBALANCE
+        // =====================================================================
+        switch(merge) {
+          case 2:
+            pvfmm::Profile::Tic("CMerge", &sim_config->comm, false, 5);
+            tbslas::MergeTree(tvel, tcon);
+            pvfmm::Profile::Toc();
+            break;
+          case 3:
+            pvfmm::Profile::Tic("SMerge", &sim_config->comm, false, 5);
+            tbslas::SemiMergeTree(tvel, tcon);
+            pvfmm::Profile::Toc();
+            break;
+        }
+
+        // =====================================================================
+        // ESTIMATE THE PROBLEM SIZE -> NUMBER OF TREES' OCTANTS
+        // =====================================================================
+        if (sim_config->profile) {
+          con_noct_sum += tbslas::CountNumLeafNodes(tcon);
+          vel_noct_sum += tbslas::CountNumLeafNodes(tvel);
+        }
+
+        pvfmm::Profile::Tic(std::string("Solve_TN" + tbslas::ToString(static_cast<long long>(timestep))).c_str(), &comm, true);
+        {
         // =====================================================================
         // SOLVE SEMILAG
         // =====================================================================
@@ -309,29 +313,11 @@ int main (int argc, char **argv) {
         pvfmm::Profile::Tic("RefineTree", &sim_config->comm, false, 5);
         tcon.RefineTree();
         pvfmm::Profile::Toc();
-
-        // =====================================================================
-        // (SEMI) MERGE TO FIX IMBALANCE
-        // =====================================================================
-        switch(merge) {
-          case 2:
-            pvfmm::Profile::Tic("CMerge", &sim_config->comm, false, 5);
-            tbslas::MergeTree(tvel, tcon);
-            pvfmm::Profile::Toc();
-            break;
-          case 3:
-            pvfmm::Profile::Tic("SMerge", &sim_config->comm, false, 5);
-            tbslas::SemiMergeTree(tvel, tcon);
-            pvfmm::Profile::Toc();
-            break;
-        }
       }
       pvfmm::Profile::Toc();        // solve
 
-      if(sim_config->profile) {
-        con_noct_sum += tbslas::CountNumLeafNodes(tcon);
-        vel_noct_sum += tbslas::CountNumLeafNodes(tvel);
-      }
+      //TODO: ONLY FOR STEADY VELOCITY TREES
+      tvel.RefineTree();
 
       // ======================================================================
       // Write2File
@@ -339,6 +325,7 @@ int main (int argc, char **argv) {
       if (sim_config->vtk_save) {
         tcon.Write2File(tbslas::GetVTKFileName(timestep, sim_config->vtk_filename_variable).c_str(), sim_config->vtk_order);
       }
+
       // ======================================================================
       // print error every 100 time steps
       // ======================================================================
