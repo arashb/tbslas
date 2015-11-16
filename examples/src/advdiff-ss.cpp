@@ -310,23 +310,39 @@ void RunAdvectDiff(int test, size_t N, size_t M, bool unif, int mult_order,
     tbslas::MergeTree(*treec, *treep);
     pvfmm::Profile::Toc();
 
+    // =====================================================================
+    // (SEMI) MERGE TO FIX IMBALANCE
+    // =====================================================================
+    switch(merge) {
+      case 2:
+        pvfmm::Profile::Tic("CMerge", &sim_config->comm, false, 5);
+        tbslas::MergeTree(*tvel, *treep);
+        pvfmm::Profile::Toc();
+        pvfmm::Profile::Tic("CMerge", &sim_config->comm, false, 5);
+        tbslas::MergeTree(*tvel, *treec);
+        pvfmm::Profile::Toc();
+        break;
+      case 3:
+        pvfmm::Profile::Tic("SMerge", &sim_config->comm, false, 5);
+        tbslas::SemiMergeTree(*tvel, *treep);
+        pvfmm::Profile::Toc();
+        pvfmm::Profile::Tic("SMerge", &sim_config->comm, false, 5);
+        tbslas::SemiMergeTree(*tvel, *treec);
+        pvfmm::Profile::Toc();
+        break;
+    }
+
     // use previous time step's tree for the next time step
     FMM_Tree_t* treen = treep;
-
-    // TODO: (semi) merge concentration and velocity trees
-
-    // UPDATE THE SIMULATION CURRENT TIME
-    tcurr += TBSLAS_DT;
 
     if (sim_config->profile) {
       con_noct_sum += tbslas::CountNumLeafNodes(*treen);
       vel_noct_sum += tbslas::CountNumLeafNodes(*tvel);
     }
 
-    pvfmm::Profile::Tic(std::string("Solve_TN" + tbslas::ToString(static_cast<long long>(timestep))).c_str(), &comm, true);
-    // =========================================================================
-    // SOLVE SEMILAG
-    // =========================================================================
+    // UPDATE THE SIMULATION CURRENT TIME
+    tcurr += TBSLAS_DT;
+
     // GET THE TREE PARAMETERS FROM CURRENT TREE
     FMMNode_t* n_curr = treen->PostorderFirst();
     while (n_curr != NULL) {
@@ -337,6 +353,7 @@ void RunAdvectDiff(int test, size_t N, size_t M, bool unif, int mult_order,
     int data_dof = n_curr->DataDOF();
     int sdim     = treen->Dim();
 
+    pvfmm::Profile::Tic(std::string("Solve_TN" + tbslas::ToString(static_cast<long long>(timestep))).c_str(), &comm, true);
     // =====================================================================
     // SOLVE SEMILAG
     // =====================================================================
@@ -436,7 +453,7 @@ void RunAdvectDiff(int test, size_t N, size_t M, bool unif, int mult_order,
     pvfmm::Profile::Toc();        // solve
 
     //TODO: ONLY FOR STEADY VELOCITY TREES
-    tvel.RefineTree();
+    tvel->RefineTree();
 
     // ======================================================================
     // Write2File

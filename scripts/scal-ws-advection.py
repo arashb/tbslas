@@ -103,31 +103,3 @@ if __name__ == '__main__':
             # print(json.dumps(cmd_args, indent=4))
             utils.execute_commands(cmd_args, prog+'-table-'+str(table_counter))
             table_counter = table_counter + 1
-    ############################################################################
-    # TEST 2:
-    ############################################################################
-    # use_cubic = True
-
-    # cmd_args = OrderedDict()
-    # cmd_id = 0
-    # uf = 2
-    # for cq in cq_list:
-    #     for tl in tl_list:
-    #         if cq is 14:
-    #             uf = 4
-    #         # if cq is 4 and tl is 1e-7:
-    #         #     continue
-    #         for np in np_list:
-    #             cmd_args[cmd_id] = generate_command_args(\
-    #                                                         prog      = 'advdiff-ss',\
-    #                                                         tl_list   = [tl],\
-    #                                                         cq_list   = [cq],\
-    #                                                         uf_list   = [uf],\
-    #                                                         use_cubic = True,\
-    #                                                         np_list   = [np],\
-    #                                                         nt_list   = [omp_num_threads],\
-    #                                                         num_steps = 1)[1]
-    #             cmd_id = cmd_id + 1
-
-    # # print(json.dumps(cmd_args, indent=4))
-    # utils.execute_commands(cmd_args, 'table2-advdiff')
