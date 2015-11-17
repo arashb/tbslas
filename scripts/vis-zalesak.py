@@ -17,7 +17,7 @@ import sys
 from collections import OrderedDict
 import utils
 
-def generate_command_args(max_depth, mpi_num_procs, omp_num_threads):
+def generate_command_args(max_depth, mpi_num_procs, omp_num_threads, use_cubic):
 
     EXEC = os.path.join(utils.TBSLAS_EXAMPLES_BIN_DIR, "advection")
 
@@ -25,15 +25,19 @@ def generate_command_args(max_depth, mpi_num_procs, omp_num_threads):
     cmd_args = OrderedDict()
     cmd_id = 1
     ARGS    = ['-N'   , '4096', \
-               '-tol' , '1e-3', \
+               '-tol' , '1e-2', \
                '-d'   , str(max_depth), \
                '-dt'  , '0.0628', \
                '-tn'  , '500', \
                '-test', str(2), \
                '-omp' , str(omp_num_threads), \
-               '-q'   , str(8), \
+               '-q'   , str(4), \
                # '-vs'  , '1'
                ]
+    if use_cubic:
+        ARGS = ARGS + ['-cubic', '1']
+        ARGS = ARGS + ['-cuf', '2']
+
     cmd_args[cmd_id] = utils.determine_command_prefix(mpi_num_procs) + [EXEC] + ARGS
 
     return cmd_args
@@ -43,9 +47,10 @@ def generate_command_args(max_depth, mpi_num_procs, omp_num_threads):
 ################################################################################
 if __name__ == '__main__':
     mpi_num_procs, omp_num_threads = utils.parse_args()
-    max_depth = 7
+    max_depth = 8
     ############################################################################
     # TEST 1: TEMPORAL CONVERGENCE
     ############################################################################
-    cmd_args = generate_command_args(max_depth, mpi_num_procs, omp_num_threads)
+    use_cubic = True
+    cmd_args = generate_command_args(max_depth, mpi_num_procs, omp_num_threads, use_cubic)
     utils.execute_commands(cmd_args, 'vis-zalesak')

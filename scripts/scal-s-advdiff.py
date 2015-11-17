@@ -16,7 +16,7 @@ import sys
 from collections import OrderedDict
 import utils
 
-TREE_MAX_DEPTH = 8
+TREE_MAX_DEPTH = 10
 
 def generate_command_args(prog,\
                           pn_list,\
@@ -65,8 +65,8 @@ if __name__ == '__main__':
     ############################################################################
     prog  = 'advdiff-ss'
     tl_list = [1e-0]
-    dt_list = [0.25]
-    tn_list = [3]
+    dt_list = [0.125]
+    tn_list = [10]
     cq_list = [\
             # 4,\
             # 6,\
@@ -80,7 +80,8 @@ if __name__ == '__main__':
             4,\
             8,\
             16,\
-            # 32,\
+            32,\
+            64,\
             ]
     mt_list = [1,2,3]
     use_cubic     = True
