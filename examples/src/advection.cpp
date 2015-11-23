@@ -313,6 +313,10 @@ int main (int argc, char **argv) {
         pvfmm::Profile::Tic("RefineTree", &sim_config->comm, false, 5);
         tcon.RefineTree();
         pvfmm::Profile::Toc();
+
+	pvfmm::Profile::Tic("Balance21", &sim_config->comm, false, 5);
+	tcon.Balance21(sim_config->bc);
+	pvfmm::Profile::Toc();
       }
       pvfmm::Profile::Toc();        // solve
 

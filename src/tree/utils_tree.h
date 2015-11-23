@@ -127,7 +127,7 @@ void ConstructTree(const size_t N,
   pvfmm::Profile::Toc();
 
   pvfmm::Profile::Tic("Balance21", &sim_config->comm, false, 5);
-  tree.Balance21(pvfmm::FreeSpace);
+  tree.Balance21(sim_config->bc);
   pvfmm::Profile::Toc();
 
   pvfmm::Profile::Tic("RedistNodes", &sim_config->comm, false, 5);
