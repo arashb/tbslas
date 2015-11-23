@@ -205,8 +205,8 @@ void RunAdvectDiff(int test, size_t N, size_t M, bool unif, int mult_order,
   tree_data.tol       = tol;
   //Set source coordinates.
   std::vector<Real_t> pt_coord;
-  if(unif) pt_coord = tbslas::point_distrib<Real_t>(tbslas::UnifGrid,N,comm);
-  else pt_coord = tbslas::point_distrib<Real_t>(tbslas::RandElps,N,comm); //RandElps, RandGaus
+  pt_coord = tbslas::point_distrib<Real_t>(tbslas::UnifGrid,N,comm);
+  // else pt_coord = tbslas::point_distrib<Real_t>(tbslas::RandElps,N,comm); //RandElps, RandGaus
   tree_data.max_pts  = M; // Points per octant.
   tree_data.pt_coord = pt_coord;
   //Print various parameters.
@@ -227,6 +227,21 @@ void RunAdvectDiff(int test, size_t N, size_t M, bool unif, int mult_order,
   }
 
   // **********************************************************************
+  // SETUP PREVIOUS TIMESTEP TREE
+  // **********************************************************************
+  FMM_Tree_t* treep = new FMM_Tree_t(comm);
+  treep->Initialize(&tree_data);
+  treep->InitFMM_Tree(adap,bndry);
+
+  // **********************************************************************
+  // SETUP PREVIOUS TIMESTEP TREE
+  // **********************************************************************
+  tcurr += TBSLAS_DT;
+  FMM_Tree_t* treec = new FMM_Tree_t(comm);
+  treec->Initialize(&tree_data);
+  treec->InitFMM_Tree(adap,bndry);
+
+  // **********************************************************************
   // SETUP VELOCITY FIELD TREE
   // **********************************************************************
   FMM_Tree_t* tvel = new FMM_Tree_t(comm);
@@ -243,13 +258,6 @@ void RunAdvectDiff(int test, size_t N, size_t M, bool unif, int mult_order,
   if (sim_config->vtk_save) {
     tvel->Write2File(tbslas::GetVTKFileName(0, "velocity").c_str(), cheb_deg);
   }
-
-  // **********************************************************************
-  // SETUP PREVIOUS TIMESTEP TREE
-  // **********************************************************************
-  FMM_Tree_t* treep = new FMM_Tree_t(comm);
-  treep->Initialize(&tree_data);
-  treep->InitFMM_Tree(adap,bndry);
 
   // **********************************************************************
   // SETUP CURRENT TIMESTEP TREE
@@ -279,12 +287,6 @@ void RunAdvectDiff(int test, size_t N, size_t M, bool unif, int mult_order,
   //   treec->RefineTree();
   // }
 
-  tcurr += TBSLAS_DT;
-
-  //Create currnt timestep Tree and initialize with input data.
-  FMM_Tree_t* treec = new FMM_Tree_t(comm);
-  treec->Initialize(&tree_data);
-  treec->InitFMM_Tree(adap,bndry);
 
   double in_al2,in_rl2,in_ali,in_rli;
   CheckChebOutput<FMM_Tree_t>(treec,
@@ -301,14 +303,6 @@ void RunAdvectDiff(int test, size_t N, size_t M, bool unif, int mult_order,
 
   int timestep = 1;
   for (; timestep < NUM_TIME_STEPS+1; timestep +=1) {
-
-    // =========================================================================
-    // CREATE THE NEW TREE BEI MERGING THE PREVIOUS TREE & THE CURRENT TREE
-    // =========================================================================
-    // MERGE TREES
-    pvfmm::Profile::Tic("CMerge",&comm,true);
-    tbslas::MergeTree(*treec, *treep);
-    pvfmm::Profile::Toc();
 
     // =====================================================================
     // (SEMI) MERGE TO FIX IMBALANCE
@@ -448,6 +442,10 @@ void RunAdvectDiff(int test, size_t N, size_t M, bool unif, int mult_order,
     // =====================================================================
     pvfmm::Profile::Tic("RefineTree", &sim_config->comm, false, 5);
     treen->RefineTree();
+    pvfmm::Profile::Toc();
+
+    pvfmm::Profile::Tic("Balance21", &sim_config->comm, false, 5);
+    treen->Balance21(sim_config->bc);
     pvfmm::Profile::Toc();
 
     pvfmm::Profile::Toc();        // solve
