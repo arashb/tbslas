@@ -51,7 +51,7 @@ class Reporter {
     for (int i = 0; i < header_vec.size(); ++i) {
       std::cout << std::left
                 << std::setw(aligns_vec[i])
-                << std::setprecision(5)
+                << std::setprecision(2)
                 << std::scientific
                 << values_vec[i];
     }
