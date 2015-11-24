@@ -13,12 +13,44 @@
 #ifndef SRC_UTILS_FIELDS_H_
 #define SRC_UTILS_FIELDS_H_
 
+#define PI 3.14159265
 
 namespace tbslas {
 
 //////////////////////////////////////////////////////////////////////
 // VARIOUS FIELD GENERATOR FUNCTIONS
 //////////////////////////////////////////////////////////////////////
+///////////////////////////////////
+// TAYLOR-GREEN VORTEX
+///////////////////////////////////
+// u = A*cos(a*x)sin(b*y)sin(c*z)
+// v = B*sin(a*x)cos(b*y)sin(c*z)
+// w = C*sin(a*x)sin(b*y)cos(c*z)
+///////////////////////////////////
+template<typename real_t>
+void
+get_taylor_green_field(const real_t* points_pos,
+                       int num_points,
+                       real_t* points_values,
+                       real_t A = 1,
+                       real_t B = 1,
+                       real_t C = 1,
+                       real_t a = 2*PI,
+                       real_t b = 2*PI,
+                       real_t c = 2*PI) {
+  const real_t* p;
+  for (int i = 0; i < num_points; i++) {
+    p = &points_pos[i*COORD_DIM];
+    points_values[i*3+0] = A*cos(a*p[0])*sin(b*p[1])*sin(c*p[2]);
+    points_values[i*3+1] = B*sin(a*p[0])*cos(b*p[1])*sin(c*p[2]);
+    points_values[i*3+2] = C*sin(a*p[0])*sin(b*p[1])*cos(c*p[2]);
+  }
+}
+
+///////////////////////////////////
+// VORTICITY FIELD
+///////////////////////////////////
+///////////////////////////////////
 template<typename real_t, int sdim>
 void
 get_vorticity_field(const real_t* points_pos,
@@ -251,7 +283,7 @@ void diffusion_kernel(const Real_t* coord,
                       const Real_t yc = 0.5,
                       const Real_t zc = 0.5) { //Input function
   assert(t!=0);
-  const Real_t PI = 3.141592653589;
+  // const Real_t PI = 3.141592653589;
   int dof        = 1;
   Real_t dt4     = 4*diff_coeff*t;
   Real_t pidt4_3 = std::pow(PI*dt4, 3);

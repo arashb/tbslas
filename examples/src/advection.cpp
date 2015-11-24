@@ -96,7 +96,7 @@ get_slotted_cylinder_atT(const real_t* points_pos,
 }
 
 template <class Real_t>
-void gaussian_kernel(const Real_t* coord,
+void get_guassian_kernel_wraper(const Real_t* coord,
                      int n,
                      Real_t* out) {
   const Real_t xc  = 0.7;
@@ -108,13 +108,20 @@ void gaussian_kernel(const Real_t* coord,
 }
 
 template <class Real_t>
-void get_hopf_field(const Real_t* coord,
+void get_hopf_field_wrapper(const Real_t* coord,
                     int n,
                     Real_t* out) {
   const Real_t xc = 0.5;
   const Real_t yc = 0.5;
   const Real_t zc = 0.5;
   tbslas::get_hopf_field(coord, n, out, xc, yc, zc);
+}
+
+template <class Real_t>
+void get_taylor_green_field_wrapper(const Real_t* coord,
+                            int n,
+                            Real_t* out) {
+  tbslas::get_taylor_green_field(coord, n, out);
 }
 
 int main (int argc, char **argv) {
@@ -175,17 +182,22 @@ int main (int argc, char **argv) {
       case 5:         // regular V, irregular C
         max_depth_vel=6;
         fn_vel = tbslas::get_vorticity_field<double,3>;
-        fn_con = gaussian_kernel<double>;
+        fn_con = get_guassian_kernel_wraper<double>;
         bc = pvfmm::FreeSpace;
         break;
       case 6:         // irregular V, irregular C
-        fn_vel = get_hopf_field<double>;
-        fn_con = gaussian_kernel<double>;
+        fn_vel = get_hopf_field_wrapper<double>;
+        fn_con = get_guassian_kernel_wraper<double>;
         bc = pvfmm::FreeSpace;
         break;
       case 7:  // scaling test case -> uniform fields
         fn_vel = tbslas::get_vel_field_hom_x<double,3>;
         fn_con = tbslas::get_linear_field_y<double,3>;
+        bc = pvfmm::Periodic;
+        break;
+      case 8:
+        fn_vel = get_taylor_green_field_wrapper<double>;
+        fn_con = get_guassian_kernel_wraper<double>;
         bc = pvfmm::Periodic;
         break;
     }
