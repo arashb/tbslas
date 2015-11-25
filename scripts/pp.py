@@ -49,7 +49,7 @@ def pp_profile_data(mydoc, file_pp, PRINT_HEADER = True):
         # ITERATE OVER PROFILE TAGS
         for profile_tag in PROFILE_TAG_LIST:
             if profile_tag in node.title:
-                time_imb = "{0:>10.4f}".format( float(node.values['t_max'])/float(node.values['t_min']) )
+                time_imb = "{0:>10.2f}".format( float(node.values['t_max'])/float(node.values['t_min']) )
                 node.values['t_imb'] = time_imb
                 if '+-EvalTree' in node.title:
                     ##############################
@@ -64,7 +64,7 @@ def pp_profile_data(mydoc, file_pp, PRINT_HEADER = True):
                     ##############################
                     # CALCULATE THE TIME IMBALANCE
                     ##############################
-                    time_imb = "{0:>10.4f}".format( float(node.values['t_max'])/float(node.values['t_min']))
+                    time_imb = "{0:>10.2f}".format( float(node.values['t_max'])/float(node.values['t_min']))
                     node.values['t_imb'] = time_imb
                     ##############################
                     # CALCULATE THE PARTICLES IMBALANCE
@@ -72,7 +72,7 @@ def pp_profile_data(mydoc, file_pp, PRINT_HEADER = True):
                     if len(mydoc.target_points_list) != 0:
                         max_points = max(mydoc.target_points_list[eval_tree_counter])
                         min_points = min(mydoc.target_points_list[eval_tree_counter])
-                        target_points_imb = "{0:>10.4f}".format( float(max_points)/ min_points) 
+                        target_points_imb = "{0:>10.2f}".format( float(max_points)/ min_points) 
                         node.values['p_imb'] = target_points_imb
                         eval_tree_counter += 1
                 ##############################
@@ -115,9 +115,9 @@ def pp_perf_cubic(mydoc, file_pp, PRINT_HEADER = True):
     ppnode_title  = '+-InEvaluation'
     ppnode_values = OrderedDict()
     if counter:
-        ppnode_values['t_min'] = "{0:>10.4f}".format(t_min_sum/counter)
-        # ppnode_values['t_avg'] = "{0:>10.4f}".format(t_avg_sum/counter)
-        # ppnode_values['t_max'] = "{0:>10.4f}".format(t_max_sum/counter)
+        ppnode_values['t_min'] = "{0:>10.2f}".format(t_min_sum/counter)
+        # ppnode_values['t_avg'] = "{0:>10.2f}".format(t_avg_sum/counter)
+        # ppnode_values['t_max'] = "{0:>10.2f}".format(t_max_sum/counter)
     ##############################
     # add the leaves count average
     ##############################
@@ -190,19 +190,20 @@ def pp_scal_ws(mydoc, file_pp, PRINT_HEADER = True):
             # print node.title
             solve_tavg_sum = solve_tavg_sum + float(node.values['t_avg'])
             tn_counter = tn_counter + 1
-    if tn_counter:
-        ppnode_values['T_SUM'] = solve_tavg_sum
-        ppnode_values['T_AVG'] = solve_tavg_sum/tn_counter
-
+    # if tn_counter:
+    ppnode_values['T_SUM'] = solve_tavg_sum if tn_counter else 0
+    ppnode_values['T_AVG'] = solve_tavg_sum/tn_counter if tn_counter else 0
+    # if mydoc.max_mem_per_node:
+    ppnode_values['MaxMEM/NODE'] = float(mydoc.max_mem_per_node.split()[0]) if mydoc.max_mem_per_node else 0
     ##############################
     # FORMAT/PRINT THE PP LINE
     ##############################
     ppnode = parser.pnode(ppnode_title, ppnode_values)
-    titlew = 10
-    valuew = 10
-    title_format = "{:<"+str(titlew)+"}"
-    title_value_format = "{:<"+str(valuew)+"}"
-    value_format = "{:<"+str(valuew)+".4f}"
+    titlew = 15
+    valuew = 15
+    title_format = "{:>"+str(titlew)+"}"
+    title_value_format = "{:>"+str(valuew)+"}"
+    value_format = "{:>"+str(valuew)+".2f}"
     if PRINT_HEADER:
         header_string_format = title_format.format('NP')
         for key, val in ppnode_values.iteritems():
