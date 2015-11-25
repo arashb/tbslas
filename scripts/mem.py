@@ -45,7 +45,7 @@ def generate_command_args(prog,\
                    '-omp'   , str(nt_list[counter])]
         if use_cubic:
             ARGS = ARGS + ['-cubic', '1']
-        cmd_args[cmd_id] = utils.determine_command_prefix(np_list[counter]) + [EXEC] + ARGS
+        cmd_args[cmd_id] = ['remora'] + utils.determine_command_prefix(np_list[counter]) + [EXEC] + ARGS
         cmd_id = cmd_id + 1
     return cmd_args
 
@@ -77,11 +77,11 @@ if __name__ == '__main__':
             ]
     np_list = [\
             1,\
-            2,\
-            4,\
-            8,\
-            16,\
-            32,\
+            # 2,\
+            # 4,\
+            # 8,\
+            # 16,\
+            # 32,\
             ]
     use_cubic     = True
     max_np        = max(np_list)
@@ -90,8 +90,6 @@ if __name__ == '__main__':
     table_counter = 0
     for cq in cq_list:
         for tl in tl_list:
-            if cq is 4 and tl is 1e-7:
-                continue
             for dp in dp_list:
                 # USE UF 4 FOR Q 14 
                 if cq is 14:
