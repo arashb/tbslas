@@ -102,9 +102,34 @@ void get_guassian_kernel_wraper(const Real_t* coord,
   const Real_t xc  = 0.7;
   const Real_t yc  = 0.7;
   const Real_t zc  = 0.7;
-  const int a      = -160;
-  const Real_t amp = 1.0;
   tbslas::gaussian_kernel(coord, n, out, xc, yc, zc);
+}
+
+template <class Real_t>
+void get_multiple_guassian_kernel_wraper(const Real_t* coord,
+                     int n,
+                     Real_t* out) {
+  // FIRST GAUSSIAN
+  const Real_t xc1  = 0.7;
+  const Real_t yc1  = 0.7;
+  const Real_t zc1  = 0.7;
+  std::vector<Real_t> out1(n);
+  tbslas::gaussian_kernel(coord, n, out1.data(), xc1, yc1, zc1);
+  // FIRST GAUSSIAN
+  const Real_t xc2  = 0.3;
+  const Real_t yc2  = 0.3;
+  const Real_t zc2  = 0.3;
+  std::vector<Real_t> out2(n);
+  tbslas::gaussian_kernel(coord, n, out2.data(), xc2, yc2, zc2);
+  // FIRST GAUSSIAN
+  const Real_t xc3  = 0.3;
+  const Real_t yc3  = 0.3;
+  const Real_t zc3  = 0.7;
+  std::vector<Real_t> out3(n);
+  tbslas::gaussian_kernel(coord, n, out3.data(), xc3, yc3, zc3);
+  for (int i = 0; i < n; i++) {
+    out[i] = out1[i] + out2[i] + out3[i];
+  }
 }
 
 template <class Real_t>
@@ -200,6 +225,12 @@ int main (int argc, char **argv) {
         fn_con = get_guassian_kernel_wraper<double>;
         bc = pvfmm::Periodic;
         break;
+      case 9:
+        fn_vel = get_taylor_green_field_wrapper<double>;
+        fn_con = get_multiple_guassian_kernel_wraper<double>;
+        bc = pvfmm::Periodic;
+        break;
+
     }
 
     // =========================================================================
