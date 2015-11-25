@@ -71,6 +71,7 @@ class pdoc(object):
         self.reporter_results   = []
         self.reporter           = OrderedDict()
         self.leaves_count_list  = []
+        self.max_mem_per_node   = None
 
         for line in output:
             # CAPTURE TOTAL TARGET POINTS COUNT
@@ -97,6 +98,8 @@ class pdoc(object):
                 self.leaves_count_list.append(int(line.split()[2]))
                 # print line.split()[2:]
 
+            if line.startswith("TACC: Max Memory Used Per Node"):
+                self.max_mem_per_node = line.split(": ")[2]
             # CAPTURE PROFILE HEADER
             header = self.__parse_profile_header(line)
             if len(header):

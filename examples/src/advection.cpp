@@ -309,7 +309,9 @@ int main (int argc, char **argv) {
 
 
     int con_noct_sum = 0;
+    int con_noct_max = 0;
     int vel_noct_sum = 0;
+    int vel_noct_max = 0;
     int timestep = 1;
     for (; timestep < sim_config->total_num_timestep+1; timestep++) {
 
@@ -333,8 +335,12 @@ int main (int argc, char **argv) {
         // ESTIMATE THE PROBLEM SIZE -> NUMBER OF TREES' OCTANTS
         // =====================================================================
         if (sim_config->profile) {
-          con_noct_sum += tbslas::CountNumLeafNodes(tcon);
-          vel_noct_sum += tbslas::CountNumLeafNodes(tvel);
+	  int con_noct = tbslas::CountNumLeafNodes(tcon);
+          con_noct_sum += con_noct;
+	  if (con_noct > con_noct_max) con_noct_max = con_noct;
+          int vel_noct = tbslas::CountNumLeafNodes(tvel);
+	  vel_noct_sum += vel_noct;
+	  if (vel_noct > vel_noct_max) vel_noct_max = vel_noct;
         }
 
         pvfmm::Profile::Tic(std::string("Solve_TN" + tbslas::ToString(static_cast<long long>(timestep))).c_str(), &comm, true);
@@ -444,7 +450,10 @@ int main (int argc, char **argv) {
       Rep::AddData("OutRLINF", rli);
 
       Rep::AddData("CNOCT", con_noct_sum/(sim_config->total_num_timestep+1));
+      Rep::AddData("CMaxNOCT", con_noct_max);
+
       Rep::AddData("VNOCT", vel_noct_sum/(sim_config->total_num_timestep+1));
+      Rep::AddData("VMaxNOCT", vel_noct_max);
 
       Rep::Report();
     }
