@@ -310,8 +310,27 @@ int main (int argc, char **argv) {
 
     int con_noct_sum = 0;
     int con_noct_max = 0;
+    int con_noct_min = 0;
+
     int vel_noct_sum = 0;
     int vel_noct_max = 0;
+    int vel_noct_min = 0;
+
+    // =====================================================================
+    // ESTIMATE THE PROBLEM SIZE -> NUMBER OF TREES' OCTANTS
+    // =====================================================================
+    if (sim_config->profile) {
+      int con_noct = tbslas::CountNumLeafNodes(tcon);
+      con_noct_sum += con_noct;
+      con_noct_max = con_noct;
+      con_noct_min = con_noct;
+
+      int vel_noct = tbslas::CountNumLeafNodes(tvel);
+      vel_noct_sum += vel_noct;
+      vel_noct_max = vel_noct;
+      vel_noct_min = vel_noct;
+    }
+
     int timestep = 1;
     for (; timestep < sim_config->total_num_timestep+1; timestep++) {
 
@@ -335,12 +354,15 @@ int main (int argc, char **argv) {
         // ESTIMATE THE PROBLEM SIZE -> NUMBER OF TREES' OCTANTS
         // =====================================================================
         if (sim_config->profile) {
-	  int con_noct = tbslas::CountNumLeafNodes(tcon);
+          int con_noct = tbslas::CountNumLeafNodes(tcon);
           con_noct_sum += con_noct;
-	  if (con_noct > con_noct_max) con_noct_max = con_noct;
+          if (con_noct > con_noct_max) con_noct_max = con_noct;
+          if (con_noct < con_noct_min) con_noct_min = con_noct;
+
           int vel_noct = tbslas::CountNumLeafNodes(tvel);
-	  vel_noct_sum += vel_noct;
-	  if (vel_noct > vel_noct_max) vel_noct_max = vel_noct;
+          vel_noct_sum += vel_noct;
+          if (vel_noct > vel_noct_max) vel_noct_max = vel_noct;
+          if (vel_noct < vel_noct_min) vel_noct_min = vel_noct;
         }
 
         pvfmm::Profile::Tic(std::string("Solve_TN" + tbslas::ToString(static_cast<long long>(timestep))).c_str(), &comm, true);
@@ -363,9 +385,9 @@ int main (int argc, char **argv) {
         tcon.RefineTree();
         pvfmm::Profile::Toc();
 
-	pvfmm::Profile::Tic("Balance21", &sim_config->comm, false, 5);
-	tcon.Balance21(sim_config->bc);
-	pvfmm::Profile::Toc();
+        pvfmm::Profile::Tic("Balance21", &sim_config->comm, false, 5);
+        tcon.Balance21(sim_config->bc);
+        pvfmm::Profile::Toc();
       }
       pvfmm::Profile::Toc();        // solve
 
@@ -449,10 +471,12 @@ int main (int argc, char **argv) {
       Rep::AddData("InRLINF", in_rli);
       Rep::AddData("OutRLINF", rli);
 
-      Rep::AddData("CNOCT", con_noct_sum/(sim_config->total_num_timestep+1));
+      Rep::AddData("CMinNOCT", con_noct_min);
+      Rep::AddData("CAvgNOCT", con_noct_sum/(sim_config->total_num_timestep+1)); // NUMBER OF TIMESTEPS + INITIAL TREE
       Rep::AddData("CMaxNOCT", con_noct_max);
 
-      Rep::AddData("VNOCT", vel_noct_sum/(sim_config->total_num_timestep+1));
+      Rep::AddData("VMinNOCT", vel_noct_min);
+      Rep::AddData("VAvgNOCT", vel_noct_sum/(sim_config->total_num_timestep+1)); // NUMBER OF TIMESTEPS + INITIAL TREE
       Rep::AddData("VMaxNOCT", vel_noct_max);
 
       Rep::Report();

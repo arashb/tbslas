@@ -38,14 +38,14 @@ def generate_command_args(prog,\
                    '-d'     , str(dp_list[counter]), \
                    '-q'     , str(cq_list[counter]), \
                    '-cuf'   , str(uf_list[counter]), \
-                   '-tn'    , str(200),              \
-                   '-dt'    , str(0.0628),           \
+                   '-tn'    , str(2),              \
+                   '-dt'    , str(1e-9),           \
                    '-vs'    , str(1),                \
                    '-merge' , str(3),                \
                    '-omp'   , str(nt_list[counter])]
         if use_cubic:
             ARGS = ARGS + ['-cubic', '1']
-        cmd_args[cmd_id] = ['remora'] + utils.determine_command_prefix(np_list[counter]) + [EXEC] + ARGS
+        cmd_args[cmd_id] = utils.determine_command_prefix(np_list[counter]) + ['valgrind', '--tool=massif','--massif-out-file='+'valgrind-cmd-'+str(cmd_id)+'-%p.mem'] + [EXEC] + ARGS
         cmd_id = cmd_id + 1
     return cmd_args
 
@@ -91,7 +91,7 @@ if __name__ == '__main__':
     for cq in cq_list:
         for tl in tl_list:
             for dp in dp_list:
-                # USE UF 4 FOR Q 14 
+                # USE UF 4 FOR Q 14
                 if cq is 14:
                     uf = 4
                 cmd_args = OrderedDict()
