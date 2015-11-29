@@ -246,13 +246,13 @@ def pp_tree_eval_data(mydoc, file_pp, PRINT_HEADER = True):
     ppnode.print_me(file_pp)
 
 
-def list_raw_files(raw_dir_name):
+def list_raw_files(raw_dir_name, extension='.out'):
     """
     """
     import os
     outfiles = [os.path.join(root, filename) \
               for root, dirnames, filenames in os.walk(raw_dir_name) \
-              for filename in filenames if filename.endswith('.out')]
+                for filename in filenames if filename.endswith(extension)]
     return sorted(outfiles)
     # return sorted(glob.glob(raw_dir_name + "*.out"))
 

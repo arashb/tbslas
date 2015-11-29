@@ -16,6 +16,7 @@ import sys
 from collections import OrderedDict
 import utils
 import json
+import pp
 
 def generate_command_args(prog,\
                           pn_list,\
@@ -88,27 +89,35 @@ if __name__ == '__main__':
     num_pnts      = 8**(math.floor(math.log(max_np,8)+1))
     uf            = 2
     table_counter = 0
+    EXEC = os.path.join(utils.TBSLAS_EXAMPLES_BIN_DIR, prog)
+    cmd_id = 0
+    cmd_args = OrderedDict()
     for cq in cq_list:
         for tl in tl_list:
             for dp in dp_list:
                 # USE UF 4 FOR Q 14
                 if cq is 14:
                     uf = 4
-                cmd_args = OrderedDict()
-                cmd_id = 0
                 for np in np_list:
-                    cmd_args[cmd_id] = generate_command_args(\
-                                                            prog      = prog,\
-                                                            pn_list   = [num_pnts],\
-                                                            tl_list   = [tl],\
-                                                            dp_list   = [dp],\
-                                                            cq_list   = [cq],\
-                                                            uf_list   = [uf],\
-                                                            use_cubic = True,\
-                                                            np_list   = [np],\
-                                                            nt_list   = [omp_num_threads],\
-                                                            num_steps = 1)[1]
+                    ARGS    = ['-N'     , str(num_pnts), \
+                               '-tol'   , str(tl), \
+                               '-d'     , str(dp), \
+                               '-q'     , str(cq), \
+                               '-cuf'   , str(uf), \
+                               '-tn'    , str(2),              \
+                               '-dt'    , str(1e-9),           \
+                               '-vs'    , str(1),                \
+                               '-merge' , str(3),                \
+                               '-omp'   , str(omp_num_threads)]
+                    if use_cubic:
+                        ARGS = ARGS + ['-cubic', '1']
+                        cmd_args[cmd_id] = utils.determine_command_prefix(np) + ['valgrind', '--tool=massif','--massif-out-file='+'valgrind-cmd-'+str(cmd_id)+'-%p.mem'] + [EXEC] + ARGS
                     cmd_id = cmd_id + 1
-                    # print(json.dumps(cmd_args, indent=4))
-                utils.execute_commands(cmd_args, prog+'-table-'+str(table_counter))
-                table_counter = table_counter + 1
+    utils.execute_commands(cmd_args, prog+'-table-'+str(table_counter))
+    table_counter = table_counter + 1
+
+
+    raw_files_list = pp.list_raw_files(os.getcwd(), '.mem')
+    print raw_files_list
+    for raw_file in raw_files_list:
+        os.popen('ms_print '+raw_file+' > '+raw_file+'.ms')
