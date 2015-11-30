@@ -32,7 +32,8 @@ TARGET_BIN = \
        $(BINDIR)/advdiff \
        $(BINDIR)/advdiff-ss \
        $(BINDIR)/merge \
-       $(BINDIR)/cubic
+       $(BINDIR)/cubic \
+       $(BINDIR)/traj
 
 all : $(TARGET_BIN)
 
