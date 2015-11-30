@@ -60,7 +60,6 @@ if __name__ == '__main__':
     ############################################################################
     prog  = 'advection'
     tl_list = [\
-            # 1e+0,\
             1e-2,\
             1e-4,\
             1e-7,\
@@ -94,6 +93,8 @@ if __name__ == '__main__':
     cmd_args = OrderedDict()
     for cq in cq_list:
         for tl in tl_list:
+            if cq is 4 and tl is 1e-7:
+                continue
             for dp in dp_list:
                 # USE UF 4 FOR Q 14
                 if cq is 14:

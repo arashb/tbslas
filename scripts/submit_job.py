@@ -29,8 +29,9 @@ import utils
 ################################################################################
 TIMESTR    = time.strftime("%Y%m%d-%H%M%S")
 HOSTNAME   = socket.gethostname()
-CMD_FFTW3  = ['module', 'load', 'fftw3']
-CMD_PYTHON = ['module', 'load', 'python']
+CMD_FFTW3   = 'module load fftw3'
+CMD_PYTHON  = 'module load python'
+CMD_VALGRIND = 'module load valgrind'
 
 def submit_job(job_id, num_nodes, num_procs, num_threads, total_time, queue=None):
     print '--> submit job ' + job_id + ' ...'
@@ -93,5 +94,5 @@ if __name__ == '__main__':
         queue = sys.argv[6]
     # print len(sys.argv)
     # print sys.argv
-    utils.compile_code()
+    # utils.compile_code()
     submit_job(job_id, num_nodes, num_procs, num_threads, total_time, queue)
