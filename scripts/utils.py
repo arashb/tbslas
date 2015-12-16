@@ -18,6 +18,7 @@ import socket
 import time
 import sys
 import os
+from collections import OrderedDict
 
 ################################################################################
 # LOCAL IMPORT
@@ -97,6 +98,58 @@ def determine_command_prefix(mpi_num_procs, offset=0):
         return ['ibrun', '-n', str(mpi_num_procs), '-o', str(offset), 'tacc_affinity']
     else:
         return ['mpirun', '-np', str(mpi_num_procs)]
+
+def generate_commands(
+    # executable name
+    prog,
+    # number of points
+    pn_list,
+    # tree tolerance
+    tl_list,
+    # maximux tree depth
+    dp_list,
+    # cheybishev degree
+    cq_list,
+    # cubic interpolation
+    ci_list,
+    # upsampling factor in cubic interp
+    uf_list,
+    # number of processes
+    np_list,
+    # number of threads
+    nt_list,
+    # temporal resolution
+    dt_list,
+    # number of time steps
+    tn_list,
+    # save VTK files
+    vs_list,
+    # load-balancing (tree merge) method
+    mg_list):
+
+    num_steps = len(pn_list)
+    EXEC = os.path.join(TBSLAS_EXAMPLES_BIN_DIR, prog)
+
+    # generate a dictionary data type of commands
+    cmd_args = OrderedDict()
+    cmd_id = 1;
+    for counter in range(0,num_steps):
+        ARGS    = ['-N'     , str(pn_list[counter]),
+                   '-tol'   , str(tl_list[counter]),
+                   '-d'     , str(dp_list[counter]),
+                   '-q'     , str(cq_list[counter]),
+                   '-cuf'   , str(uf_list[counter]),
+                   '-tn'    , str(tn_list[counter]),
+                   '-dt'    , str(dt_list[counter]),
+                   '-merge' , str(mg_list[counter]),
+                   '-omp'   , str(nt_list[counter])]
+        if ci_list[counter]:
+            ARGS = ARGS + ['-cubic', '1']
+        if not vs_list[counter]:
+            ARGS = ARGS + ['-vs', '1']
+        cmd_args[cmd_id] = determine_command_prefix(np_list[counter]) + [EXEC] + ARGS
+        cmd_id = cmd_id + 1
+    return cmd_args
 
 def analyse_command_output(output, fout, fdata, fprof,
                            PRINT_RSLT_HEADER, PRINT_PRFL_HEADER,\
