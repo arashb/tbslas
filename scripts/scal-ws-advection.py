@@ -17,39 +17,35 @@ from collections import OrderedDict
 import json
 import utils
 
-################################################################################
-# MAIN
-################################################################################
-if __name__ == '__main__':
-    mpi_num_procs, omp_num_threads = utils.parse_args()
+def test1():
     ############################################################################
-    # TEST 1:
+    # TEST 1: WEAK/STRONG SCALING FOR ADVECTION
     ############################################################################
     prog  = 'advection'
-    tl_list = [\
-            # 1e+0,\
-            1e-2,\
-            1e-4,\
-            1e-7,\
+    tl_list = [
+            # 1e+0,
+            1e-2,
+            1e-4,
+            1e-7,
             ]
-    dp_list = [\
-            # 6,\
-            # 8,\
-            # 10,\
-            15,\
-                ]
-    cq_list = [\
-            4,\
-            6,\
-            14,\
+    dp_list = [
+            # 6,
+            # 8,
+            # 10,
+            15,
+        ]
+    cq_list = [
+            4,
+            6,
+            14,
             ]
-    np_list = [\
-            1,\
-            2,\
-            4,\
-            8,\
-            16,\
-            32,\
+    np_list = [
+            1,
+            2,
+            4,
+            8,
+            16,
+            32,
             ]
 
     # dt = 7.85398e-03
@@ -94,6 +90,57 @@ if __name__ == '__main__':
                         mg_list = [merge_type      ]
                         )[1]
                     cmd_id = cmd_id + 1
-                    # print(json.dumps(cmd_args, indent=4))
                 utils.execute_commands(cmd_args, prog+'-table-'+str(table_counter))
                 table_counter = table_counter + 1
+
+def test2():
+    ############################################################################
+    # TEST 2: CONVERGENCE TEST FOR ADVECTION
+    ############################################################################
+    prog     = 'advection'
+    dt       = 0.0628
+    save_vtk = True
+    mrg_type = 3
+    np       = 4
+    num_pnts = 8**(math.floor(math.log(np,8)+1))
+    nt       = omp_num_threads
+
+    dp_list = [5    , 5     , 6    , 6     , 3    , 4    , 4    ]
+    cq_list = [6    , 6     , 6    , 6     , 14   , 14   , 14   ]
+    ci_list = [True , False , True , False , True , True , True ]
+    uf_list = [2    , 2     , 2    , 2     , 4    , 4    , 6    ]
+    dt_list = [dt   , dt    , dt/2 , dt/2  , dt   , dt/2 , dt/2 ]
+    tn_list = [100  , 100   , 200  , 200   , 100  , 200  , 200  ]
+
+    num_steps = len(dp_list)
+    pn_list = [num_pnts for cnt in range(0,num_steps)]
+    tl_list = [1e-30    for cnt in range(0,num_steps)]
+    np_list = [np       for cnt in range(0,num_steps)]
+    nt_list = [nt       for cnt in range(0,num_steps)]
+    mg_list = [mrg_type for cnt in range(0,num_steps)]
+    vs_list = [save_vtk for cnt in range(0,num_steps)]
+
+    cmd_args = OrderedDict()
+    cmd_args = utils.generate_commands(
+        prog,
+        pn_list,
+        tl_list,
+        dp_list,
+        cq_list,
+        ci_list,
+        uf_list,
+        np_list,
+        nt_list,
+        dt_list,
+        tn_list,
+        vs_list,
+        mg_list)
+    utils.execute_commands(cmd_args, prog+'-table-'+str(0))
+
+################################################################################
+# MAIN
+################################################################################
+if __name__ == '__main__':
+    mpi_num_procs, omp_num_threads = utils.parse_args()
+    # test1()
+    test2()

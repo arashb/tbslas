@@ -307,7 +307,6 @@ int main (int argc, char **argv) {
                             in_al2,in_rl2,in_ali,in_rli,
                             std::string("Input"));
 
-
     int con_noct_sum = 0;
     int con_noct_max = 0;
     int con_noct_min = 0;
@@ -367,57 +366,56 @@ int main (int argc, char **argv) {
 
         pvfmm::Profile::Tic(std::string("Solve_TN" + tbslas::ToString(static_cast<long long>(timestep))).c_str(), &comm, true);
         {
-        // =====================================================================
-        // SOLVE SEMILAG
-        // =====================================================================
-        pvfmm::Profile::Tic(std::string("SL_TN" + tbslas::ToString(static_cast<long long>(timestep))).c_str(), &sim_config->comm, false, 5);
-        tbslas::SolveSemilagInSitu(tvel,
-                                   tcon,
-                                   timestep,
-                                   sim_config->dt,
-                                   sim_config->num_rk_step);
-        pvfmm::Profile::Toc();
+          // =====================================================================
+          // SOLVE SEMILAG
+          // =====================================================================
+          pvfmm::Profile::Tic(std::string("SL_TN" + tbslas::ToString(static_cast<long long>(timestep))).c_str(), &sim_config->comm, false, 5);
+          tbslas::SolveSemilagInSitu(tvel,
+                                     tcon,
+                                     timestep,
+                                     sim_config->dt,
+                                     sim_config->num_rk_step);
+          pvfmm::Profile::Toc();
 
-        // =====================================================================
-        // REFINE TREE
-        // =====================================================================
-        pvfmm::Profile::Tic("RefineTree", &sim_config->comm, false, 5);
-        tcon.RefineTree();
-        pvfmm::Profile::Toc();
+          // =====================================================================
+          // REFINE TREE
+          // =====================================================================
+          pvfmm::Profile::Tic("RefineTree", &sim_config->comm, false, 5);
+          tcon.RefineTree();
+          pvfmm::Profile::Toc();
 
-        pvfmm::Profile::Tic("Balance21", &sim_config->comm, false, 5);
-        tcon.Balance21(sim_config->bc);
-        pvfmm::Profile::Toc();
-      }
-      pvfmm::Profile::Toc();        // solve
+          pvfmm::Profile::Tic("Balance21", &sim_config->comm, false, 5);
+          tcon.Balance21(sim_config->bc);
+          pvfmm::Profile::Toc();
+        }
+        pvfmm::Profile::Toc();        // solve
 
-      //TODO: ONLY FOR STEADY VELOCITY TREES
-      tvel.RefineTree();
+        //TODO: ONLY FOR STEADY VELOCITY TREES
+        tvel.RefineTree();
 
-      // ======================================================================
-      // Write2File
-      // ======================================================================
-      if (sim_config->vtk_save) {
-        tcon.Write2File(tbslas::GetVTKFileName(timestep, sim_config->vtk_filename_variable).c_str(), sim_config->vtk_order);
-      }
-
-      // ======================================================================
-      // print error every 100 time steps
-      // ======================================================================
-      if (timestep % 10 == 0) {
-        //Write2File
-        if (!sim_config->vtk_save) {
+        // ======================================================================
+        // Write2File
+        // ======================================================================
+        if (sim_config->vtk_save) {
           tcon.Write2File(tbslas::GetVTKFileName(timestep, sim_config->vtk_filename_variable).c_str(), sim_config->vtk_order);
         }
-        tcurr = timestep*sim_config->dt;
-        double al2,rl2,ali,rli;
-        CheckChebOutput<Tree_t>(&tcon,
-                                fn_con,
-                                1,
-                                al2,rl2,ali,rli,
-                                std::string("Output_TN" + tbslas::ToString(static_cast<long long>(timestep))));
 
-      }
+        // ======================================================================
+        // print error every 100 time steps
+        // ======================================================================
+        if (timestep % 10 == 0) {
+          //Write2File
+          if (!sim_config->vtk_save) {
+            tcon.Write2File(tbslas::GetVTKFileName(timestep, sim_config->vtk_filename_variable).c_str(), sim_config->vtk_order);
+          }
+          tcurr = timestep*sim_config->dt;
+          double al2,rl2,ali,rli;
+          CheckChebOutput<Tree_t>(&tcon,
+                                  fn_con,
+                                  1,
+                                  al2,rl2,ali,rli,
+                                  std::string("Output_TN" + tbslas::ToString(static_cast<long long>(timestep))));
+        }
     }  // end for
 
     // =========================================================================

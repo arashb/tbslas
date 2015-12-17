@@ -148,6 +148,7 @@ def generate_commands(
         if not vs_list[counter]:
             ARGS = ARGS + ['-vs', '1']
         cmd_args[cmd_id] = determine_command_prefix(np_list[counter]) + [EXEC] + ARGS
+        print "CMD {0}: {1} ".format(cmd_id, cmd_args[cmd_id])
         cmd_id = cmd_id + 1
     return cmd_args
 
@@ -161,12 +162,12 @@ def analyse_command_output(output, fout, fdata, fprof,
         if line.startswith(RESULT_TAG_HEADER) and PRINT_RSLT_HEADER:
             li = line.replace(RESULT_TAG_HEADER, '')
             fdata.write(li)
-            sys.stdout.write(li)
+            # sys.stdout.write(li)
         # CATCH RESULTS DATA
         if line.startswith(RESULT_TAG):
             li = line.replace(RESULT_TAG, '')
             fdata.write(li)
-            sys.stdout.write(li)
+            # sys.stdout.write(li)
     # PARSE PROFILE OUTPUT
     mydoc = parser.pdoc(output)
     mydoc.print_me(fprof)
@@ -204,19 +205,19 @@ def execute_commands(cmds, id, pp_func = None):
         f.write('# REVISION: ' + subprocess.check_output(["git", "describe"]))
         f.write('# HOST: ' + socket.gethostname()+'\n')
     # execute generated commands
-    for counter, cmd in cmds.iteritems():
+    for cmd_id, cmd in cmds.iteritems():
         out_dir_name = \
-          os.path.join(TBSLAS_RESULT_DIR_PREFIX,'{0}-cmd{1:03}'.format(id,counter))
+          os.path.join(TBSLAS_RESULT_DIR_PREFIX,'{0}-cmd{1:03}'.format(id,cmd_id))
         out_file_name = out_dir_name+'.out'
         fout = open(out_file_name, 'w')
         os.environ['TBSLAS_RESULT_DIR'] = out_dir_name
         os.makedirs(out_dir_name)
         # output command
-        cmd_msg = '# CMD '+str(counter)+' : ' +  ' '.join(cmd) + '\n'
+        cmd_msg = '# CMD '+str(cmd_id)+' : ' +  ' '.join(cmd) + '\n'
         sys.stdout.write('# ------------------------------\n')
         sys.stdout.write("--> storing output in: " + out_dir_name +" \n")
-        sys.stdout.write("--> executing command ... \n")
-        sys.stdout.write(cmd_msg)
+        sys.stdout.write("--> executing command {0} ... \n".format(cmd_id))
+        # sys.stdout.write(cmd_msg)
         fout.write('# ------------------------------\n')
         fout.write(cmd_msg)
         for f in flist:

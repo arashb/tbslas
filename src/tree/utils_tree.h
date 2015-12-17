@@ -94,7 +94,8 @@ void ConstructTree(const size_t N,
                    const MPI_Comm& comm,
                    const InputFunction input_fn,
                    const int data_dof,
-                   TreeType& tree) {
+                   TreeType& tree,
+                   bool unif = true) {
   typedef typename TreeType::Real_t RealType;
   typedef typename TreeType::Node_t NodeType;
   tbslas::SimConfig* sim_config = tbslas::SimConfigSingleton::Instance();
@@ -113,7 +114,7 @@ void ConstructTree(const size_t N,
 
   //Set source coordinates.
   std::vector<RealType> pt_coord;
-  pt_coord           = tbslas::point_distrib<RealType>(UnifGrid,N,comm);
+  pt_coord           = unif?tbslas::point_distrib<RealType>(UnifGrid,N,comm):tbslas::point_distrib<RealType>(tbslas::RandElps,N,comm);
   tree_data.max_pts  = M; // Points per octant.
   tree_data.pt_coord = pt_coord;
 
