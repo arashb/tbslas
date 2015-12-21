@@ -28,7 +28,7 @@ import utils
 # GLOBALS
 ################################################################################
 TIMESTR    = time.strftime("%Y%m%d-%H%M%S")
-HOSTNAME   = socket.gethostname()
+HOSTNAME   = socket.getfqdn()
 CMD_FFTW3   = 'module load fftw3'
 CMD_PYTHON  = 'module load python'
 CMD_VALGRIND = 'module load valgrind'
@@ -36,7 +36,7 @@ CMD_VALGRIND = 'module load valgrind'
 def submit_job(job_id, num_nodes, num_procs, num_threads, total_time, queue=None):
     print '--> submit job ' + job_id + ' ...'
     cmd_list = [];
-    if 'stampede' in HOSTNAME:
+    if 'stampede' in HOSTNAME:          # TACC Stampede cluster
         if not queue:
             queue = 'normal'
         CMD_JOB =['sbatch', \
@@ -48,7 +48,7 @@ def submit_job(job_id, num_nodes, num_procs, num_threads, total_time, queue=None
                   '-J', job_id, \
                   './.run_python.sh', job_id, str(num_procs), str(num_threads)]
         cmd_list.extend([CMD_JOB])
-    elif 'maverick' in HOSTNAME:
+    elif 'maverick' in HOSTNAME:        # TACC Maverick cluster
         if not queue:
             queue = 'vis'
         CMD_JOB =['sbatch', \
@@ -58,6 +58,31 @@ def submit_job(job_id, num_nodes, num_procs, num_threads, total_time, queue=None
                   '-o'+job_id+'_'+TIMESTR + '.out', \
                   '--time='+str(total_time), \
                   '-J', job_id, \
+                  './.run_python.sh', job_id, str(num_procs), str(num_threads)]
+        cmd_list.extend([CMD_JOB])
+    elif 'cos.lrz.de' in HOSTNAME:      # LRZ linux cluster
+        if not queue:
+            queue = 'mpp2'
+        CMD_JOB =['sbatch', \
+                  '-N'+str(num_nodes),\
+                  '-n'+str(num_procs), \
+                  '-M', queue, \
+                  '-o'+job_id+'_'+TIMESTR + '.out', \
+                  '--time='+str(total_time), \
+                  '-J', job_id, \
+                  './.run_python.sh', job_id, str(num_procs), str(num_threads)]
+        cmd_list.extend([CMD_JOB])
+    elif 'sm.lrz.de' in HOSTNAME:      # LRZ linux cluster
+        if not queue:
+            queue = 'test'
+        CMD_JOB =['llrun', \
+                  '-b',\
+                  '-N'+str(num_nodes),\
+                  '-n'+str(num_procs), \
+                  '-c', queue, \
+                  # '-o'+job_id+'_'+TIMESTR + '.out', \
+                  '-w'+str(total_time), \
+                  '-j', job_id, \
                   './.run_python.sh', job_id, str(num_procs), str(num_threads)]
         cmd_list.extend([CMD_JOB])
     elif 'zico' in HOSTNAME:
