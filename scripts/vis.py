@@ -42,13 +42,15 @@ TIMESTR = time.strftime("%Y%m%d-%H%M%S")
 ###############################################################################
 # INPUT ARGUMENTS
 ###############################################################################
-USAGE='USAGE: python PROGRAM <vtk-files-dir>'
+import optparse
+parser = optparse.OptionParser()
+parser.add_option('-i', '--input',
+    action="store", dest="input_dir",
+    help="VTK files dir")
 
-if len(sys.argv) != 2:
-    print USAGE
-    sys.exit()
+options, args = parser.parse_args()
 
-VTK_DIR = sys.argv[1]
+VTK_DIR = options.input_dir
 
 ###############################################################################
 # FIND THE PREFIX IN .VTK FILES
