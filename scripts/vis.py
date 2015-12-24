@@ -6,31 +6,9 @@ In order to run this script, you should do the following in advance:
 
                         >>> module load visit
 
-        2- Make sure python is working nicely on your system; for LRZ Linux cluster
-        , the python module should be loaded:
+        2- run the script on the machine by invoking visit
 
-                        >>> module load python
-
-        3- Set the environmental variables:
-
-                i) Set PYTHONPATH environmental variables to the directory of the VisIt
-                library, since this library is imported to be used in this script. For
-                example in order to do that on Linux Cluster in LRZ the following comm-
-                and is suggested:
-
-                        >>> export PYTHONPATH=/lrz/sys/graphics/visit/2.7.0/current/linux-x86_64/lib/site-packages/
-
-                For more information refer to the VisIt user's guide in the following
-                link:
-
-                        http://www.visitusers.org/index.php?title=Using_a_Standard_Python_Interpreter
-
-                ii) set TBSLAS_RESULT_DIR to the directory that contains the results
-                from simulation using tbslas. (.VTK files directory)
-
-        4- run the script on the machine by invoking python.
-
-                        >>> python visualization.py
+                        >>> visit -cli -nowin -s vis.py <vtk-files-dir>
 
 
         IMPORTANT NOTE: make sure you are using the proper system on which Xlib is
@@ -38,7 +16,7 @@ In order to run this script, you should do the following in advance:
         namely Render Nodes. For instace, for linux cluster in LRZ one should should
         use the following command on the remote visualization nodes:
 
-                        >>> rvglrun python visualization.py
+                        >>> rvglrun visit -cli -nowin -s vis.py <vtk-files-dir>
 
         For more information, please refer to the LRZ user manual web-page:
 
@@ -62,33 +40,15 @@ from visit import *
 TIMESTR = time.strftime("%Y%m%d-%H%M%S")
 
 ###############################################################################
-# CHECK THE ENVIRONMENTAL VARIABLES
-###############################################################################
-# try:
-#     TBSLAS_RESULT_DIR = os.environ['TBSLAS_RESULT_DIR']
-# except KeyError as e:
-#     print "Environment variable {0} is not set.".format(e)
-#     sys.exit()
-
-try:
-    PYTHONPATH = os.environ['PYTHONPATH']
-except KeyError as e:
-    print "Environment variable {0} is not set.".format(e)
-    sys.exit()
-
-
-###############################################################################
 # INPUT ARGUMENTS
 ###############################################################################
-USAGE='USAGE: python PROGRAM <num-of-nodes> <mpi-num-processes> <vtk-files-dir>'
+USAGE='USAGE: python PROGRAM <vtk-files-dir>'
 
-if len(sys.argv) != 4:
+if len(sys.argv) != 2:
     print USAGE
     sys.exit()
 
-TOTAL_NUM_NODES         = int(sys.argv[1])
-MPI_TOTAL_NUM_PORCESSES = int(sys.argv[2])
-VTK_DIR                 = sys.argv[3]
+VTK_DIR = sys.argv[1]
 
 ###############################################################################
 # FIND THE PREFIX IN .VTK FILES
@@ -115,20 +75,6 @@ elif 'semilag-tree' in fd[0]:
 VTK_FILES=VTK_DIR+"/"+prefix+"_Vconc_T*_P.pvtu database"
 IMAGE_DIR=VTK_DIR+"/images-"+TIMESTR
 os.makedirs(IMAGE_DIR)
-
-def launch_visit(num_nodes, num_procs):
-    ##########################################################################
-    # LAUNCH VISIT
-    ##########################################################################
-    AddArgument("-nn")
-    AddArgument(str(num_nodes))
-    AddArgument("-np")
-    AddArgument(str(num_procs))
-    AddArgument("-psub")
-    AddArgument("-pbatch")
-    AddArgument("-nowin")
-    Launch()
-    print "Engine is up and running"
 
 
 def draw_porous_media():
@@ -222,15 +168,13 @@ def draw_slice():
     AnnotationAtts.axes3D.bboxFlag = 0
     SetAnnotationAttributes(AnnotationAtts)
 
-
     DrawPlots()
 
 ################################################################################
 # MAIN
 ################################################################################
 if __name__ == '__main__':
-    launch_visit(TOTAL_NUM_NODES, MPI_TOTAL_NUM_PORCESSES)
-    visit.OpenDatabase(VTK_FILES, 0)
+    OpenDatabase(VTK_FILES, 0)
 
     draw_slice()
     # draw_porous_media()
