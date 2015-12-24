@@ -142,10 +142,10 @@ int main (int argc, char **argv) {
   typedef tbslas::Reporter<double> Rep;
   if(!myrank) {
     Rep::AddData("TOL", sim_config->tree_tolerance);
-    Rep::AddData("NOCT", num_leaves);
+    Rep::AddData("NOCT", num_leaves, tbslas::REP_INT);
 
-    Rep::AddData("CUBIC", sim_config->use_cubic);
-    Rep::AddData("CUF", sim_config->cubic_upsampling_factor);
+    Rep::AddData("CUBIC", sim_config->use_cubic, tbslas::REP_INT);
+    Rep::AddData("CUF", sim_config->cubic_upsampling_factor, tbslas::REP_INT);
     // Rep::AddData("ANAL", sim_config->cubic_use_analytical);
 
     Rep::AddData("OutAL2", al2);

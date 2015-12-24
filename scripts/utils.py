@@ -220,9 +220,9 @@ def execute_commands(cmds, id, pp_func = None):
         # sys.stdout.write(cmd_msg)
         fout.write('# ------------------------------\n')
         fout.write(cmd_msg)
-        for f in flist:
-            f.write('# ------------------------------\n')
-            f.write(cmd_msg)
+        # for f in flist:
+        #     f.write('# ------------------------------\n')
+            # f.write(cmd_msg)
         # execute command
         p = subprocess.Popen(cmd,                    \
                              shell=False,            \

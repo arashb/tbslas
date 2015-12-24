@@ -228,10 +228,10 @@ void RunDiffusion(int test_case, size_t N, size_t M, bool unif, int mult_order,
   typedef tbslas::Reporter<Real_t> Rep;
   if(!myrank) {
     Rep::AddData("TOL", sim_config->tree_tolerance);
-    Rep::AddData("NOCT", num_leaves);
+    Rep::AddData("NOCT", num_leaves, tbslas::REP_INT);
 
     Rep::AddData("DT", sim_config->dt);
-    Rep::AddData("TN", sim_config->total_num_timestep);
+    Rep::AddData("TN", sim_config->total_num_timestep, tbslas::REP_INT);
 
     Rep::AddData("DIFF", TBSLAS_DIFF_COEFF);
     Rep::AddData("ALPHA", TBSLAS_ALPHA);
