@@ -72,7 +72,7 @@ def submit_job(job_id, num_nodes, num_procs, num_threads, total_time, queue=None
                   '-J', job_id, \
                   './.run_python.sh', job_id, str(num_procs), str(num_threads)]
         cmd_list.extend([CMD_JOB])
-    elif 'sm.lrz.de' in HOSTNAME:      # LRZ linux cluster
+    elif 'sm.lrz.de' in HOSTNAME:      # LRZ SuperMUC cluster
         if not queue:
             queue = 'test'
         CMD_JOB =['llrun', \

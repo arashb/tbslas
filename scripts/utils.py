@@ -97,7 +97,9 @@ def determine_command_prefix(mpi_num_procs, offset=0):
     elif 'maverick' in hostname:
         return ['ibrun', '-n', str(mpi_num_procs), '-o', str(offset), 'tacc_affinity']
     elif 'sm.lrz.de' in hostname:
-        return ['mpiexec', '-n', str(mpi_num_procs), '-o', str(offset), 'tacc_affinity']
+        return ['mpiexec', '-n', str(mpi_num_procs)]
+    elif 'cos.lrz.de' in hostname:
+        return ['mpiexec', '-n', str(mpi_num_procs)]
     else:
         return ['mpirun', '-np', str(mpi_num_procs)]
 
