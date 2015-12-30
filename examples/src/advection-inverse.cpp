@@ -521,23 +521,23 @@ int main (int argc, char **argv) {
 
     typedef tbslas::Reporter<double> Rep;
     if(!myrank) {
-      Rep::AddData("NP", np);
-      Rep::AddData("OMP",  sim_config->num_omp_threads);
+      Rep::AddData("NP", np, tbslas::REP_INT);
+      Rep::AddData("OMP",  sim_config->num_omp_threads, tbslas::REP_INT);
 
       Rep::AddData("TOL", sim_config->tree_tolerance);
-      Rep::AddData("Q", sim_config->tree_chebyshev_order);
+      Rep::AddData("Q", sim_config->tree_chebyshev_order, tbslas::REP_INT);
 
-      Rep::AddData("MaxD", sim_config->tree_max_depth);
-      Rep::AddData("CMaxD", tcon_max_depth);
-      Rep::AddData("VMaxD", tvel_max_depth);
+      Rep::AddData("MaxD", sim_config->tree_max_depth, tbslas::REP_INT);
+      Rep::AddData("CMaxD", tcon_max_depth, tbslas::REP_INT);
+      Rep::AddData("VMaxD", tvel_max_depth, tbslas::REP_INT);
 
-      Rep::AddData("CBC", sim_config->use_cubic?1:0);
-      Rep::AddData("CUF", sim_config->cubic_upsampling_factor);
+      Rep::AddData("CBC", sim_config->use_cubic?1:0, tbslas::REP_INT);
+      Rep::AddData("CUF", sim_config->cubic_upsampling_factor, tbslas::REP_INT);
 
       Rep::AddData("DT", sim_config->dt);
-      Rep::AddData("TN", sim_config->total_num_timestep);
-      Rep::AddData("TEST", test);
-      Rep::AddData("MERGE", merge);
+      Rep::AddData("TN", sim_config->total_num_timestep, tbslas::REP_INT);
+      Rep::AddData("TEST", test, tbslas::REP_INT);
+      Rep::AddData("MERGE", merge, tbslas::REP_INT);
 
       Rep::AddData("InAL2", in_al2);
       Rep::AddData("OutAL2", al2);
@@ -551,11 +551,13 @@ int main (int argc, char **argv) {
       Rep::AddData("InRLINF", in_rli);
       Rep::AddData("OutRLINF", rli);
 
-      Rep::AddData("CNOCT", con_noct_sum/(sim_config->total_num_timestep+1));
-      Rep::AddData("CMaxNOCT", con_noct_max);
+      Rep::AddData("CNOCT", con_noct_sum/(sim_config->total_num_timestep+1),
+                   tbslas::REP_INT);
+      Rep::AddData("CMaxNOCT", con_noct_max, tbslas::REP_INT);
 
-      Rep::AddData("VNOCT", vel_noct_sum/(sim_config->total_num_timestep+1));
-      Rep::AddData("VMaxNOCT", vel_noct_max);
+      Rep::AddData("VNOCT", vel_noct_sum/(sim_config->total_num_timestep+1),
+                   tbslas::REP_INT);
+      Rep::AddData("VMaxNOCT", vel_noct_max, tbslas::REP_INT);
 
       Rep::Report();
     }

@@ -481,24 +481,24 @@ void RunAdvectDiff(int test, size_t N, size_t M, bool unif, int mult_order,
 
   typedef tbslas::Reporter<Real_t> Rep;
   if(!myrank) {
-    Rep::AddData("NP", np);
-    Rep::AddData("OMP", sim_config->num_omp_threads);
+    Rep::AddData("NP", np, tbslas::REP_INT);
+    Rep::AddData("OMP", sim_config->num_omp_threads, tbslas::REP_INT);
 
     Rep::AddData("TOL", sim_config->tree_tolerance);
-    Rep::AddData("Q", sim_config->tree_chebyshev_order);
+    Rep::AddData("Q", sim_config->tree_chebyshev_order, tbslas::REP_INT);
 
-    Rep::AddData("MaxD", sim_config->tree_max_depth);
-    Rep::AddData("CMaxD", tcon_max_depth);
-    Rep::AddData("VMaxD", tvel_max_depth);
+    Rep::AddData("MaxD", sim_config->tree_max_depth, tbslas::REP_INT);
+    Rep::AddData("CMaxD", tcon_max_depth, tbslas::REP_INT);
+    Rep::AddData("VMaxD", tvel_max_depth, tbslas::REP_INT);
 
-    Rep::AddData("CBC", sim_config->use_cubic?1:0);
-    Rep::AddData("CUF", sim_config->cubic_upsampling_factor);
+    Rep::AddData("CBC", sim_config->use_cubic?1:0, tbslas::REP_INT);
+    Rep::AddData("CUF", sim_config->cubic_upsampling_factor, tbslas::REP_INT);
 
     Rep::AddData("DT", sim_config->dt);
-    Rep::AddData("TN", sim_config->total_num_timestep);
+    Rep::AddData("TN", sim_config->total_num_timestep, tbslas::REP_INT);
 
-    Rep::AddData("TEST", test);
-    Rep::AddData("MERGE", merge);
+    Rep::AddData("TEST", test, tbslas::REP_INT);
+    Rep::AddData("MERGE", merge, tbslas::REP_INT);
 
     Rep::AddData("DIFF", TBSLAS_DIFF_COEFF);
     Rep::AddData("ALPHA", TBSLAS_ALPHA);
@@ -513,8 +513,8 @@ void RunAdvectDiff(int test, size_t N, size_t M, bool unif, int mult_order,
     Rep::AddData("OutALINF", ali);
     Rep::AddData("OutRLINF", rli);
 
-    Rep::AddData("CNOCT", con_noct_sum/(sim_config->total_num_timestep+1));
-    Rep::AddData("VNOCT", vel_noct_sum/(sim_config->total_num_timestep+1));
+    Rep::AddData("CNOCT", con_noct_sum/(sim_config->total_num_timestep+1), tbslas::REP_INT);
+    Rep::AddData("VNOCT", vel_noct_sum/(sim_config->total_num_timestep+1), tbslas::REP_INT);
 
     Rep::Report();
   }
