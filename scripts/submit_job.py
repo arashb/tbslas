@@ -23,7 +23,7 @@ import os
 # LOCAL IMPORT
 ################################################################################
 import utils
-
+from job_supermuc import get_job_file
 ################################################################################
 # GLOBALS
 ################################################################################
@@ -75,15 +75,9 @@ def submit_job(job_id, num_nodes, num_procs, num_threads, total_time, queue=None
     elif 'sm.lrz.de' in HOSTNAME:      # LRZ SuperMUC cluster
         if not queue:
             queue = 'test'
-        CMD_JOB =['llrun', \
-                  '-b',\
-                  '-N'+str(num_nodes),\
-                  '-n'+str(num_procs), \
-                  '-c', queue, \
-                  # '-o'+job_id+'_'+TIMESTR + '.out', \
-                  '-w'+str(total_time), \
-                  '-j', job_id, \
-                  './.run_python.sh', job_id, str(num_procs), str(num_threads)]
+	    jobfile=get_job_file(num_nodes, num_procs, num_threads, queue, job_id, TIMESTR, total_time)
+
+        CMD_JOB = ['llsubmit',str(jobfile)]
         cmd_list.extend([CMD_JOB])
     elif 'zico' in HOSTNAME:
         CMD_JOB = ['./.run_python.sh', job_id, str(num_procs), str(num_threads)]
