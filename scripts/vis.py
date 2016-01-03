@@ -42,15 +42,11 @@ TIMESTR = time.strftime("%Y%m%d-%H%M%S")
 ###############################################################################
 # INPUT ARGUMENTS
 ###############################################################################
-import optparse
-parser = optparse.OptionParser()
-parser.add_option('-i', '--input',
-    action="store", dest="input_dir",
-    help="VTK files dir")
-
-options, args = parser.parse_args()
-
-VTK_DIR = options.input_dir
+import argparse
+parser = argparse.ArgumentParser()
+parser.add_argument('-i', dest='input_dir', action='store')
+args, unknown = parser.parse_known_args()
+VTK_DIR = args.input_dir
 
 ###############################################################################
 # FIND THE PREFIX IN .VTK FILES
@@ -183,10 +179,8 @@ def cut_media(i=0):
 
 def draw_slice():
     AddPlot("Mesh", "mesh", 1, 1)
-    AddPlot("Pseudocolor", "cheb_value", 1, 1)
+    
     AddOperator("Slice", 1)
-    SetActivePlots(1)
-    SetActivePlots(1)
     SliceAtts = SliceAttributes()
     SliceAtts.originType = SliceAtts.Intercept  # Point, Intercept, Percent, Zone, Node
     SliceAtts.originPoint = (0, 0, 0)
@@ -198,7 +192,7 @@ def draw_slice():
     SliceAtts.axisType = SliceAtts.ZAxis  # XAxis, YAxis, ZAxis, Arbitrary, ThetaPhi
     SliceAtts.upAxis = (0, 1, 0)
     SliceAtts.project2d = 1
-    SliceAtts.interactive = 1
+    SliceAtts.interactive = 0
     SliceAtts.flip = 0
     SliceAtts.originZoneDomain = 0
     SliceAtts.originNodeDomain = 0
@@ -206,6 +200,8 @@ def draw_slice():
     SliceAtts.theta = 0
     SliceAtts.phi = 90
     SetOperatorOptions(SliceAtts, 1)
+
+    AddPlot("Pseudocolor", "cheb_value", 1, 1)
 
     DrawPlots()
 
@@ -350,24 +346,22 @@ def draw_concentration_field():
 ################################################################################
 if __name__ == '__main__':
 
-    OpenDatabase(RHO_VTK_FILES, 0)
-    #OpenDatabase(VEL_VTK_FILES, 1)
+#     OpenDatabase(RHO_VTK_FILES, 0)
+#     OpenDatabase(VEL_VTK_FILES, 1)
     OpenDatabase(CONC_VTK_FILES, 2)
 
+#     draw_porous_media()
+#     draw_porous_media_IV()
+#     cut_media()
 
-    OpenDatabase(RHO_VTK_FILES, 0)
-    #draw_slice()
-    #draw_porous_media()
-    draw_porous_media_IV()
-    cut_media()
+#     ActivateDatabase(CONC_VTK_FILES)
+#     draw_velocity()
 
-    #ActivateDatabase(CONC_VTK_FILES)
-    #draw_velocity()
+#     ActivateDatabase(CONC_VTK_FILES)
+#     draw_concentration_field()
+    draw_slice()
 
-    ActivateDatabase(CONC_VTK_FILES)
-    draw_concentration_field()
-
-    set_view()
+#     set_view()
     save_images()
 
     sys.exit()
