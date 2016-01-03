@@ -33,7 +33,7 @@ export TBSLAS_DIR={TBSLAS_DIR}
 
 module unload mpi.ibm
 module load mpi.intel
-./.run_python.sh conv-traj.py {NUM_PROCS} {NUM_THREADS}\n"""
+./.run_python.sh {JOB_id} {NUM_PROCS} {NUM_THREADS}\n"""
 
 def get_job_file (num_nodes, num_procs, num_threads, queue, job_id, TIMESTR, total_time):
 
@@ -42,6 +42,7 @@ def get_job_file (num_nodes, num_procs, num_threads, queue, job_id, TIMESTR, tot
 
 	global commands
 	commands=commands.format(JOB_ID=job_id[:-3],\
+	JOB_id=job_id,\
 	QUEUE=queue,\
 	TOTAL_TIME=total_time,\
 	NUM_NODES=num_nodes,\
