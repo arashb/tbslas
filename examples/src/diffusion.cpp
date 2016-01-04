@@ -169,7 +169,6 @@ void RunDiffusion(int test_case, size_t N, size_t M, bool unif, int mult_order,
   // ======================================================================
   // DIFFUSUION SOLVER
   // ======================================================================
-  char out_name_buffer[300];
   double in_al2,in_rl2,in_ali,in_rli;
   pvfmm::Profile::Tic("Solve", &comm, true);
   for (int ts_counter = 1; ts_counter < NUM_TIME_STEPS+1; ts_counter++) {
@@ -177,16 +176,10 @@ void RunDiffusion(int test_case, size_t N, size_t M, bool unif, int mult_order,
     tree->InitFMM_Tree(false,bndry);
     //Find error in FMM input.
     if (ts_counter == 1) {
-      //Writee2File
+      //Write2File
       if (sim_config->vtk_save) {
-        snprintf(out_name_buffer,
-                 sizeof(out_name_buffer),
-                 sim_config->vtk_filename_format.c_str(),
-                 tbslas::get_result_dir().c_str(),
-                 sim_config->vtk_filename_prefix.c_str(),
-                 sim_config->vtk_filename_variable.c_str(),
-                 0);
-        tree->Write2File(out_name_buffer,tree_data.cheb_deg);
+        tree->Write2File(tbslas::GetVTKFileName(0, sim_config->vtk_filename_variable).c_str(),
+                         tree_data.cheb_deg);
       }
       CheckChebOutput<FMM_Tree_t>(tree,
                                   fn_input_,
@@ -201,15 +194,9 @@ void RunDiffusion(int test_case, size_t N, size_t M, bool unif, int mult_order,
 
     tcurr += TBSLAS_DT;
     if (sim_config->vtk_save) {
-      snprintf(out_name_buffer,
-               sizeof(out_name_buffer),
-               sim_config->vtk_filename_format.c_str(),
-               tbslas::get_result_dir().c_str(),
-               sim_config->vtk_filename_prefix.c_str(),
-               sim_config->vtk_filename_variable.c_str(),
-               ts_counter);
       //Write2File
-      tree->Write2File(out_name_buffer,tree_data.cheb_deg);
+      tree->Write2File(tbslas::GetVTKFileName(ts_counter, sim_config->vtk_filename_variable).c_str(),
+                       tree_data.cheb_deg);
     }
   }
   pvfmm::Profile::Toc();        // solve
@@ -274,7 +261,6 @@ int main (int argc, char **argv) {
                                           "-test <int> = (1)    : 1) Modified Laplace, Smooth Gaussian, FreeSpace Boundary"),NULL,10);
 
   tbslas::SimConfig* sim_config       = tbslas::SimConfigSingleton::Instance();
-  sim_config->vtk_filename_prefix     = "diffusion";
   sim_config->vtk_filename_variable   = "conc";
 
   NUM_TIME_STEPS    = sim_config->total_num_timestep;

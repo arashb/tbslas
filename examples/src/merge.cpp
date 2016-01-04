@@ -140,7 +140,6 @@ int main (int argc, char **argv) {
     // =========================================================================
     // SIMULATION PARAMETERS
     // =========================================================================
-    sim_config->vtk_filename_prefix     = "merge";
     sim_config->vtk_filename_variable   = "conc";
     sim_config->bc = bc;
     double DT = 1.57;
@@ -165,7 +164,6 @@ int main (int argc, char **argv) {
                sizeof(out_name_buffer),
                sim_config->vtk_filename_format.c_str(),
                tbslas::get_result_dir().c_str(),
-               sim_config->vtk_filename_prefix.c_str(),
                "tree1",
                0);
       tree1.Write2File(out_name_buffer, sim_config->vtk_order);
@@ -190,7 +188,6 @@ int main (int argc, char **argv) {
                sizeof(out_name_buffer),
                sim_config->vtk_filename_format.c_str(),
                tbslas::get_result_dir().c_str(),
-               sim_config->vtk_filename_prefix.c_str(),
                "tree2",
                0);
       tree2.Write2File(out_name_buffer, sim_config->vtk_order);
@@ -217,7 +214,6 @@ int main (int argc, char **argv) {
                sizeof(out_name_buffer),
                sim_config->vtk_filename_format.c_str(),
                tbslas::get_result_dir().c_str(),
-               sim_config->vtk_filename_prefix.c_str(),
                "tree1_merged",
                0);
       tree1.Write2File(out_name_buffer, sim_config->vtk_order);
@@ -225,7 +221,6 @@ int main (int argc, char **argv) {
                sizeof(out_name_buffer),
                sim_config->vtk_filename_format.c_str(),
                tbslas::get_result_dir().c_str(),
-               sim_config->vtk_filename_prefix.c_str(),
                "tree2_merged",
                0);
       tree2.Write2File(out_name_buffer, sim_config->vtk_order);
@@ -314,7 +309,6 @@ int main (int argc, char **argv) {
     //            sizeof(out_name_buffer),
     //            sim_config->vtk_filename_format.c_str(),
     //            tbslas::get_result_dir().c_str(),
-    //            sim_config->vtk_filename_prefix.c_str(),
     //            "merged_tree",
     //            0);
     //   merged_tree.Write2File(out_name_buffer, sim_config->vtk_order);

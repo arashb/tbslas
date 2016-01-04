@@ -235,7 +235,6 @@ int main (int argc, char **argv) {
     // =========================================================================
     // SIMULATION PARAMETERS
     // =========================================================================
-    sim_config->vtk_filename_prefix     = "advection";
     sim_config->vtk_filename_variable   = "conc";
     sim_config->bc = bc;
 
@@ -269,25 +268,13 @@ int main (int argc, char **argv) {
                                   fn_con,
                                   1,
                                   tcon);
-    char out_name_buffer[300];
-    if (sim_config->vtk_save) {
-      snprintf(out_name_buffer,
-               sizeof(out_name_buffer),
-               sim_config->vtk_filename_format.c_str(),
-               tbslas::get_result_dir().c_str(),
-               sim_config->vtk_filename_prefix.c_str(),
-               "vel",
-               0);
-      tvel.Write2File(out_name_buffer, sim_config->vtk_order);
 
-      snprintf(out_name_buffer,
-               sizeof(out_name_buffer),
-               sim_config->vtk_filename_format.c_str(),
-               tbslas::get_result_dir().c_str(),
-               sim_config->vtk_filename_prefix.c_str(),
-               sim_config->vtk_filename_variable.c_str(),
-               0);
-      tcon.Write2File(out_name_buffer, sim_config->vtk_order);
+    if (sim_config->vtk_save) {
+      tvel.Write2File(tbslas::GetVTKFileName(0, "vel").c_str(),
+                      sim_config->vtk_order);
+
+      tcon.Write2File(tbslas::GetVTKFileName(0, sim_config->vtk_filename_variable).c_str(),
+                      sim_config->vtk_order);
     }
 
     // =========================================================================

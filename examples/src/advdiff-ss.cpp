@@ -553,7 +553,6 @@ int main (int argc, char **argv) {
   tbslas::SimConfig* sim_config     = tbslas::SimConfigSingleton::Instance();
 
   pvfmm::Profile::Enable(sim_config->profile);
-  sim_config->vtk_filename_prefix   = "advdiff";
   sim_config->vtk_filename_variable = "conc";
 
   NUM_TIME_STEPS    = sim_config->total_num_timestep;

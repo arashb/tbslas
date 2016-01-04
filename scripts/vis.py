@@ -49,30 +49,8 @@ args, unknown = parser.parse_known_args()
 VTK_DIR = args.input_dir
 
 ###############################################################################
-# FIND THE PREFIX IN .VTK FILES
-###############################################################################
-fd=os.listdir(VTK_DIR)
-
-for item in fd:
-
-    if 'advection' in item:
-        prefix='advection'
-    elif 'advdiff-ss' in item:
-        prefix='advdiff-ss'
-    elif 'advdiff' in item:
-        prefix='advdiff'
-    elif 'cubic' in item:
-        prefix='cubic'
-    elif 'diffusion' in item:
-        prefix='diffusion'
-    elif 'merge' in item:
-        prefix='merge'
-    elif 'semilag-tree' in item:
-        prefix='semilag-tree'
-
-###############################################################################
 ########################## SET THE THE DIRECTORIES ############################
-CONC_VTK_FILES=VTK_DIR+"/"+prefix+"_Vconc_T*_P.pvtu database"
+CONC_VTK_FILES=VTK_DIR+"/"+"conc_T*_P.pvtu database"
 RHO_VTK_FILES =VTK_DIR+"/"+"stokes_rho_0_.pvtu"
 VEL_VTK_FILES =VTK_DIR+"/"+"stokes_vel_0_.pvtu"
 
@@ -164,11 +142,11 @@ def cut_media(i=0):
     ClipAtts.plane3Status = 0
 
     if (i==0):
-	ClipAtts.plane1Origin = (0.5, 0.5, 0.5)
-	ClipAtts.plane1Normal = (0, 1, 1)    
+        ClipAtts.plane1Origin = (0.5, 0.5, 0.5)
+        ClipAtts.plane1Normal = (0, 1, 1)
     else:
-	ClipAtts.plane1Origin = (0.7, 0.5, 0.5)
-	ClipAtts.plane1Normal = (-1, 0, 0)
+        ClipAtts.plane1Origin = (0.7, 0.5, 0.5)
+        ClipAtts.plane1Normal = (-1, 0, 0)
 
     ClipAtts.planeInverse = 0
     ClipAtts.planeToolControlledClipPlane = ClipAtts.Plane1
@@ -179,7 +157,7 @@ def cut_media(i=0):
 
 def draw_slice():
     AddPlot("Mesh", "mesh", 1, 1)
-    
+
     AddOperator("Slice", 1)
     SliceAtts = SliceAttributes()
     SliceAtts.originType = SliceAtts.Intercept  # Point, Intercept, Percent, Zone, Node
@@ -234,17 +212,17 @@ def draw_velocity(i=0):
     SetPlotOptions(StreamlineAtts)
 
     if (i==1):
-	SetActivePlots(1)
-	AddOperator("Clip", 0)
-	ClipAtts = ClipAttributes()
-	ClipAtts.plane1Status = 1
-	ClipAtts.plane2Status = 0
-	ClipAtts.plane3Status = 0
-	ClipAtts.plane1Origin = (0.5, 0.5, 0.5)
-	ClipAtts.plane1Normal = (0, 1, 1)
-	ClipAtts.planeInverse = 0
-	ClipAtts.planeToolControlledClipPlane = ClipAtts.Plane1
-	SetOperatorOptions(ClipAtts, 0)
+        SetActivePlots(1)
+        AddOperator("Clip", 0)
+        ClipAtts = ClipAttributes()
+        ClipAtts.plane1Status = 1
+        ClipAtts.plane2Status = 0
+        ClipAtts.plane3Status = 0
+        ClipAtts.plane1Origin = (0.5, 0.5, 0.5)
+        ClipAtts.plane1Normal = (0, 1, 1)
+        ClipAtts.planeInverse = 0
+        ClipAtts.planeToolControlledClipPlane = ClipAtts.Plane1
+        SetOperatorOptions(ClipAtts, 0)
 
     DrawPlots()
 
@@ -275,11 +253,11 @@ def save_images():
     SaveWindowAtts = SaveWindowAttributes()
     SaveWindowAtts.outputToCurrentDirectory = 0
     SaveWindowAtts.outputDirectory = IMAGE_DIR
-    SaveWindowAtts.fileName = prefix
+    SaveWindowAtts.fileName = "image_"
     SaveWindowAtts.quality = 100
-    SaveWindowAtts.format = SaveWindowAtts.JPEG  # BMP, CURVE, JPEG, OBJ, PNG, POSTSCRIPT, POVRAY, PPM, RGB, STL, TIFF, ULTRA, VTK, PLY
-    SaveWindowAtts.width = 1024
-    SaveWindowAtts.height = 1024
+    SaveWindowAtts.format = SaveWindowAtts.PNG  # BMP, CURVE, JPEG, OBJ, PNG, POSTSCRIPT, POVRAY, PPM, RGB, STL, TIFF, ULTRA, VTK, PLY
+    SaveWindowAtts.width = 2048
+    SaveWindowAtts.height = 2048
     SaveWindowAtts.screenCapture = 0
 
     #Traverse through states and save images
@@ -337,8 +315,8 @@ def draw_concentration_field():
     VolumeAtts.rendererSamples = 3
     VolumeAtts.transferFunctionDim = 1
     VolumeAtts.lowGradientLightingReduction = VolumeAtts.Lowest  # Off, Lowest, Lower, Low, Medium, High, Higher, Highest
-    SetPlotOptions(VolumeAtts) 
-    
+    SetPlotOptions(VolumeAtts)
+
     DrawPlots()
 
 ################################################################################

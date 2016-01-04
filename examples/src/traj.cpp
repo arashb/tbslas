@@ -86,7 +86,6 @@ int main (int argc, char **argv) {
     // =========================================================================
     // SIMULATION PARAMETERS
     // =========================================================================
-    sim_config->vtk_filename_prefix     = "advection";
     sim_config->vtk_filename_variable   = "conc";
     sim_config->bc = bc;
 

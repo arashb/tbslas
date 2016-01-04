@@ -88,7 +88,7 @@ GetVTKFileName(int timestep, std::string variable_id) {
            sizeof(buffer),
            sim_config->vtk_filename_format.c_str(),
            tbslas::get_result_dir().c_str(),
-           sim_config->vtk_filename_prefix.c_str(),
+           // sim_config->vtk_filename_prefix.c_str(),
            variable_id.c_str(),
            timestep);
   std::ostringstream stringStream;

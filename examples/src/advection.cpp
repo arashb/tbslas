@@ -230,13 +230,11 @@ int main (int argc, char **argv) {
         fn_con = get_multiple_guassian_kernel_wraper<double>;
         bc = pvfmm::Periodic;
         break;
-
     }
 
     // =========================================================================
     // SIMULATION PARAMETERS
     // =========================================================================
-    sim_config->vtk_filename_prefix     = "advection";
     sim_config->vtk_filename_variable   = "conc";
     sim_config->bc = bc;
 
@@ -270,25 +268,13 @@ int main (int argc, char **argv) {
                                   fn_con,
                                   1,
                                   tcon);
-    char out_name_buffer[300];
-    if (sim_config->vtk_save) {
-      snprintf(out_name_buffer,
-               sizeof(out_name_buffer),
-               sim_config->vtk_filename_format.c_str(),
-               tbslas::get_result_dir().c_str(),
-               sim_config->vtk_filename_prefix.c_str(),
-               "vel",
-               0);
-      tvel.Write2File(out_name_buffer, sim_config->vtk_order);
 
-      snprintf(out_name_buffer,
-               sizeof(out_name_buffer),
-               sim_config->vtk_filename_format.c_str(),
-               tbslas::get_result_dir().c_str(),
-               sim_config->vtk_filename_prefix.c_str(),
-               sim_config->vtk_filename_variable.c_str(),
-               0);
-      tcon.Write2File(out_name_buffer, sim_config->vtk_order);
+    if (sim_config->vtk_save) {
+      tvel.Write2File(tbslas::GetVTKFileName(0, "vel").c_str(),
+                      sim_config->vtk_order);
+
+      tcon.Write2File(tbslas::GetVTKFileName(0, sim_config->vtk_filename_variable).c_str(),
+                      sim_config->vtk_order);
     }
 
     // =========================================================================
@@ -366,9 +352,9 @@ int main (int argc, char **argv) {
 
         pvfmm::Profile::Tic(std::string("Solve_TN" + tbslas::ToString(static_cast<long long>(timestep))).c_str(), &comm, true);
         {
-          // =====================================================================
+          // ===================================================================
           // SOLVE SEMILAG
-          // =====================================================================
+          // ===================================================================
           pvfmm::Profile::Tic(std::string("SL_TN" + tbslas::ToString(static_cast<long long>(timestep))).c_str(), &sim_config->comm, false, 5);
           tbslas::SolveSemilagInSitu(tvel,
                                      tcon,
@@ -377,9 +363,9 @@ int main (int argc, char **argv) {
                                      sim_config->num_rk_step);
           pvfmm::Profile::Toc();
 
-          // =====================================================================
+          // ===================================================================
           // REFINE TREE
-          // =====================================================================
+          // ===================================================================
           pvfmm::Profile::Tic("RefineTree", &sim_config->comm, false, 5);
           tcon.RefineTree();
           pvfmm::Profile::Toc();
@@ -393,20 +379,22 @@ int main (int argc, char **argv) {
         //TODO: ONLY FOR STEADY VELOCITY TREES
         tvel.RefineTree();
 
-        // ======================================================================
+        // =====================================================================
         // Write2File
-        // ======================================================================
+        // =====================================================================
         if (sim_config->vtk_save) {
-          tcon.Write2File(tbslas::GetVTKFileName(timestep, sim_config->vtk_filename_variable).c_str(), sim_config->vtk_order);
+          tcon.Write2File(tbslas::GetVTKFileName(timestep, sim_config->vtk_filename_variable).c_str(),
+                          sim_config->vtk_order);
         }
 
-        // ======================================================================
+        // =====================================================================
         // print error every 100 time steps
-        // ======================================================================
+        // =====================================================================
         if (timestep % 10 == 0) {
           //Write2File
           if (!sim_config->vtk_save) {
-            tcon.Write2File(tbslas::GetVTKFileName(timestep, sim_config->vtk_filename_variable).c_str(), sim_config->vtk_order);
+            tcon.Write2File(tbslas::GetVTKFileName(timestep, sim_config->vtk_filename_variable).c_str(),
+                            sim_config->vtk_order);
           }
           tcurr = timestep*sim_config->dt;
           double al2,rl2,ali,rli;
@@ -432,8 +420,8 @@ int main (int argc, char **argv) {
     // =========================================================================
     // REPORT RESULTS
     // =========================================================================
-    int tcon_max_depth=0;
-    int tvel_max_depth=0;
+    int tcon_max_depth = 0;
+    int tvel_max_depth = 0;
     tbslas::GetTreeMaxDepth(tcon, tcon_max_depth);
     tbslas::GetTreeMaxDepth(tvel, tvel_max_depth);
 

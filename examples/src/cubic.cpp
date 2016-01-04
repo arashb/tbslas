@@ -69,9 +69,6 @@ get_gaussian_field_cylinder_atT(const real_t* points_pos,
                                                     A);
 }
 
-const char* OUTPUT_FILE_FORMAT = "%s/%s-VAR_%s-TS_%04d-RNK";
-const char* OUTPUT_FILE_PREFIX = "cubic";
-
 int main (int argc, char **argv) {
   MPI_Init(&argc, &argv);
   MPI_Comm comm=MPI_COMM_WORLD;
@@ -86,8 +83,6 @@ int main (int argc, char **argv) {
     // SIMULATION PARAMETERS
     // =========================================================================
     tbslas::SimConfig* sim_config       = tbslas::SimConfigSingleton::Instance();
-    sim_config->vtk_filename_format     = OUTPUT_FILE_FORMAT;
-    sim_config->vtk_filename_prefix     = OUTPUT_FILE_PREFIX;
     sim_config->vtk_filename_variable   = "conc";
     // sim_config->use_cubic = true;
     // sim_config->cubic_use_analytical = true;
