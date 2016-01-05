@@ -23,7 +23,6 @@ commands=\
 . /etc/profile.d/modules.sh
 
 module load python/2.7_anaconda
-module list
 module load git
 module load fftw/serial/3.3
 module load gcc/4.9
