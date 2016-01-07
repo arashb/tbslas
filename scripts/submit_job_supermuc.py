@@ -5,7 +5,7 @@ commands=\
 """#! /usr/bin/ksh
 #@ shell = /usr/bin/ksh
 #@ job_type = MPICH
-#@ initialdir={TBSLAS_RESULT_DIR}/scripts
+#@ initialdir={TBSLAS_DIR}/scripts
 #@ job_name = {JOB_ID}
 #@ class = {QUEUE}
 #@ node_usage = not_shared
