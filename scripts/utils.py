@@ -63,13 +63,15 @@ def parse_args():
         omp_num_threads = int(sys.argv[2])
     return (mpi_num_procs, omp_num_threads)
 
-def get_output_prefix(num_proces):
-    return SCRIPT_ID+'-np'+str(num_proces).zfill(5)+'-'+TIMESTR
+def get_output_prefix():
+    # return SCRIPT_ID+'-np'+str(num_proces).zfill(5)+'-'+TIMESTR
+    return SCRIPT_ID+'-'+TIMESTR
+
 
 def get_result_dir_prefix():
     hostname      = socket.gethostname()
-    mpi_num_procs, omp_num_threads = parse_args()
-    output_prefix = get_output_prefix(mpi_num_procs)
+    # mpi_num_procs, omp_num_threads = parse_args()
+    output_prefix = get_output_prefix()
     tbslas_result_dir = os.environ['TBSLAS_RESULT_DIR']
     return (tbslas_result_dir, output_prefix)
 
@@ -181,7 +183,6 @@ def analyse_command_output(output, fout, fdata, fprof,
         # pp.pp_profile_data(mydoc, fpp, PRINT_PRFL_HEADER);
 
 def execute_commands(cmds, id, pp_func = None):
-    id = SCRIPT_ID+'-'+id
     sys.stdout.write("##############################\n")
     sys.stdout.write("# "+id+"\n")
     sys.stdout.write("##############################\n")
@@ -199,39 +200,50 @@ def execute_commands(cmds, id, pp_func = None):
     # profiling output
     fprof = open(os.path.join(TBSLAS_RESULT_DIR_PREFIX, id+'.prof'), 'w')
     flist.append(fprof)
+
+    # commands list
+    fcmds = open(os.path.join(TBSLAS_RESULT_DIR_PREFIX, id+'.cmds'), 'w')
+    flist.append(fcmds)
+
     # post processing output
     fpp = None
     if pp_func:
         fpp = open(os.path.join(TBSLAS_RESULT_DIR_PREFIX, id+'.prof.pp'), 'w')
         flist.append(fpp)
+
     # output env metadata (git revision, host, ...)
     for f in flist:
         f.write('# REVISION: ' + subprocess.check_output(["git", "describe"]))
         f.write('# HOST: ' + socket.gethostname()+'\n')
+
     # execute generated commands
     for cmd_id, cmd in cmds.iteritems():
         out_dir_name = \
           os.path.join(TBSLAS_RESULT_DIR_PREFIX,'{0}-cmd{1:03}'.format(id,cmd_id))
-        out_file_name = out_dir_name+'.out'
-        fout = open(out_file_name, 'w')
+
         os.environ['TBSLAS_RESULT_DIR'] = out_dir_name
         os.makedirs(out_dir_name)
-        # output command
-        cmd_msg = '# CMD '+str(cmd_id)+' : ' +  ' '.join(cmd) + '\n'
+
         sys.stdout.write('# ------------------------------\n')
         sys.stdout.write("--> storing output in: " + out_dir_name +" \n")
         sys.stdout.write("--> executing command {0} ... \n".format(cmd_id))
-        # sys.stdout.write(cmd_msg)
+
+        # output file
+        out_file_name = out_dir_name+'.out'
+        fout = open(out_file_name, 'w')
+
+        # output command
+        cmd_msg = '# CMD '+str(cmd_id)+' : ' +  ' '.join(cmd) + '\n'
         fout.write('# ------------------------------\n')
         fout.write(cmd_msg)
-        # for f in flist:
-        #     f.write('# ------------------------------\n')
-            # f.write(cmd_msg)
+        fcmds.write(cmd_msg)
+
         # execute command
         p = subprocess.Popen(cmd,                    \
                              shell=False,            \
                              stdout=subprocess.PIPE, \
                              stderr=subprocess.STDOUT)
+
         # analyse command
         analyse_command_output(p.stdout.readlines(),\
                                fout, fdata, fprof,\
@@ -239,9 +251,10 @@ def execute_commands(cmds, id, pp_func = None):
                                pp_func, fpp)
         PRINT_RSLT_HEADER = False
         PRINT_PRFL_HEADER = False
+
         # flush output
         [f.flush() for f in flist]
         fout.close()
-    [f.flush() for f in flist]
+    [f.close() for f in flist]
     # reset the env. variable
     os.environ['TBSLAS_RESULT_DIR'] = tbslas_result_dir
