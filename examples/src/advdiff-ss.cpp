@@ -255,7 +255,7 @@ void RunAdvectDiff(int test, size_t N, size_t M, bool unif, int mult_order,
                                     fn_veloc_,
                                     3,
                                     *tvel);
-  if (sim_config->vtk_save) {
+  if (sim_config->vtk_save_rate) {
     tvel->Write2File(tbslas::GetVTKFileName(0, "velocity").c_str(), cheb_deg);
   }
 
@@ -456,7 +456,7 @@ void RunAdvectDiff(int test, size_t N, size_t M, bool unif, int mult_order,
     // ======================================================================
     // Write2File
     // ======================================================================
-    if (sim_config->vtk_save) {
+    if (sim_config->vtk_save_rate) {
       treen->Write2File(tbslas::GetVTKFileName(timestep, sim_config->vtk_filename_variable).c_str(), sim_config->vtk_order);
     }
     treep = treec;

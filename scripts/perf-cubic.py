@@ -36,7 +36,6 @@ def generate_command_args(tl_list,\
                    '-cuf' , str(uf_list[counter]),                              \
                    '-tn'  , str(10),                              \
                    '-dt'  , str(0.015625),                              \
-                   # '-vs'  , str(1),                               \
                    '-omp' , str(nt_list[counter])]
         if use_cubic:
             ARGS = ARGS + ['-cubic', '1']

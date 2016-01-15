@@ -110,12 +110,14 @@ int main (int argc, char **argv) {
   {
     tbslas::SimConfig* sim_config       = tbslas::SimConfigSingleton::Instance();
     pvfmm::Profile::Enable(sim_config->profile);
+
     // =========================================================================
     // PRINT METADATA
     // =========================================================================
     if (!myrank) {
       MetaData_t::Print();
     }
+
     // =========================================================================
     // TEST CASE
     // =========================================================================
@@ -135,14 +137,15 @@ int main (int argc, char **argv) {
         fn_2_dof = 1;
         bc = pvfmm::FreeSpace;
         break;
-
     }
+
     // =========================================================================
     // SIMULATION PARAMETERS
     // =========================================================================
     sim_config->vtk_filename_variable   = "conc";
     sim_config->bc = bc;
     double DT = 1.57;
+
     // =========================================================================
     // INIT THE TREE 1
     // =========================================================================
@@ -159,7 +162,7 @@ int main (int argc, char **argv) {
                                   fn_1_dof,
                                   tree1);
     char out_name_buffer[300];
-    if (sim_config->vtk_save) {
+    if (sim_config->vtk_save_rate) {
       snprintf(out_name_buffer,
                sizeof(out_name_buffer),
                sim_config->vtk_filename_format.c_str(),
@@ -168,6 +171,7 @@ int main (int argc, char **argv) {
                0);
       tree1.Write2File(out_name_buffer, sim_config->vtk_order);
     }
+
     // =========================================================================
     // INIT THE TREE 2
     // =========================================================================
@@ -183,7 +187,7 @@ int main (int argc, char **argv) {
                                   fn_2,
                                   fn_2_dof,
                                   tree2);
-    if (sim_config->vtk_save) {
+    if (sim_config->vtk_save_rate) {
       snprintf(out_name_buffer,
                sizeof(out_name_buffer),
                sim_config->vtk_filename_format.c_str(),
@@ -209,7 +213,7 @@ int main (int argc, char **argv) {
         break;
     }
 
-    if (sim_config->vtk_save) {
+    if (sim_config->vtk_save_rate) {
       snprintf(out_name_buffer,
                sizeof(out_name_buffer),
                sim_config->vtk_filename_format.c_str(),

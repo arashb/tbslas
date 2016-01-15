@@ -36,7 +36,7 @@ def generate_command_args(tl_list, \
                    '-dt'  , str(dt_list[counter]),                              \
                    '-tn'  , str(tn_list[counter]),                              \
                    '-test', str(1),                                             \
-                   '-vs'  , str(1),                               \
+                   '-vsr' , str(0),                               \
                    '-omp' , str(nt_list[counter])]
         cmd_args[cmd_id] = utils.determine_command_prefix(np_list[counter]) + [EXEC] + ARGS
         cmd_id = cmd_id + 1

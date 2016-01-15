@@ -148,11 +148,10 @@ def generate_commands(
                    '-tn'    , str(tn_list[counter]),
                    '-dt'    , str(dt_list[counter]),
                    '-merge' , str(mg_list[counter]),
-                   '-omp'   , str(nt_list[counter])]
+                   '-omp'   , str(nt_list[counter]),
+                   '-vsr'   , str(vs_list[counter])]
         if ci_list[counter]:
             ARGS = ARGS + ['-cubic', '1']
-        if not vs_list[counter]:
-            ARGS = ARGS + ['-vs', '1']
         cmd_args[cmd_id] = determine_command_prefix(np_list[counter]) + [EXEC] + ARGS
         print "CMD {0}: {1} ".format(cmd_id, cmd_args[cmd_id])
         cmd_id = cmd_id + 1

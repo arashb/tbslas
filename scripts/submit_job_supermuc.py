@@ -36,22 +36,21 @@ module load mpi.intel
 
 def get_job_file (num_nodes, num_procs, num_threads, queue, job_id, TIMESTR, total_time):
 
-	print os.environ['HOME']
-	file_handler = open(job_id[:-3]+'_'+TIMESTR+'.cmd',"w")
+        print os.environ['HOME']
+        file_handler = open(job_id[:-3]+'_'+TIMESTR+'.cmd',"w")
 
-	global commands
-	commands=commands.format(JOB_ID=job_id[:-3],\
-	JOB_id=job_id,\
-	QUEUE=queue,\
-	TOTAL_TIME=total_time,\
-	NUM_NODES=num_nodes,\
-	NUM_PROCS=num_procs,\
-	NUM_THREADS=num_threads,\
-	TBSLAS_RESULT_DIR=os.environ['TBSLAS_RESULT_DIR'],\
-	TBSLAS_DIR=os.environ['TBSLAS_DIR'])
+        global commands
+        commands=commands.format(JOB_ID=job_id[:-3],\
+        JOB_id=job_id,\
+        QUEUE=queue,\
+        TOTAL_TIME=total_time,\
+        NUM_NODES=num_nodes,\
+        NUM_PROCS=num_procs,\
+        NUM_THREADS=num_threads,\
+        TBSLAS_RESULT_DIR=os.environ['TBSLAS_RESULT_DIR'],\
+        TBSLAS_DIR=os.environ['TBSLAS_DIR'])
 
-	file_handler.write(commands)
-	file_handler.close()
+        file_handler.write(commands)
+        file_handler.close()
 
-	return './'+job_id[:-3]+'_'+TIMESTR+'.cmd'
-
+        return './'+job_id[:-3]+'_'+TIMESTR+'.cmd'

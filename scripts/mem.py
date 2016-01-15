@@ -41,7 +41,7 @@ def generate_command_args(prog,\
                    '-cuf'   , str(uf_list[counter]), \
                    '-tn'    , str(2),              \
                    '-dt'    , str(1e-9),           \
-                   '-vs'    , str(1),                \
+                   '-vsr'   , str(0),                \
                    '-merge' , str(3),                \
                    '-omp'   , str(nt_list[counter])]
         if use_cubic:

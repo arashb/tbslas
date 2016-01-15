@@ -32,7 +32,7 @@ def generate_command_args(tl_list,\
         ARGS    = ['-N'   , str(8**math.ceil(math.log(np_list[counter],8))), \
                    '-tol' , str(tl_list[counter]),                              \
                    '-cuf' , str(uf_list[counter]),                              \
-                   '-vs'  , str(1),                               \
+                   '-vsr' , str(0),                               \
                    '-omp' , str(nt_list[counter])]
         if use_cubic:
             ARGS = ARGS + ['-cubic', '1']

@@ -40,7 +40,7 @@ def generate_command_args(de_list, \
                    '-tn'  , str(tn_list[counter]),                           \
                    '-test', str(test_list[counter]),                         \
                    '-merge', str(merge_type),                                \
-                   '-vs'  , str(1),                                          \
+                   '-vsr'  , str(0),                                          \
                    # '-cubic',str(1),                                        \
                    # '-cuf'  ,str(8),                                        \
                    '-omp' , str(nt_list[counter])]

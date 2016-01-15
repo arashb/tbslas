@@ -208,7 +208,7 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
   tree->Initialize(&tree_data);
   tree->InitFMM_Tree(false,bndry);
 
-  if (sim_config->vtk_save) {
+  if (sim_config->vtk_save_rate) {
     tree->Write2File(tbslas::GetVTKFileName(0, sim_config->vtk_filename_variable).c_str(), sim_config->vtk_order);
   }
 
@@ -239,7 +239,7 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
                                     fn_veloc_,
                                     3,
                                     tvel_curr);
-  if (sim_config->vtk_save) {
+  if (sim_config->vtk_save_rate) {
     tvel_curr.Write2File(tbslas::GetVTKFileName(0, "velocity").c_str(), cheb_deg);
   }
 
@@ -290,7 +290,7 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
     pvfmm::Profile::Toc();
 
     // Write2File
-    if (sim_config->vtk_save) {
+    if (sim_config->vtk_save_rate) {
       tree->Write2File(tbslas::GetVTKFileName(timestep, sim_config->vtk_filename_variable).c_str(), sim_config->vtk_order);
     }
 
@@ -311,7 +311,7 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
     pvfmm::Profile::Toc();
 
     //Write2File
-    if (sim_config->vtk_save) {
+    if (sim_config->vtk_save_rate) {
       tree->Write2File(tbslas::GetVTKFileName(timestep+1, sim_config->vtk_filename_variable).c_str(), sim_config->vtk_order);
     }
     tcurr += TBSLAS_DT;

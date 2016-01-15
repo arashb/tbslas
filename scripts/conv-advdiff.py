@@ -36,7 +36,6 @@ def generate_command_args(tl_list,\
                    '-tol' , str(tl_list[counter]),                                  \
                    '-dt'  , str(dt_list[counter]),                                  \
                    '-tn'  , str(tn_list[counter]),                                  \
-                   # '-vs'  , str(1),                                                 \
                    '-omp' , str(nt_list[counter])]
         if use_cubic:
             ARGS = ARGS + ['-cubic', '1']
@@ -57,18 +56,18 @@ if __name__ == '__main__':
     # TREE TOLERANCE
     tl_factor = 1#0.1
     tl_init   = 1e-5
-    tl_list = [tl_init*math.pow(tl_factor,float(cnt)) for cnt in range(0,num_steps)]
+    tl_list   = [tl_init*math.pow(tl_factor,float(cnt)) for cnt in range(0,num_steps)]
 
     # TIME RESOLUTION
     dt_factor = 0.5
     dt_init   = 0.5**1
-    dt_list = [dt_init*math.pow(dt_factor,float(cnt)) for cnt in range(0,num_steps)]
+    dt_list   = [dt_init*math.pow(dt_factor,float(cnt)) for cnt in range(0,num_steps)]
 
     # NUM TIME STEPS
-    T_END = 1.0
+    T_END     = 1.0
     tn_factor = 1.0/dt_factor
     tn_init   = T_END/dt_init
-    tn_list = [tn_init*math.pow(tn_factor,float(cnt)) for cnt in range(0,num_steps)]
+    tn_list   = [tn_init*math.pow(tn_factor,float(cnt)) for cnt in range(0,num_steps)]
 
     # NUM MPI PROCESSES
     np_list = [mpi_num_procs  for cnt in range(0, num_steps)]

@@ -149,54 +149,57 @@ void RunDiffusion(int test_case, size_t N, size_t M, bool unif, int mult_order,
     std::cout<<"Maximum Tree Depth: "<<depth<<'\n';
     std::cout<<"BoundaryType: "<<(bndry==pvfmm::Periodic?"Periodic":"FreeSpace")<<'\n';
   }
+
   // ======================================================================
   // SETUP TREE
   // ======================================================================
-  FMM_Tree_t* tree=new FMM_Tree_t(comm);
+  FMM_Tree_t* tree = new FMM_Tree_t(comm);
   tree->Initialize(&tree_data);
   tree->RefineTree();
+  tree->InitFMM_Tree(false,bndry);
+
   // ======================================================================
   // SETUP FMM
   // ======================================================================
   FMM_Mat_t* fmm_mat=NULL;
   {
-    fmm_mat=new FMM_Mat_t;
+    fmm_mat = new FMM_Mat_t;
     fmm_mat->Initialize(mult_order,
                         tree_data.cheb_deg,
                         comm,
                         mykernel);
   }
+
+  // ======================================================================
+  // Write2File
+  // ======================================================================
+  if (sim_config->vtk_save_rate) {
+    tree->Write2File(tbslas::GetVTKFileName(0, sim_config->vtk_filename_variable).c_str(),
+                     tree_data.cheb_deg);
+  }
+  double in_al2,in_rl2,in_ali,in_rli;
+  CheckChebOutput<FMM_Tree_t>(tree,
+                              fn_input_,
+                              mykernel->ker_dim[1],
+                              in_al2, in_rl2, in_ali, in_rli,
+                              std::string("Input"));
+
   // ======================================================================
   // DIFFUSUION SOLVER
   // ======================================================================
-  double in_al2,in_rl2,in_ali,in_rli;
   pvfmm::Profile::Tic("Solve", &comm, true);
   for (int ts_counter = 1; ts_counter < NUM_TIME_STEPS+1; ts_counter++) {
     // Setup FMM
     tree->InitFMM_Tree(false,bndry);
-    //Find error in FMM input.
-    if (ts_counter == 1) {
-      //Write2File
-      if (sim_config->vtk_save) {
-        tree->Write2File(tbslas::GetVTKFileName(0, sim_config->vtk_filename_variable).c_str(),
-                         tree_data.cheb_deg);
-      }
-      CheckChebOutput<FMM_Tree_t>(tree,
-                                  fn_input_,
-                                  mykernel->ker_dim[1],
-                                  in_al2,in_rl2,in_ali,in_rli,
-                                  std::string("Input"));
-    }
-
     tree->SetupFMM(fmm_mat);
     tree->RunFMM();
     tree->Copy_FMMOutput(); //Copy FMM output to tree Data.
 
     tcurr += TBSLAS_DT;
-    if (sim_config->vtk_save) {
-      //Write2File
-      tree->Write2File(tbslas::GetVTKFileName(ts_counter, sim_config->vtk_filename_variable).c_str(),
-                       tree_data.cheb_deg);
+    if (sim_config->vtk_save_rate) {
+      if (ts_counter % sim_config->vtk_save_rate == 0)
+        tree->Write2File(tbslas::GetVTKFileName(ts_counter, sim_config->vtk_filename_variable).c_str(),
+                         tree_data.cheb_deg);
     }
   }
   pvfmm::Profile::Toc();        // solve

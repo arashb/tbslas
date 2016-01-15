@@ -269,7 +269,7 @@ int main (int argc, char **argv) {
                                   1,
                                   tcon);
 
-    if (sim_config->vtk_save) {
+    if (sim_config->vtk_save_rate) {
       tvel.Write2File(tbslas::GetVTKFileName(0, "vel").c_str(),
                       sim_config->vtk_order);
 
@@ -362,27 +362,10 @@ int main (int argc, char **argv) {
       // ======================================================================
       // Write2File
       // ======================================================================
-      if (sim_config->vtk_save) {
-        tcon.Write2File(tbslas::GetVTKFileName(timestep, sim_config->vtk_filename_variable).c_str(), sim_config->vtk_order);
+      if (sim_config->vtk_save_rate) {
+        if (timestep % sim_config->vtk_save_rate == 0)
+          tcon.Write2File(tbslas::GetVTKFileName(timestep, sim_config->vtk_filename_variable).c_str(), sim_config->vtk_order);
       }
-
-      // ======================================================================
-      // print error every 100 time steps
-      // ======================================================================
-      // if (timestep % 10 == 0) {
-      //   //Write2File
-      //   if (!sim_config->vtk_save) {
-      //     tcon.Write2File(tbslas::GetVTKFileName(timestep, sim_config->vtk_filename_variable).c_str(), sim_config->vtk_order);
-      //   }
-      //   tcurr = timestep*sim_config->dt;
-      //   double al2,rl2,ali,rli;
-      //   CheckChebOutput<Tree_t>(&tcon,
-      //                           fn_con,
-      //                           1,
-      //                           al2,rl2,ali,rli,
-      //                           std::string("Output_TN" + tbslas::ToString(static_cast<long long>(timestep))));
-
-      // }
     }  // end for
 
     // convert velocity tree
@@ -402,8 +385,7 @@ int main (int argc, char **argv) {
       }
     }
 
-    for (int timestep = total_ts/2+1; timestep < total_ts+1; timestep++) {
-
+    for (; timestep < total_ts+1; timestep++) {
       // =====================================================================
       // (SEMI) MERGE TO FIX IMBALANCE
       // =====================================================================
@@ -419,18 +401,6 @@ int main (int argc, char **argv) {
           pvfmm::Profile::Toc();
           break;
       }
-
-      // =====================================================================
-      // ESTIMATE THE PROBLEM SIZE -> NUMBER OF TREES' OCTANTS
-      // =====================================================================
-      // if (sim_config->profile) {
-      //   int con_noct = tbslas::CountNumLeafNodes(tcon);
-      //   con_noct_sum += con_noct;
-      //   if (con_noct > con_noct_max) con_noct_max = con_noct;
-      //   int vel_noct = tbslas::CountNumLeafNodes(tvel);
-      //   vel_noct_sum += vel_noct;
-      //   if (vel_noct > vel_noct_max) vel_noct_max = vel_noct;
-      // }
 
       pvfmm::Profile::Tic(std::string("Solve_TN" + tbslas::ToString(static_cast<long long>(timestep))).c_str(), &comm, true);
       {
@@ -464,33 +434,16 @@ int main (int argc, char **argv) {
       // ======================================================================
       // Write2File
       // ======================================================================
-      if (sim_config->vtk_save) {
-        tcon.Write2File(tbslas::GetVTKFileName(timestep, sim_config->vtk_filename_variable).c_str(), sim_config->vtk_order);
+      if (sim_config->vtk_save_rate) {
+        if (timestep % sim_config->vtk_save_rate == 0)
+          tcon.Write2File(tbslas::GetVTKFileName(timestep, sim_config->vtk_filename_variable).c_str(),
+                          sim_config->vtk_order);
       }
-
-      // ======================================================================
-      // print error every 100 time steps
-      // ======================================================================
-      // if (timestep % 10 == 0) {
-      //   //Write2File
-      //   if (!sim_config->vtk_save) {
-      //     tcon.Write2File(tbslas::GetVTKFileName(timestep, sim_config->vtk_filename_variable).c_str(), sim_config->vtk_order);
-      //   }
-      //   tcurr -= sim_config->dt;
-        // double al2,rl2,ali,rli;
-        // CheckChebOutput<Tree_t>(&tcon,
-        //                         fn_con,
-        //                         1,
-        //                         al2,rl2,ali,rli,
-        //                         std::string("Output_TN" + tbslas::ToString(static_cast<long long>(timestep))));
-
-      // }
     }  // end for
 
     // =========================================================================
     // COMPUTE ERROR
     // =========================================================================
-    // tcurr = sim_config->total_num_timestep*sim_config->dt;
     double al2,rl2,ali,rli;
     CheckChebOutput<Tree_t>(&tcon,
                             fn_con,

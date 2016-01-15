@@ -30,12 +30,11 @@ class SimConfig {
       dt(0.1),
       num_rk_step(1),
       vtk_order(14),
-      vtk_save(false),
+      vtk_save_rate(1),
       vtk_filename_format("%s/%s_T%04d_P"),
       vtk_filename_variable("val"),
       use_cubic(false),
       cubic_upsampling_factor(4),
-      // cubic_use_analytical(false),
       comm(MPI_COMM_WORLD),
       num_omp_threads(1),
       tree_num_point_sources(1),
@@ -51,30 +50,33 @@ class SimConfig {
   // *************************************************************************
   int total_num_timestep;
   double dt;
+
   // *************************************************************************
   // semi-lagrangian solver
   // *************************************************************************
   int num_rk_step;
   pvfmm::BoundaryType bc;
+
   // *************************************************************************
   // output
   // *************************************************************************
   int vtk_order;
-  bool vtk_save;
+  int vtk_save_rate;
   std::string vtk_filename_format;
-  std::string vtk_filename_prefix;
   std::string vtk_filename_variable;
+
   // *************************************************************************
   // cubic interpolation
   // *************************************************************************
   bool use_cubic;
   int cubic_upsampling_factor;
-  // bool cubic_use_analytical;
+
   // *************************************************************************
   // parallelization
   // *************************************************************************
   MPI_Comm comm;
   int num_omp_threads;
+
   // *************************************************************************
   // chebyshev tree
   // *************************************************************************
@@ -84,6 +86,7 @@ class SimConfig {
   int tree_max_depth;
   double tree_tolerance;
   bool tree_adap;
+
   // *************************************************************************
   // MISC
   // *************************************************************************

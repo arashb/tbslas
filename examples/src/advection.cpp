@@ -269,7 +269,7 @@ int main (int argc, char **argv) {
                                   1,
                                   tcon);
 
-    if (sim_config->vtk_save) {
+    if (sim_config->vtk_save_rate) {
       tvel.Write2File(tbslas::GetVTKFileName(0, "vel").c_str(),
                       sim_config->vtk_order);
 
@@ -380,29 +380,20 @@ int main (int argc, char **argv) {
         tvel.RefineTree();
 
         // =====================================================================
-        // Write2File
+        // Write2File and print error every N time steps
         // =====================================================================
-        if (sim_config->vtk_save) {
-          tcon.Write2File(tbslas::GetVTKFileName(timestep, sim_config->vtk_filename_variable).c_str(),
-                          sim_config->vtk_order);
-        }
-
-        // =====================================================================
-        // print error every 100 time steps
-        // =====================================================================
-        if (timestep % 10 == 0) {
-          //Write2File
-          if (!sim_config->vtk_save) {
+        if (sim_config->vtk_save_rate) {
+          if ( timestep % sim_config->vtk_save_rate == 0) {
             tcon.Write2File(tbslas::GetVTKFileName(timestep, sim_config->vtk_filename_variable).c_str(),
                             sim_config->vtk_order);
+            tcurr = timestep*sim_config->dt;
+            double al2,rl2,ali,rli;
+            CheckChebOutput<Tree_t>(&tcon,
+                                    fn_con,
+                                    1,
+                                    al2,rl2,ali,rli,
+                                    std::string("Output_TN" + tbslas::ToString(static_cast<long long>(timestep))));
           }
-          tcurr = timestep*sim_config->dt;
-          double al2,rl2,ali,rli;
-          CheckChebOutput<Tree_t>(&tcon,
-                                  fn_con,
-                                  1,
-                                  al2,rl2,ali,rli,
-                                  std::string("Output_TN" + tbslas::ToString(static_cast<long long>(timestep))));
         }
     }  // end for
 

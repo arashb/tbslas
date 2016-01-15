@@ -50,7 +50,7 @@ def generate_command_args(prog,\
                    '-d'    , str(TREE_MAX_DEPTH),    \
                    '-dt'   , str(dt_list[counter]),  \
                    '-tn'   , str(tn_list[counter]),  \
-                   '-vs'   , str(1),                 \
+                   '-vsr'  , str(0),                 \
                    '-omp'  , str(nt_list[counter]),  \
                    '-cuf'  , str(uf_list[counter]),  \
                    '-merge', str(merge_type),        \

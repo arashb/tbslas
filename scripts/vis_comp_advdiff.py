@@ -30,8 +30,6 @@ def generate_command_args(max_depth, mpi_num_procs, omp_num_threads):
                '-tn'  , '5', \
                '-test', str(4), \
                '-omp' , str(omp_num_threads), \
-               #'-q'   , str(8), \
-               # '-vs'  , '1'
                ]
     cmd_args[cmd_id] = utils.determine_command_prefix(mpi_num_procs) + [EXEC] + ARGS
     return cmd_args

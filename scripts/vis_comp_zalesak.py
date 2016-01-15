@@ -32,7 +32,6 @@ def generate_command_args(max_depth, mpi_num_procs, omp_num_threads, use_cubic):
                '-test', str(2), \
                '-omp' , str(omp_num_threads), \
                '-q'   , str(4), \
-               # '-vs'  , '1'
                ]
     if use_cubic:
         ARGS = ARGS + ['-cubic', '1']

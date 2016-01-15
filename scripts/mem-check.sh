@@ -12,9 +12,9 @@ do
 
 for tol in "${TOL_LIST[@]}"
 do
-# ibrun -n 1 -o 0 tacc_affinity valgrind --tool=massif --massif-out-file=valgrind-output-${tol} /home1/03237/ga29hoj/code/tbslas/examples/bin/advection -N 64.0 -tol ${tol} -d 15 -q 6 -cuf 2 -tn 1 -dt 1e-9 -vs 1 -merge 3 -omp 16 -cubic 1 > max_oct_tol${tol}.out
+# ibrun -n 1 -o 0 tacc_affinity valgrind --tool=massif --massif-out-file=valgrind-output-${tol} /home1/03237/ga29hoj/code/tbslas/examples/bin/advection -N 64.0 -tol ${tol} -d 15 -q 6 -cuf 2 -tn 1 -dt 1e-9 -vsr 0 -merge 3 -omp 16 -cubic 1 > max_oct_tol${tol}.out
 
-ibrun -n 1 -o 0 tacc_affinity /home1/03237/ga29hoj/code/tbslas/examples/bin/advection -N 64.0 -tol ${tol} -d 15 -q ${q} -cuf 2 -tn 1 -dt 1e-9 -vs 1 -merge 3 -omp 16 -cubic 1 > max_oct_q${q}_tol${tol}.out
+ibrun -n 1 -o 0 tacc_affinity /home1/03237/ga29hoj/code/tbslas/examples/bin/advection -N 64.0 -tol ${tol} -d 15 -q ${q} -cuf 2 -tn 1 -dt 1e-9 -vsr 0 -merge 3 -omp 16 -cubic 1 > max_oct_q${q}_tol${tol}.out
 done
 
 done

@@ -422,9 +422,11 @@ void parse_command_line_options(int argc, char** argv) {
       (commandline_option(argc, argv, "-p", NULL, false,
                           "-p                  : Deactivate profiling")==NULL);
 
-  bool vtk_save =
-      (commandline_option(argc, argv, "-vs", NULL, false,
-                          "-vs                  : Deactivate saving of the VTK files")==NULL);
+  int vtk_save_rate =
+      atoi(
+          commandline_option(argc, argv, "-vsr", "1", false,
+                             "-vsr  <int> = (1)    : VTK files saving rate"));
+
 
   commandline_option_end(argc, argv);
   // =========================================================================
@@ -435,7 +437,7 @@ void parse_command_line_options(int argc, char** argv) {
   sim_config->total_num_timestep      = tn;
   sim_config->dt                      = dt;
   sim_config->vtk_order               = q;
-  sim_config->vtk_save                = vtk_save;
+  sim_config->vtk_save_rate           = vtk_save_rate;
   sim_config->use_cubic               = cubic;
   sim_config->cubic_upsampling_factor = cubic?cuf:0;
   sim_config->num_omp_threads         = omp;

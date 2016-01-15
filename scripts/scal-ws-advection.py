@@ -55,7 +55,7 @@ def test1():
     tn = 200
 
     use_cubic     = True
-    save_vtk      = False
+    vtk_save_rate = 0
     merge_type    = 3
 
     max_np        = max(np_list)
@@ -86,7 +86,7 @@ def test1():
                         nt_list = [omp_num_threads ],
                         dt_list = [dt              ],
                         tn_list = [tn              ],
-                        vs_list = [save_vtk        ],
+                        vs_list = [vtk_save_rate   ],
                         mg_list = [merge_type      ]
                         )[1]
                     cmd_id = cmd_id + 1
@@ -97,13 +97,13 @@ def test2():
     ############################################################################
     # TEST 2: CONVERGENCE TEST FOR ADVECTION
     ############################################################################
-    prog     = 'advection'
-    dt       = 0.0628
-    save_vtk = True
-    mrg_type = 3
-    np       = 4
-    num_pnts = 8**(math.floor(math.log(np,8)+1))
-    nt       = omp_num_threads
+    prog          = 'advection'
+    dt            = 0.0628
+    vtk_save_rate = 10
+    mrg_type      = 3
+    np            = 4
+    num_pnts      = 8**(math.floor(math.log(np,8)+1))
+    nt            = omp_num_threads
 
     dp_list = [5    , 5     , 6    , 6     , 3    , 4    , 4    ]
     cq_list = [6    , 6     , 6    , 6     , 14   , 14   , 14   ]
@@ -113,12 +113,12 @@ def test2():
     tn_list = [100  , 100   , 200  , 200   , 100  , 200  , 200  ]
 
     num_steps = len(dp_list)
-    pn_list = [num_pnts for cnt in range(0,num_steps)]
-    tl_list = [1e-30    for cnt in range(0,num_steps)]
-    np_list = [np       for cnt in range(0,num_steps)]
-    nt_list = [nt       for cnt in range(0,num_steps)]
-    mg_list = [mrg_type for cnt in range(0,num_steps)]
-    vs_list = [save_vtk for cnt in range(0,num_steps)]
+    pn_list = [num_pnts      for cnt in range(0,num_steps)]
+    tl_list = [1e-30         for cnt in range(0,num_steps)]
+    np_list = [np            for cnt in range(0,num_steps)]
+    nt_list = [nt            for cnt in range(0,num_steps)]
+    mg_list = [mrg_type      for cnt in range(0,num_steps)]
+    vs_list = [vtk_save_rate for cnt in range(0,num_steps)]
 
     cmd_args = OrderedDict()
     cmd_args = utils.generate_commands(
