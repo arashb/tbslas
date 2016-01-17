@@ -200,3 +200,58 @@ def draw_concentration_field():
     SetPlotOptions(VolumeAtts)
 
     DrawPlots()
+
+def draw_three_concentration_fields(plot_number=2):
+  
+     AddPlot("Volume", "cheb_value", 0, 0)
+
+     SetActivePlots(plot_number)
+     VolumeAtts = VolumeAttributes()
+     VolumeAtts.legendFlag = 0
+     VolumeAtts.lightingFlag = 0
+
+     VolumeAtts.colorControlPoints.ClearControlPoints()
+     p = ColorControlPoint()
+     for j in range (0, 9):
+             VolumeAtts.colorControlPoints.AddControlPoints(p)
+
+     VolumeAtts.colorControlPoints.GetControlPoints(0).colors = (8, 64, 129, 255)
+     VolumeAtts.colorControlPoints.GetControlPoints(0).position = 0
+     VolumeAtts.colorControlPoints.GetControlPoints(1).colors = (8, 104, 172, 255)
+     VolumeAtts.colorControlPoints.GetControlPoints(1).position = 0.125
+     VolumeAtts.colorControlPoints.GetControlPoints(2).colors = (43, 140, 190, 255)
+     VolumeAtts.colorControlPoints.GetControlPoints(2).position = 0.25
+     VolumeAtts.colorControlPoints.GetControlPoints(3).colors = (78, 179, 211, 255)
+     VolumeAtts.colorControlPoints.GetControlPoints(3).position = 0.325
+     VolumeAtts.colorControlPoints.GetControlPoints(4).colors = (123, 204, 196, 255)
+     VolumeAtts.colorControlPoints.GetControlPoints(4).position = 0.5
+     VolumeAtts.colorControlPoints.GetControlPoints(5).colors = (168, 221, 181, 255)
+     VolumeAtts.colorControlPoints.GetControlPoints(5).position = 0.675
+     VolumeAtts.colorControlPoints.GetControlPoints(6).colors = (204, 235, 197, 255)
+     VolumeAtts.colorControlPoints.GetControlPoints(6).position = 0.75
+     VolumeAtts.colorControlPoints.GetControlPoints(7).colors = (224, 243, 219, 255)
+     VolumeAtts.colorControlPoints.GetControlPoints(7).position = 0.875
+     VolumeAtts.colorControlPoints.GetControlPoints(8).colors = (247, 252, 240, 255)
+     VolumeAtts.colorControlPoints.GetControlPoints(8).position = 1
+
+
+     VolumeAtts.colorControlPoints.smoothing = VolumeAtts.colorControlPoints.Linear  # None, Linear, CubicSpline
+     VolumeAtts.colorControlPoints.equalSpacingFlag = 1
+     VolumeAtts.colorControlPoints.discreteFlag = 0
+     VolumeAtts.opacityAttenuation = 1
+     VolumeAtts.opacityMode = VolumeAtts.FreeformMode  # FreeformMode, GaussianMode, ColorTableMode
+     VolumeAtts.resampleFlag = 1
+     VolumeAtts.resampleTarget = 5000000
+     VolumeAtts.useColorVarMin = 1
+     VolumeAtts.colorVarMin = 0.3
+     VolumeAtts.useColorVarMax = 1
+     VolumeAtts.colorVarMax = 1.5
+     VolumeAtts.rendererType = VolumeAtts.Splatting  # Splatting, Texture3D, RayCasting, RayCastingIntegration, SLIVR, RayCastingSLIVR, Tuvok
+     VolumeAtts.gradientType = VolumeAtts.SobelOperator  # CenteredDifferences, SobelOperator
+     VolumeAtts.scaling = VolumeAtts.Skew  # Linear, Log, Skew
+     VolumeAtts.skewFactor = 0.001
+     VolumeAtts.lowGradientLightingReduction = VolumeAtts.Lowest  # Off, Lowest, Lower, Low, Medium, High, Higher, Highest
+     SetPlotOptions(VolumeAtts)
+
+     DrawPlots()
+
