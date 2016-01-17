@@ -114,19 +114,18 @@ def vis_porous_three_spheres(rho_vtk_files, vel_vtk_files, conc_vtk_files1, conc
 
     OpenDatabase(conc_vtk_files1, 2)
     ActivateDatabase(conc_vtk_files1)
-    draw_three_concentration_fields(2)
+    draw_three_concentration_fields(2, 'b')
 
     OpenDatabase(conc_vtk_files2, 3)
     ActivateDatabase(conc_vtk_files2)
-    draw_three_concentration_fields(3)
+    draw_three_concentration_fields(3, 'g')
 
     OpenDatabase(conc_vtk_files3, 4)
     ActivateDatabase(conc_vtk_files3)
-    draw_three_concentration_fields(4)
+    draw_three_concentration_fields(4, 'y')
 
     set_view()
     save_images(output_dir)
-
 
 ############################################################################
 # MAIN
