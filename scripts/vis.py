@@ -131,7 +131,7 @@ def vis_porous_three_spheres(rho_vtk_files, vel_vtk_files, conc_vtk_files1, conc
     set_view()
     save_images(output_dir)
 
-def vis_porous_initial_camera_rotation_three_spheres(rho_vtk_files, vel_vtk_files, conc_vtk_files1, conc_vtk_files2, conc_vtk_files3, output_dir):
+def vis_porous_three_spheres_initial_camera_rotation(rho_vtk_files, vel_vtk_files, conc_vtk_files1, conc_vtk_files2, conc_vtk_files3, output_dir):
     OpenDatabase(rho_vtk_files, 0)
     draw_porous_media_IV()
     cut_porous_media()
@@ -165,5 +165,5 @@ if __name__ == '__main__':
     vis_slice(CON_VTK_FILES, IMAGE_DIR)
     #vis_porous(RHO_VTK_FILES, VEL_VTK_FILES, CON_VTK_FILES, IMAGE_DIR)
     #vis_porous_three_spheres(RHO_VTK_FILES, VEL_VTK_FILES, CON_VTK_FILES1, CON_VTK_FILES2, CON_VTK_FILES3, IMAGE_DIR)
-    #vis_porous_initial_camera_rotation_three_spheres(RHO_VTK_FILES, VEL_VTK_FILES, CON_VTK_FILES1_0, CON_VTK_FILES2_0, CON_VTK_FILES3_0, IMAGE_DIR)
+    #vis_porous_three_spheres_initial_camera_rotation(RHO_VTK_FILES, VEL_VTK_FILES, CON_VTK_FILES1_0, CON_VTK_FILES2_0, CON_VTK_FILES3_0, IMAGE_DIR)
     sys.exit()

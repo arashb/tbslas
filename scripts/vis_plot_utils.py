@@ -67,7 +67,7 @@ def change_view_and_save(image_dir, theta_i=pi/4, theta_f=7*pi/12):
     theta=theta_i
     for i in range(r):
     #set the view attributes
-	v.imageZoom = 0.8+i*0.1/r
+	v.imageZoom = 0.8+i*0.2/r
         v.viewNormal = (cos(theta), cos(phi)*sin(theta), sin(phi)*sin(theta))
         v.viewUp = (0, 0, 1)
         SetView3D(v)
