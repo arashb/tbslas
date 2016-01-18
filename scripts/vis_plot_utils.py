@@ -13,19 +13,21 @@
 ###############################################################################
 # IMPORT LOCAL LIBRARIES
 ###############################################################################
+from math  import *
 from visit import *
 
-def set_view():
-
+def set_view(theta=7*pi/12):
+    
+    phi = pi/4
     #set the view attributes
     v=GetView3D()
-    #v.viewNormal = (0.3, 0.45, 0.85)
-    v.viewNormal = (-7, 5, 4)
-    v.viewUp = (5, 8 , -2)
+    v.imageZoom = 1.0
+    v.viewNormal = (cos(theta), cos(phi)*sin(theta), sin(phi)*sin(theta))
+    v.viewUp = (0, 0, 1)
     SetView3D(v)
 
-def save_images(image_dir):
 
+def save_images(image_dir):
     #set annotation attributes
     AnnotationAtts = AnnotationAttributes()
     AnnotationAtts.userInfoFlag = 0
@@ -53,3 +55,22 @@ def save_images(image_dir):
         TimeSliderSetState(ts)
         SetSaveWindowAttributes(SaveWindowAtts)
         SaveWindow()
+
+
+def change_view_and_save(image_dir, theta_i=pi/4, theta_f=7*pi/12):
+
+    phi = pi/4
+    d_theta=0.01
+    r=int(floor((theta_f-theta_i)/d_theta))+1
+    v=GetView3D()
+
+    theta=theta_i
+    for i in range(r):
+    #set the view attributes
+	v.imageZoom = 0.8+i*0.1/r
+        v.viewNormal = (cos(theta), cos(phi)*sin(theta), sin(phi)*sin(theta))
+        v.viewUp = (0, 0, 1)
+        SetView3D(v)
+	theta=theta+d_theta
+	save_images(image_dir)
+

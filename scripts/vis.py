@@ -47,8 +47,8 @@ import os
 ############################################################################
 from visit import *
 
-from vis_plot_utils import *
-from vis_plot_slice import *
+from vis_plot_utils  import *
+from vis_plot_slice  import *
 from vis_plot_porous import *
 
 ############################################################################
@@ -71,12 +71,15 @@ VTK_DIR   = args.input_dir
 IMAGE_DIR = VTK_DIR+"/images-"+TIMESTR
 os.makedirs(IMAGE_DIR)
 
-CON_VTK_FILES  = VTK_DIR+"/"+"conc_T*_P.pvtu database"
-CON_VTK_FILES1 = VTK_DIR+"/"+"conc01_T*_P.pvtu database"
-CON_VTK_FILES2 = VTK_DIR+"/"+"conc02_T*_P.pvtu database"
-CON_VTK_FILES3 = VTK_DIR+"/"+"conc03_T*_P.pvtu database"
-RHO_VTK_FILES  = VTK_DIR+"/"+"stokes_rho_0_.pvtu"
-VEL_VTK_FILES  = VTK_DIR+"/"+"stokes_vel_0_.pvtu"
+CON_VTK_FILES    = VTK_DIR+"/"+"conc_T*_P.pvtu database"
+CON_VTK_FILES1_0 = VTK_DIR+"/"+"conc01_T0000_P.pvtu"
+CON_VTK_FILES2_0 = VTK_DIR+"/"+"conc02_T0000_P.pvtu"
+CON_VTK_FILES3_0 = VTK_DIR+"/"+"conc03_T0000_P.pvtu"
+CON_VTK_FILES1   = VTK_DIR+"/"+"conc01_T*_P.pvtu database"
+CON_VTK_FILES2   = VTK_DIR+"/"+"conc02_T*_P.pvtu database"
+CON_VTK_FILES3   = VTK_DIR+"/"+"conc03_T*_P.pvtu database"
+RHO_VTK_FILES    = VTK_DIR+"/"+"stokes_rho_0_.pvtu"
+VEL_VTK_FILES    = VTK_DIR+"/"+"stokes_vel_0_.pvtu"
 
 
 ############################################################################
@@ -103,6 +106,7 @@ def vis_porous(rho_vtk_files, vel_vtk_files, conc_vtk_files, output_dir):
     set_view()
     save_images(output_dir)
 
+
 def vis_porous_three_spheres(rho_vtk_files, vel_vtk_files, conc_vtk_files1, conc_vtk_files2, conc_vtk_files3, output_dir):
     OpenDatabase(rho_vtk_files, 0)
     draw_porous_media_IV()
@@ -127,6 +131,29 @@ def vis_porous_three_spheres(rho_vtk_files, vel_vtk_files, conc_vtk_files1, conc
     set_view()
     save_images(output_dir)
 
+def vis_porous_initial_camera_rotation_three_spheres(rho_vtk_files, vel_vtk_files, conc_vtk_files1, conc_vtk_files2, conc_vtk_files3, output_dir):
+    OpenDatabase(rho_vtk_files, 0)
+    draw_porous_media_IV()
+    cut_porous_media()
+
+    OpenDatabase(vel_vtk_files, 1)
+    ActivateDatabase(vel_vtk_files)
+    draw_porous_velocity()
+
+    OpenDatabase(conc_vtk_files1, 2)
+    ActivateDatabase(conc_vtk_files1)
+    draw_three_concentration_fields(2, 'b')
+
+    OpenDatabase(conc_vtk_files2, 3)
+    ActivateDatabase(conc_vtk_files2)
+    draw_three_concentration_fields(3, 'g')
+
+    OpenDatabase(conc_vtk_files3, 4)
+    ActivateDatabase(conc_vtk_files3)
+    draw_three_concentration_fields(4, 'y')
+
+    change_view_and_save(output_dir)
+
 ############################################################################
 # MAIN
 ############################################################################
@@ -138,4 +165,5 @@ if __name__ == '__main__':
     vis_slice(CON_VTK_FILES, IMAGE_DIR)
     #vis_porous(RHO_VTK_FILES, VEL_VTK_FILES, CON_VTK_FILES, IMAGE_DIR)
     #vis_porous_three_spheres(RHO_VTK_FILES, VEL_VTK_FILES, CON_VTK_FILES1, CON_VTK_FILES2, CON_VTK_FILES3, IMAGE_DIR)
+    #vis_porous_initial_camera_rotation_three_spheres(RHO_VTK_FILES, VEL_VTK_FILES, CON_VTK_FILES1_0, CON_VTK_FILES2_0, CON_VTK_FILES3_0, IMAGE_DIR)
     sys.exit()
