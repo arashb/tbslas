@@ -167,7 +167,7 @@ int main (int argc, char **argv) {
   {
     tbslas::SimConfig* sim_config       = tbslas::SimConfigSingleton::Instance();
     pvfmm::Profile::Enable(sim_config->profile);
-
+    sim_config->num_rk_step = 1;
     // =========================================================================
     // PRINT METADATA
     // =========================================================================

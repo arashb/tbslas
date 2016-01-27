@@ -31,11 +31,13 @@ def generate_command_args(tl_list, \
     cmd_args = OrderedDict()
     cmd_id = 1;
     for counter in range(0,num_steps):
-        ARGS    = ['-N'   , str(8**math.ceil(math.log(np_list[counter],8))), \
-                   '-tol' , str(tl_list[counter]),                           \
-                   '-dt'  , str(dt_list[counter]),                           \
-                   '-tn'  , str(tn_list[counter]),                           \
-                   '-omp' , str(nt_list[counter])]
+        ARGS    = ['-N'   , str(8**math.ceil(math.log(np_list[counter],8))),
+                   '-tol' , str(tl_list[counter]),
+                   '-dt'  , str(dt_list[counter]),
+                   '-tn'  , str(tn_list[counter]),
+                   '-omp' , str(nt_list[counter]),
+                   '-cubic', str(1),
+                   '-vsr' , str(0)]
         cmd_args[cmd_id] = utils.determine_command_prefix(np_list[counter]) + [EXEC] + ARGS
         cmd_id = cmd_id + 1
     return cmd_args
