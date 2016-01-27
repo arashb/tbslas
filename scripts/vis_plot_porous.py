@@ -69,9 +69,9 @@ def draw_porous_media_IV():
     ResampleAtts = ResampleAttributes()
     ResampleAtts.useExtents = 1
     ResampleAtts.is3D = 1
-    ResampleAtts.samplesX = 100
-    ResampleAtts.samplesY = 100
-    ResampleAtts.samplesZ = 100
+    ResampleAtts.samplesX = 200
+    ResampleAtts.samplesY = 200
+    ResampleAtts.samplesZ = 200
     ResampleAtts.tieResolver = ResampleAtts.random
     ResampleAtts.distributedResample = 0
     SetOperatorOptions(ResampleAtts, 1)
@@ -200,3 +200,99 @@ def draw_concentration_field():
     SetPlotOptions(VolumeAtts)
 
     DrawPlots()
+
+def draw_three_concentration_fields(plot_number=2,color='b'):
+  
+     AddPlot("Volume", "cheb_value", 0, 0)
+
+     SetActivePlots(plot_number)
+     VolumeAtts = VolumeAttributes()
+     VolumeAtts.legendFlag = 0
+     VolumeAtts.lightingFlag = 0
+
+     VolumeAtts.colorControlPoints.ClearControlPoints()
+     p = ColorControlPoint()
+     for j in range (0, 9):
+             VolumeAtts.colorControlPoints.AddControlPoints(p)
+
+     if color=='b':
+          VolumeAtts.colorControlPoints.GetControlPoints(0).colors = (8, 64, 129, 255)
+          VolumeAtts.colorControlPoints.GetControlPoints(0).position = 0
+          VolumeAtts.colorControlPoints.GetControlPoints(1).colors = (8, 104, 172, 255)
+          VolumeAtts.colorControlPoints.GetControlPoints(1).position = 0.125
+          VolumeAtts.colorControlPoints.GetControlPoints(2).colors = (43, 140, 190, 255)
+          VolumeAtts.colorControlPoints.GetControlPoints(2).position = 0.25
+          VolumeAtts.colorControlPoints.GetControlPoints(3).colors = (78, 179, 211, 255)
+          VolumeAtts.colorControlPoints.GetControlPoints(3).position = 0.325
+          VolumeAtts.colorControlPoints.GetControlPoints(4).colors = (123, 204, 196, 255)
+          VolumeAtts.colorControlPoints.GetControlPoints(4).position = 0.5
+          VolumeAtts.colorControlPoints.GetControlPoints(5).colors = (168, 221, 181, 255)
+          VolumeAtts.colorControlPoints.GetControlPoints(5).position = 0.675
+          VolumeAtts.colorControlPoints.GetControlPoints(6).colors = (204, 235, 197, 255)
+          VolumeAtts.colorControlPoints.GetControlPoints(6).position = 0.75
+          VolumeAtts.colorControlPoints.GetControlPoints(7).colors = (224, 243, 219, 255)
+          VolumeAtts.colorControlPoints.GetControlPoints(7).position = 0.875
+          VolumeAtts.colorControlPoints.GetControlPoints(8).colors = (247, 252, 240, 255)
+          VolumeAtts.colorControlPoints.GetControlPoints(8).position = 1
+
+     elif color=='g':
+          VolumeAtts.colorControlPoints.GetControlPoints(0).colors = (0, 68, 27, 255)
+          VolumeAtts.colorControlPoints.GetControlPoints(0).position = 0
+          VolumeAtts.colorControlPoints.GetControlPoints(1).colors = (0, 109, 44, 255)
+          VolumeAtts.colorControlPoints.GetControlPoints(1).position = 0.125
+          VolumeAtts.colorControlPoints.GetControlPoints(2).colors = (35, 139, 69, 255)
+          VolumeAtts.colorControlPoints.GetControlPoints(2).position = 0.25
+          VolumeAtts.colorControlPoints.GetControlPoints(3).colors = (65, 171, 93, 255)
+          VolumeAtts.colorControlPoints.GetControlPoints(3).position = 0.325
+          VolumeAtts.colorControlPoints.GetControlPoints(4).colors = (116, 196, 118, 255)
+          VolumeAtts.colorControlPoints.GetControlPoints(4).position = 0.5
+          VolumeAtts.colorControlPoints.GetControlPoints(5).colors = (161, 217, 155, 255)
+          VolumeAtts.colorControlPoints.GetControlPoints(5).position = 0.675
+          VolumeAtts.colorControlPoints.GetControlPoints(6).colors = (199, 233, 192, 255)
+          VolumeAtts.colorControlPoints.GetControlPoints(6).position = 0.75
+          VolumeAtts.colorControlPoints.GetControlPoints(7).colors = (229, 245, 224, 255)
+          VolumeAtts.colorControlPoints.GetControlPoints(7).position = 0.875
+          VolumeAtts.colorControlPoints.GetControlPoints(8).colors = (247, 252, 245, 255)
+          VolumeAtts.colorControlPoints.GetControlPoints(8).position = 1
+
+     elif color=='y':
+          VolumeAtts.colorControlPoints.GetControlPoints(0).colors = (128, 128, 0, 255)
+          VolumeAtts.colorControlPoints.GetControlPoints(0).position = 0
+          VolumeAtts.colorControlPoints.GetControlPoints(1).colors = (160, 160, 32, 255)
+          VolumeAtts.colorControlPoints.GetControlPoints(1).position = 0.125
+          VolumeAtts.colorControlPoints.GetControlPoints(2).colors = (192, 192, 64, 255)
+          VolumeAtts.colorControlPoints.GetControlPoints(2).position = 0.25
+          VolumeAtts.colorControlPoints.GetControlPoints(3).colors = (223, 223, 96, 255)
+          VolumeAtts.colorControlPoints.GetControlPoints(3).position = 0.325
+          VolumeAtts.colorControlPoints.GetControlPoints(4).colors = (255, 255, 128, 255)
+          VolumeAtts.colorControlPoints.GetControlPoints(4).position = 0.5
+          VolumeAtts.colorControlPoints.GetControlPoints(5).colors = (255, 255, 160, 255)
+          VolumeAtts.colorControlPoints.GetControlPoints(5).position = 0.675
+          VolumeAtts.colorControlPoints.GetControlPoints(6).colors = (255, 255, 192, 255)
+          VolumeAtts.colorControlPoints.GetControlPoints(6).position = 0.75
+          VolumeAtts.colorControlPoints.GetControlPoints(7).colors = (255, 255, 223, 255)
+          VolumeAtts.colorControlPoints.GetControlPoints(7).position = 0.875
+          VolumeAtts.colorControlPoints.GetControlPoints(8).colors = (255, 255, 255, 255)
+          VolumeAtts.colorControlPoints.GetControlPoints(8).position = 1
+
+
+     VolumeAtts.colorControlPoints.smoothing = VolumeAtts.colorControlPoints.Linear  # None, Linear, CubicSpline
+     VolumeAtts.colorControlPoints.equalSpacingFlag = 1
+     VolumeAtts.colorControlPoints.discreteFlag = 0
+     VolumeAtts.opacityAttenuation = 1
+     VolumeAtts.opacityMode = VolumeAtts.FreeformMode  # FreeformMode, GaussianMode, ColorTableMode
+     VolumeAtts.resampleFlag = 1
+     VolumeAtts.resampleTarget = 5000000
+     VolumeAtts.useColorVarMin = 1
+     VolumeAtts.colorVarMin = 0.3
+     VolumeAtts.useColorVarMax = 1
+     VolumeAtts.colorVarMax = 1.5
+     VolumeAtts.rendererType = VolumeAtts.Splatting  # Splatting, Texture3D, RayCasting, RayCastingIntegration, SLIVR, RayCastingSLIVR, Tuvok
+     VolumeAtts.gradientType = VolumeAtts.SobelOperator  # CenteredDifferences, SobelOperator
+     VolumeAtts.scaling = VolumeAtts.Skew  # Linear, Log, Skew
+     VolumeAtts.skewFactor = 0.001
+     VolumeAtts.lowGradientLightingReduction = VolumeAtts.Lowest  # Off, Lowest, Lower, Low, Medium, High, Higher, Highest
+     SetPlotOptions(VolumeAtts)
+
+     DrawPlots()
+
