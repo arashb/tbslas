@@ -287,7 +287,6 @@ void RunAdvectDiff(int test, size_t N, size_t M, bool unif, int mult_order,
   //   treec->RefineTree();
   // }
 
-
   double in_al2,in_rl2,in_ali,in_rli;
   CheckChebOutput<FMM_Tree_t>(treec,
                               fn_poten_,
@@ -299,7 +298,24 @@ void RunAdvectDiff(int test, size_t N, size_t M, bool unif, int mult_order,
                               std::string("Input"));
 
   int con_noct_sum = 0;
+  int con_noct_max = 0;
+  int con_noct_min = 0;
+
   int vel_noct_sum = 0;
+  int vel_noct_max = 0;
+  int vel_noct_min = 0;
+
+  if (sim_config->profile) {
+    int con_noct = tbslas::CountNumLeafNodes(*treep);
+    con_noct_sum += con_noct;
+    con_noct_max = con_noct;
+    con_noct_min = con_noct;
+
+    int vel_noct = tbslas::CountNumLeafNodes(*tvel);
+    vel_noct_sum += vel_noct;
+    vel_noct_max = vel_noct;
+    vel_noct_min = vel_noct;
+  }
 
   int timestep = 1;
   for (; timestep < NUM_TIME_STEPS+1; timestep +=1) {
@@ -330,8 +346,15 @@ void RunAdvectDiff(int test, size_t N, size_t M, bool unif, int mult_order,
     FMM_Tree_t* treen = treep;
 
     if (sim_config->profile) {
-      con_noct_sum += tbslas::CountNumLeafNodes(*treen);
-      vel_noct_sum += tbslas::CountNumLeafNodes(*tvel);
+      int con_noct = tbslas::CountNumLeafNodes(*treen);
+      con_noct_sum += con_noct;
+      if (con_noct > con_noct_max) con_noct_max = con_noct;
+      if (con_noct < con_noct_min) con_noct_min = con_noct;
+
+      int vel_noct = tbslas::CountNumLeafNodes(*tvel);
+      vel_noct_sum += vel_noct;
+      if (vel_noct > vel_noct_max) vel_noct_max = vel_noct;
+      if (vel_noct < vel_noct_min) vel_noct_min = vel_noct;
     }
 
     // UPDATE THE SIMULATION CURRENT TIME
@@ -504,17 +527,26 @@ void RunAdvectDiff(int test, size_t N, size_t M, bool unif, int mult_order,
     Rep::AddData("ALPHA", TBSLAS_ALPHA);
 
     Rep::AddData("InAL2", in_al2);
-    Rep::AddData("InRL2", in_rl2);
-    Rep::AddData("InALINF", in_ali);
-    Rep::AddData("InRLINF", in_rli);
-
     Rep::AddData("OutAL2", al2);
+
+    Rep::AddData("InRL2", in_rl2);
     Rep::AddData("OutRL2", rl2);
+
+    Rep::AddData("InALINF", in_ali);
     Rep::AddData("OutALINF", ali);
+
+    Rep::AddData("InRLINF", in_rli);
     Rep::AddData("OutRLINF", rli);
 
-    Rep::AddData("CNOCT", con_noct_sum/(sim_config->total_num_timestep+1), tbslas::REP_INT);
-    Rep::AddData("VNOCT", vel_noct_sum/(sim_config->total_num_timestep+1), tbslas::REP_INT);
+    Rep::AddData("CMinNOCT", con_noct_min, tbslas::REP_INT);
+    Rep::AddData("CAvgNOCT", con_noct_sum/(sim_config->total_num_timestep+1),
+		 tbslas::REP_INT); // NUMBER OF TIMESTEPS + INITIAL TREE
+    Rep::AddData("CMaxNOCT", con_noct_max, tbslas::REP_INT);
+
+    Rep::AddData("VMinNOCT", vel_noct_min, tbslas::REP_INT);
+    Rep::AddData("VAvgNOCT", vel_noct_sum/(sim_config->total_num_timestep+1),
+		 tbslas::REP_INT); // NUMBER OF TIMESTEPS + INITIAL TREE
+    Rep::AddData("VMaxNOCT", vel_noct_max, tbslas::REP_INT);
 
     Rep::Report();
   }
