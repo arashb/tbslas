@@ -241,6 +241,11 @@ void RunAdvectDiff(int test, size_t N, size_t M, bool unif, int mult_order,
   treec->Initialize(&tree_data);
   treec->InitFMM_Tree(adap,bndry);
 
+  if (sim_config->vtk_save_rate) {
+//     treep->Write2File(tbslas::GetVTKFileName(-1, sim_config->vtk_filename_variable).c_str(), sim_config->vtk_order);
+    treec->Write2File(tbslas::GetVTKFileName(0, sim_config->vtk_filename_variable).c_str(), sim_config->vtk_order);
+  }
+
   // **********************************************************************
   // SETUP VELOCITY FIELD TREE
   // **********************************************************************
@@ -256,7 +261,7 @@ void RunAdvectDiff(int test, size_t N, size_t M, bool unif, int mult_order,
                                     3,
                                     *tvel);
   if (sim_config->vtk_save_rate) {
-    tvel->Write2File(tbslas::GetVTKFileName(0, "velocity").c_str(), cheb_deg);
+    tvel->Write2File(tbslas::GetVTKFileName(0, "velocity").c_str(), sim_config->vtk_order);
   }
 
   // **********************************************************************
@@ -480,7 +485,15 @@ void RunAdvectDiff(int test, size_t N, size_t M, bool unif, int mult_order,
     // Write2File
     // ======================================================================
     if (sim_config->vtk_save_rate) {
-      treen->Write2File(tbslas::GetVTKFileName(timestep, sim_config->vtk_filename_variable).c_str(), sim_config->vtk_order);
+          if ( timestep % sim_config->vtk_save_rate == 0) {
+	    treen->Write2File(tbslas::GetVTKFileName(timestep, sim_config->vtk_filename_variable).c_str(), sim_config->vtk_order);
+	    double al2,rl2,ali,rli;
+	    CheckChebOutput<FMM_Tree_t>(treen,
+					fn_poten_,
+					mykernel->ker_dim[1],
+					al2,rl2,ali,rli,
+					std::string("Output_TN" + tbslas::ToString(static_cast<long long>(timestep))));
+ 	  }
     }
     treep = treec;
     treec = treen;
