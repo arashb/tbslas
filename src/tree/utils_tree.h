@@ -23,6 +23,7 @@
 #include <profile.hpp>
 
 #include "utils/common.h"
+#include "utils/cheb.h"
 
 namespace tbslas {
 
@@ -475,7 +476,8 @@ void CollectChebTreeGridPoints(TreeType& tree,
   int sdim     = tree.Dim();
 
   // compute chebychev points positions on the fly
-  std::vector<RealType> cheb_pos = pvfmm::cheb_nodes<RealType>(cheb_deg, sdim);
+  // std::vector<RealType> cheb_pos = pvfmm::cheb_nodes<RealType>(cheb_deg, sdim);
+  std::vector<RealType> cheb_pos = tbslas::new_nodes<RealType>(cheb_deg, sdim);
   int num_points_per_node        = cheb_pos.size()/sdim;
 
   // compute total number of tree leaf nodes
