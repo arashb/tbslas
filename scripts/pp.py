@@ -164,6 +164,19 @@ def pp_scal_s(mydoc, file_pp, PRINT_HEADER = True):
         file_pp.write(header_string_format)
     ppnode.print_me(file_pp)
 
+def get_time(mydoc):
+    ppnode_values = OrderedDict()
+    solve_tavg_sum = 0.0
+    tn_counter = 0
+    for node in mydoc.node_list:
+        if "Solve_TN" in node.title:
+            # print node.title
+            solve_tavg_sum = solve_tavg_sum + float(node.values['t_avg'])
+            tn_counter = tn_counter + 1
+    ppnode_values['T_SUM'] = solve_tavg_sum if tn_counter else 0
+    ppnode_values['T_AVG'] = solve_tavg_sum/tn_counter if tn_counter else 0
+    return ppnode_values
+
 def pp_scal_ws(mydoc, file_pp, PRINT_HEADER = True):
     """
     post processing of scal-ws.py outputs
@@ -175,26 +188,13 @@ def pp_scal_ws(mydoc, file_pp, PRINT_HEADER = True):
     # OUTOUT THE COMMAND
     ##############################
     print '--> post processing command:\n'+mydoc.cmd
+
     ##############################
     # CREATE THE PP LINE
     ##############################
     ppnode_title  = mydoc.np
-    ppnode_values = OrderedDict()
-    ##############################
-    # CREATE THE PP VALUES LIST
-    ##############################
-    solve_tavg_sum = 0.0
-    tn_counter = 0
-    for node in mydoc.node_list:
-        if "Solve_TN" in node.title:
-            # print node.title
-            solve_tavg_sum = solve_tavg_sum + float(node.values['t_avg'])
-            tn_counter = tn_counter + 1
-    # if tn_counter:
-    ppnode_values['T_SUM'] = solve_tavg_sum if tn_counter else 0
-    ppnode_values['T_AVG'] = solve_tavg_sum/tn_counter if tn_counter else 0
-    # if mydoc.max_mem_per_node:
-    ppnode_values['MaxMEM/NODE'] = float(mydoc.max_mem_per_node.split()[0]) if mydoc.max_mem_per_node else 0
+    ppnode_values = get_time(mydoc)
+
     ##############################
     # FORMAT/PRINT THE PP LINE
     ##############################

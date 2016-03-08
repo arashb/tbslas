@@ -24,6 +24,7 @@ from collections import OrderedDict
 # LOCAL IMPORT
 ################################################################################
 import parser
+import pp
 
 ################################################################################
 # GLOBALS
@@ -161,25 +162,32 @@ def analyse_command_output(output, fout, fdata, fprof,
                            PRINT_RSLT_HEADER, PRINT_PRFL_HEADER,\
                            pp_func = None, fpp= None):
     print '--> analysing command output ...'
+    li_header = []
+    li_values = []
     for line in output:
         fout.write(line)
         # CATCH RESULTS HEADER
-        if line.startswith(RESULT_TAG_HEADER) and PRINT_RSLT_HEADER:
-            li = line.replace(RESULT_TAG_HEADER, '')
-            fdata.write(li)
-            # sys.stdout.write(li)
+        if line.startswith(RESULT_TAG_HEADER):
+            li_header = line.replace(RESULT_TAG_HEADER, '').rstrip('\n')
+            continue
         # CATCH RESULTS DATA
         if line.startswith(RESULT_TAG):
-            li = line.replace(RESULT_TAG, '')
-            fdata.write(li)
-            # sys.stdout.write(li)
+            li_values = line.replace(RESULT_TAG, '').rstrip('\n')
+            continue
+
     # PARSE PROFILE OUTPUT
     mydoc = parser.pdoc(output)
     mydoc.print_me(fprof)
-    # POST PROCESSING
-    if pp_func and fpp:
-        pp_func(mydoc, fpp, PRINT_PRFL_HEADER);
-        # pp.pp_profile_data(mydoc, fpp, PRINT_PRFL_HEADER);
+
+    # ADD TIMING VALUES TO REPORT
+    tvals = pp.get_time(mydoc)
+    for key, val in tvals.iteritems():
+         li_header += "{:>10}".format(key)
+         li_values += "{:>10.2f}".format(val)
+
+    if PRINT_RSLT_HEADER:
+        fdata.write(li_header + "\n")
+    fdata.write(li_values + "\n")
 
 def execute_commands(cmds, id, pp_func = None):
     sys.stdout.write("##############################\n")
