@@ -75,7 +75,7 @@ def submit_job(job_id, num_nodes, num_procs, num_threads, total_time, queue=None
     elif 'sm.lrz.de' in HOSTNAME:      # LRZ SuperMUC cluster
         if not queue:
             queue = 'test'
-	    jobfile=get_job_file(num_nodes, num_procs, num_threads, queue, job_id, TIMESTR, total_time)
+        jobfile=get_job_file(num_nodes, num_procs, num_threads, queue, job_id, TIMESTR, total_time)
 
         CMD_JOB = ['llsubmit',str(jobfile)]
         cmd_list.extend([CMD_JOB])
