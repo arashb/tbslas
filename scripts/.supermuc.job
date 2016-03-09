@@ -1,0 +1,32 @@
+#!/bin/bash
+##
+## optional: energy policy tags
+#
+# DO NOT USE environment = COPY_ALL
+#@ job_type = MPICH
+#@ class = micro
+
+#@ island_count=1,2
+
+#@ node = 10
+#@ total_tasks= 40
+##@ tasks_per_node = 4
+
+#@ wall_clock_limit = 4:00:00
+#@ job_name = mytest
+
+#@ network.MPI = sn_all,not_shared,us
+#@ initialdir = $(home)/code/tbslas/scripts
+#@ output = job.$(schedd_host).$(jobid).out 
+#@ error = job.$(schedd_host).$(jobid).err
+#@ notification=never
+#@ notify_user=bakhtiar@in.tum.de
+#@ queue
+
+. /etc/profile
+. /etc/profile.d/modules.sh
+
+#setup of environment
+module unload mpi.ibm
+module load mpi.intel
+mpiexec -n 40 ~/code/tbslas/examples/bin/advection -N 64.0 -tol 0.0001 -d 15 -q 6 -cuf 2 -tn 100 -dt 0.00785398 -merge 3 -omp 7 -cubic 1 -vs 1

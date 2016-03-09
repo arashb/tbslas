@@ -23,6 +23,7 @@
 #include "tree/utils_tree.h"
 #include "utils/common.h"
 #include "utils/reporter.h"
+#include "utils/cheb.h"
 
 namespace tbslas {
 
@@ -151,12 +152,16 @@ void SolveSemilagInSitu(TreeType& tvel_curr,
   int tree_next_node_counter = 0;
   while (n_next != NULL) {
     if (n_next->IsLeaf() && !n_next->IsGhost()) {
+      // convert the function values at scaled points
+      // to function values at first kind chebyshev point
+      tbslas::NewPt2ChebPt<RealType>(
+          &points_val_local_nodes[tree_next_node_counter*num_points_per_node*data_dof],
+          cheb_deg, data_dof);
       pvfmm::cheb_approx<RealType, RealType>(
           &points_val_local_nodes[tree_next_node_counter*num_points_per_node*data_dof],
           cheb_deg,
           data_dof,
-          &(n_next->ChebData()[0])
-                                             );
+          &(n_next->ChebData()[0]));
       tree_next_node_counter++;
     }
     n_next = tree_curr.PostorderNxt(n_next);

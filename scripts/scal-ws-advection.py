@@ -106,20 +106,30 @@ def test2():
     num_pnts      = 8**(math.floor(math.log(np,8)+1))
     nt            = omp_num_threads
 
-    dp_list = [5    , 5     , 6    , 6     , 7    , 7    ]
-    cq_list = [4    , 4     , 4    , 4     , 4    , 4    ]
-    ci_list = [True , False , True , False , True , False]
-    uf_list = [2    , 2     , 2    , 2     , 2    , 2    ]
-    dt_list = [dt   , dt    , dt/2 , dt/2  , dt/4 , dt/4 ]
-    tn_list = [100  , 100   , 200  , 200   , 400  , 400  ]
+    # UNIFORM
+#     tl_list = [1e-30         for cnt in range(0,num_steps)]
+#     dp_list = [5    , 6    , 7    , 5     , 6     , 7    ]
+#     cq_list = [3    , 3    , 3    , 3     , 3     , 3    ]
+#     ci_list = [True , True , True , False , False , False]
+#     uf_list = [2    , 2    , 2    , 2     , 2     , 2    ]
+#     dt_list = [dt   , dt/2 , dt/4 , dt    , dt/2  , dt/4 ]
+#     tn_list = [100  , 200  , 400  , 100   , 200   , 400  ]
+
+    # ADAPTIVE
+    tl_list = [1e-02, 1e-03, 1e-04, 1e-02 , 1e-03 , 1e-04]
+    dp_list = [15   , 15   , 15   , 15    , 15    , 15   ]
+    cq_list = [3    , 3    , 3    , 3     , 3     , 3    ]
+    ci_list = [True , True , True , False , False , False]
+    uf_list = [2    , 2    , 2    , 2     , 2     , 2    ]
+    dt_list = [dt   , dt/2 , dt/4 , dt    , dt/2  , dt/4 ]
+    tn_list = [100  , 200  , 400  , 100   , 200   , 400  ]
 
     num_steps = len(dp_list)
     pn_list = [num_pnts      for cnt in range(0,num_steps)]
-    tl_list = [1e-30         for cnt in range(0,num_steps)]
     np_list = [np            for cnt in range(0,num_steps)]
     nt_list = [nt            for cnt in range(0,num_steps)]
     mg_list = [mrg_type      for cnt in range(0,num_steps)]
-    vs_list = [vsr for cnt in range(0,num_steps)]
+    vs_list = [vtk_save_rate for cnt in range(0,num_steps)]
 
     cmd_args = OrderedDict()
     cmd_args = utils.generate_commands(
@@ -146,18 +156,25 @@ def test3():
     prog          = 'advection-inverse'
     tfinal        = 1.0
     dt            = tfinal/100
-    vsr = 10
+    vtk_save_rate = 10
     mrg_type      = 3
     np            = mpi_num_procs
     num_pnts      = 8**(math.floor(math.log(np,8)+1))
     nt            = omp_num_threads
 
-    dp_list = [6    , 6     , 7    , 7     , 8    , 8    ]
-    cq_list = [4    , 4     , 4    , 4     , 4    , 4    ]
-    ci_list = [True , False , True , False , True , False]
-    uf_list = [2    , 2     , 2    , 2     , 2    , 2    ]
-    dt_list = [dt   , dt    , dt/2 , dt/2  , dt/4 , dt/4 ]
-    tn_list = [100  , 100   , 200  , 200   , 400  , 400  ]
+#     dp_list = [6    , 6     , 7    , 7     , 8    , 8    ]
+#     cq_list = [4    , 4     , 4    , 4     , 4    , 4    ]
+#     ci_list = [True , False , True , False , True , False]
+#     uf_list = [2    , 2     , 2    , 2     , 2    , 2    ]
+#     dt_list = [dt   , dt    , dt/2 , dt/2  , dt/4 , dt/4 ]
+#     tn_list = [100  , 100   , 200  , 200   , 400  , 400  ]
+
+    dp_list = [6      , 7      ]
+    cq_list = [3      , 3      ]
+    ci_list = [True   , True   ]
+    uf_list = [2      , 2      ]
+    dt_list = [dt     , dt/2   ]
+    tn_list = [100    , 200    ]
 
     num_steps = len(dp_list)
     pn_list = [num_pnts      for cnt in range(0,num_steps)]
@@ -227,12 +244,58 @@ def test_omp():
         mg_list)
     utils.execute_commands(cmd_args, prog+'-table-'+str(0))
 
+def test4():
+    ############################################################################
+    # TEST 2: CONVERGENCE TEST FOR ADVECTION
+    ############################################################################
+    mpi_num_procs, omp_num_threads = utils.parse_args()
+    prog          = 'advdiff-ss'
+    dt            = 0.0628
+    vtk_save_rate = 10
+    mrg_type      = 3
+    np            = mpi_num_procs
+    num_pnts      = 8**(math.floor(math.log(np,8)+1))
+    nt            = omp_num_threads
+
+    dp_list = [5    , 6    , 5     , 6     ]#, 7    , 7    ]
+    cq_list = [3    , 3    , 3     , 3     ]#, 4    , 4    ]
+    ci_list = [True , True , False , False ]#, True , False]
+    uf_list = [2    , 2    , 2     , 2     ]#, 2    , 2    ]
+    dt_list = [dt   , dt/2 , dt    , dt/2  ]#, dt/4 , dt/4 ]
+    tn_list = [100  , 200  , 100   , 200   ]#, 400  , 400  ]
+
+    num_steps = len(dp_list)
+    pn_list = [num_pnts      for cnt in range(0,num_steps)]
+    tl_list = [1e-30         for cnt in range(0,num_steps)]
+    np_list = [np            for cnt in range(0,num_steps)]
+    nt_list = [nt            for cnt in range(0,num_steps)]
+    mg_list = [mrg_type      for cnt in range(0,num_steps)]
+    vs_list = [vtk_save_rate for cnt in range(0,num_steps)]
+
+    cmd_args = OrderedDict()
+    cmd_args = utils.generate_commands(
+        prog,
+        pn_list,
+        tl_list,
+        dp_list,
+        cq_list,
+        ci_list,
+        uf_list,
+        np_list,
+        nt_list,
+        dt_list,
+        tn_list,
+        vs_list,
+        mg_list)
+    utils.execute_commands(cmd_args, prog+'-table-'+str(0))
+
+
 ################################################################################
 # MAIN
 ################################################################################
 if __name__ == '__main__':
     mpi_num_procs, omp_num_threads = utils.parse_args()
     # test1()
-    # test2()
-    # test3()
-    test_omp()
+    test2()
+#     test3()
+#     test4()

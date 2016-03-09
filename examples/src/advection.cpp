@@ -54,9 +54,11 @@ get_gaussian_field_cylinder_atT(const real_t* points_pos,
                                 real_t* out) {
   real_t xc      = 0.6;
   real_t yc      = 0.5;
+
+  real_t theta0 = atan((yc-0.5)/(xc-0.5));
   real_t r = sqrt((xc-0.5)*(xc-0.5) + (yc-0.5)*(yc-0.5));
-  xc = 0.5+r*cos(tcurr);
-  yc = 0.5+r*sin(tcurr);
+  xc = 0.5+r*cos(theta0 + tcurr);
+  yc = 0.5+r*sin(theta0 + tcurr);
   const real_t theta   = 0.0;
   const real_t sigma_x = 0.06;
   const real_t sigma_y = 0.06;
@@ -185,12 +187,14 @@ int main (int argc, char **argv) {
       case 1:
         fn_vel = tbslas::get_vorticity_field<double,3>;
         fn_con = get_gaussian_field_cylinder_atT<double,3>;
-        bc = pvfmm::FreeSpace;
+        // bc = pvfmm::FreeSpace;
+        bc = pvfmm::Periodic;
         break;
       case 2:
         fn_vel = tbslas::get_vorticity_field<double,3>;
         fn_con = get_slotted_cylinder_atT<double,3>;
-        bc = pvfmm::FreeSpace;
+        // bc = pvfmm::FreeSpace;
+        bc = pvfmm::Periodic;
         break;
       case 3:
         fn_vel = tbslas::get_vel_field_hom_y<double,3>;
@@ -208,12 +212,14 @@ int main (int argc, char **argv) {
         max_depth_vel=6;
         fn_vel = tbslas::get_vorticity_field<double,3>;
         fn_con = get_guassian_kernel_wraper<double>;
-        bc = pvfmm::FreeSpace;
+        // bc = pvfmm::FreeSpace;
+        bc = pvfmm::Periodic;
         break;
       case 6:         // irregular V, irregular C
         fn_vel = get_hopf_field_wrapper<double>;
         fn_con = get_guassian_kernel_wraper<double>;
-        bc = pvfmm::FreeSpace;
+        // bc = pvfmm::FreeSpace;
+        bc = pvfmm::Periodic;
         break;
       case 7:  // scaling test case -> uniform fields
         fn_vel = tbslas::get_vel_field_hom_x<double,3>;
@@ -315,6 +321,16 @@ int main (int argc, char **argv) {
       vel_noct_max = vel_noct;
       vel_noct_min = vel_noct;
     }
+
+    // int num_points = 1;
+    // std::vector<double> xtmp(num_points*3);
+    // xtmp[0] = 1.0;
+    // xtmp[1] = 1.0;
+    // xtmp[2] = 0.8;
+    // std::vector<double> vtmp(num_points);
+    // tbslas::NodeFieldFunctor<double,Tree_t> cfun = tbslas::NodeFieldFunctor<double,Tree_t>(&tcon);
+    // cfun(xtmp.data(), num_points, vtmp.data());
+    // std::cout << "vals: " << vtmp[0] << " " << vtmp[1] << " " << vtmp[10] << std::endl;
 
     int timestep = 1;
     for (; timestep < sim_config->total_num_timestep+1; timestep++) {
