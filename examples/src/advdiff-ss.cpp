@@ -441,6 +441,8 @@ void RunAdvectDiff(int test, size_t N, size_t M, bool unif, int mult_order,
     int tree_next_node_counter = 0;
     while (n_next != NULL) {
       if (n_next->IsLeaf() && !n_next->IsGhost()) {
+	tbslas::NewPt2ChebPt<double>(&treen_points_val[tree_next_node_counter*num_points_per_node*data_dof],
+				     cheb_deg, data_dof);
         pvfmm::cheb_approx<double, double>(
             &treen_points_val[tree_next_node_counter*num_points_per_node*data_dof],
             cheb_deg,
