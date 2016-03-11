@@ -244,6 +244,7 @@ def execute_commands(cmds, id, pp_func = None):
         fout.write('# ------------------------------\n')
         fout.write(cmd_msg)
         fcmds.write(cmd_msg)
+        fcmds.flush()
 
         # execute command
         p = subprocess.Popen(cmd,                    \

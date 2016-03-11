@@ -42,14 +42,10 @@ def generate_command_args(tl_list, \
         cmd_id = cmd_id + 1
     return cmd_args
 
-################################################################################
-# MAIN
-################################################################################
-if __name__ == '__main__':
+def conv_temporal():
     mpi_num_procs, omp_num_threads = utils.parse_args()
     num_steps = 10
     T_END = 1.0
-
     ############################################################################
     # TEST 1: TEMPORAL CONVERGENCE
     ############################################################################
@@ -79,9 +75,12 @@ if __name__ == '__main__':
                                      np_list,\
                                      nt_list,\
                                      num_steps)
+    utils.execute_commands(cmd_args, 'temporal')
 
-    utils.execute_commands(cmd_args, 'table1')
-
+def conv_spatial():
+    mpi_num_procs, omp_num_threads = utils.parse_args()
+    num_steps = 10
+    T_END = 1.0
     # ############################################################################
     # # TEST 2: SPATIAL CONVERGENCE
     # ############################################################################
@@ -111,9 +110,13 @@ if __name__ == '__main__':
                                      np_list,\
                                      nt_list,\
                                      num_steps)
+    utils.execute_commands(cmd_args,'spatial')
 
-    utils.execute_commands(cmd_args,'table2')
 
+def conv_temporal_spatial():
+    mpi_num_procs, omp_num_threads = utils.parse_args()
+    num_steps = 10
+    T_END = 1.0
     ############################################################################
     # TEST 3: TEMPORAL/SPATIAL CONVERGENCE
     ############################################################################
@@ -144,4 +147,12 @@ if __name__ == '__main__':
                                      nt_list,\
                                      num_steps)
 
-    utils.execute_commands(cmd_args,'table3')
+    utils.execute_commands(cmd_args,'temporal-spatial')
+
+################################################################################
+# MAIN
+################################################################################
+if __name__ == '__main__':
+    conv_temporal()
+    conv_spatial()
+    conv_temporal_spatial()

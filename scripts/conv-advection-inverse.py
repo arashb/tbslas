@@ -42,10 +42,7 @@ def generate_command_args(tl_list, \
         cmd_id = cmd_id + 1
     return cmd_args
 
-################################################################################
-# MAIN
-################################################################################
-if __name__ == '__main__':
+def conv_temporal():
     mpi_num_procs, omp_num_threads = utils.parse_args()
     num_steps = 8
     T_END     = 0.125
@@ -80,68 +77,141 @@ if __name__ == '__main__':
                                      nt_list,\
                                      num_steps)
 
-    utils.execute_commands(cmd_args, 'table1')
+    utils.execute_commands(cmd_args, 'temporal')
 
-    # ############################################################################
-    # # TEST 2: SPATIAL ERROR
-    # ############################################################################
-    # tl_fact = 0.1
-    # tl_init = 1e-1
-    # tl_list = [tl_init*math.pow(tl_fact,float(cnt)) for cnt in range(0,num_steps)]
+def conv_spatial():
+    mpi_num_procs, omp_num_threads = utils.parse_args()
+    num_steps = 8
+    T_END     = 0.125
 
-    # dt_fact = 1
-    # dt_init = 1e-3
-    # dt_list = [dt_init*math.pow(dt_fact,float(cnt)) for cnt in range(0,num_steps)]
+    ############################################################################
+    # TEST 2: SPATIAL ERROR
+    ############################################################################
+    tl_fact = 0.1
+    tl_init = 1e-1
+    tl_list = [tl_init*math.pow(tl_fact,float(cnt)) for cnt in range(0,num_steps)]
 
-    # tn_fact = 1.0/dt_fact
-    # tn_init = 4#T_END/dt_init
-    # tn_list = [tn_init*math.pow(tn_fact,float(cnt)) for cnt in range(0,num_steps)]
+    dt_fact = 1
+    dt_init = 1e-3
+    dt_list = [dt_init*math.pow(dt_fact,float(cnt)) for cnt in range(0,num_steps)]
 
-    # # NUM MPI PROCESSES
-    # np_list = [mpi_num_procs  for cnt in range(0, num_steps)]
+    tn_fact = 1.0/dt_fact
+    tn_init = 4#T_END/dt_init
+    tn_list = [tn_init*math.pow(tn_fact,float(cnt)) for cnt in range(0,num_steps)]
 
-    # # NUM OMP THREADS
-    # nt_list = [omp_num_threads for cnt in range(0, num_steps)]
+    # NUM MPI PROCESSES
+    np_list = [mpi_num_procs  for cnt in range(0, num_steps)]
 
-    # cmd_args = generate_command_args(tl_list,\
-    #                                  dt_list,\
-    #                                  tn_list,\
-    #                                  # de_list,\
-    #                                  # q_list, \
-    #                                  np_list,\
-    #                                  nt_list,\
-    #                                  num_steps)
+    # NUM OMP THREADS
+    nt_list = [omp_num_threads for cnt in range(0, num_steps)]
 
-    # utils.execute_commands(cmd_args, 'table2')
+    cmd_args = generate_command_args(tl_list,\
+                                     dt_list,\
+                                     tn_list,\
+                                     # de_list,\
+                                     # q_list, \
+                                     np_list,\
+                                     nt_list,\
+                                     num_steps)
 
-    # ############################################################################
-    # # TEST 3: TEMPORAL/SPATIAL ERROR
-    # ############################################################################
-    # tl_fact = 0.1
-    # tl_init = 1e-1
-    # tl_list = [tl_init*math.pow(tl_fact,float(cnt)) for cnt in range(0,num_steps)]
+    utils.execute_commands(cmd_args, 'spatial')
 
-    # dt_fact = 0.5
-    # dt_init = 1
-    # dt_list = [dt_init*math.pow(dt_fact,float(cnt)) for cnt in range(0,num_steps)]
+def conv_temporal_spatial():
+    mpi_num_procs, omp_num_threads = utils.parse_args()
+    num_steps = 8
+    T_END     = 0.125
 
-    # tn_fact = 1.0/dt_fact
-    # tn_init = T_END/dt_init
-    # tn_list = [tn_init*math.pow(tn_fact,float(cnt)) for cnt in range(0,num_steps)]
+    ############################################################################
+    # TEST 3: TEMPORAL/SPATIAL ERROR
+    ############################################################################
+    tl_fact = 0.1
+    tl_init = 1e-1
+    tl_list = [tl_init*math.pow(tl_fact,float(cnt)) for cnt in range(0,num_steps)]
 
-    # # NUM MPI PROCESSES
-    # np_list = [mpi_num_procs  for cnt in range(0, num_steps)]
+    dt_fact = 0.5
+    dt_init = 1
+    dt_list = [dt_init*math.pow(dt_fact,float(cnt)) for cnt in range(0,num_steps)]
 
-    # # NUM OMP THREADS
-    # nt_list = [omp_num_threads for cnt in range(0, num_steps)]
+    tn_fact = 1.0/dt_fact
+    tn_init = T_END/dt_init
+    tn_list = [tn_init*math.pow(tn_fact,float(cnt)) for cnt in range(0,num_steps)]
 
-    # cmd_args = generate_command_args(tl_list,\
-    #                                  dt_list,\
-    #                                  tn_list,\
-    #                                  # de_list,\
-    #                                  # q_list, \
-    #                                  np_list,\
-    #                                  nt_list,\
-    #                                  num_steps)
+    # NUM MPI PROCESSES
+    np_list = [mpi_num_procs  for cnt in range(0, num_steps)]
 
-    # utils.execute_commands(cmd_args, 'table3')
+    # NUM OMP THREADS
+    nt_list = [omp_num_threads for cnt in range(0, num_steps)]
+
+    cmd_args = generate_command_args(tl_list,\
+                                     dt_list,\
+                                     tn_list,\
+                                     # de_list,\
+                                     # q_list, \
+                                     np_list,\
+                                     nt_list,\
+                                     num_steps)
+
+    utils.execute_commands(cmd_args, 'temporal-spatial')
+
+def conv_temporal_spatial_long_time():
+    ############################################################################
+    # TEST 2: CONVERGENCE TEST FOR ADVECTION-INVERSE
+    ############################################################################
+    mpi_num_procs, omp_num_threads = utils.parse_args()
+    prog          = 'advection-inverse'
+    tfinal        = 1.0
+    dt            = tfinal/100
+    vtk_save_rate = 10
+    mrg_type      = 3
+    np            = mpi_num_procs
+    num_pnts      = 8**(math.floor(math.log(np,8)+1))
+    nt            = omp_num_threads
+
+    # UNIFORM
+    dp_list = [6    , 7    , 8    , 6     , 7     , 8    ]
+    cq_list = [4    , 4    , 4    , 4     , 4     , 4    ]
+    ci_list = [True , True , True , False , False , False]
+    uf_list = [2    , 2    , 2    , 2     , 2     , 2    ]
+    dt_list = [dt   , dt/2 , dt/4 , dt    , dt/2  , dt/4 ]
+    tn_list = [100  , 200  , 400  , 100   , 200   , 400  ]
+
+    # dp_list = [6      , 7      ]
+    # cq_list = [3      , 3      ]
+    # ci_list = [True   , True   ]
+    # uf_list = [2      , 2      ]
+    # dt_list = [dt     , dt/2   ]
+    # tn_list = [100    , 200    ]
+
+    num_steps = len(dp_list)
+    pn_list = [num_pnts for cnt in range(0,num_steps)]
+    tl_list = [1e-30    for cnt in range(0,num_steps)]
+    np_list = [np       for cnt in range(0,num_steps)]
+    nt_list = [nt       for cnt in range(0,num_steps)]
+    mg_list = [mrg_type for cnt in range(0,num_steps)]
+    vs_list = [vsr      for cnt in range(0,num_steps)]
+
+    cmd_args = OrderedDict()
+    cmd_args = utils.generate_commands(
+        prog,
+        pn_list,
+        tl_list,
+        dp_list,
+        cq_list,
+        ci_list,
+        uf_list,
+        np_list,
+        nt_list,
+        dt_list,
+        tn_list,
+        vs_list,
+        mg_list)
+    utils.execute_commands(cmd_args, 'temporal-spatial-long-time')
+
+################################################################################
+# MAIN
+################################################################################
+if __name__ == '__main__':
+    conv_temporal()
+    conv_spatial()
+    conv_temporal_spatial()
+    conv_temporal_spatial_long_time()

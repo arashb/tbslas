@@ -41,10 +41,7 @@ def generate_command_args(tl_list, \
         cmd_id = cmd_id + 1
     return cmd_args
 
-################################################################################
-# MAIN
-################################################################################
-if __name__ == '__main__':
+def test1():
     mpi_num_procs, omp_num_threads = utils.parse_args()
     num_steps = 8
     T_END     = 2*math.pi
@@ -80,3 +77,9 @@ if __name__ == '__main__':
                                      num_steps)
 
     utils.execute_commands(cmd_args, 'table1')
+
+################################################################################
+# MAIN
+################################################################################
+if __name__ == '__main__':
+    test1()

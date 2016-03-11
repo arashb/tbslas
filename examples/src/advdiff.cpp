@@ -132,14 +132,16 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
       fn_poten_ = fn_poten_t2<Real_t>;
       fn_veloc_ = tbslas::get_vorticity_field<double,3>;
       mykernel  = &modified_laplace_kernel_d;
-      bndry = pvfmm::FreeSpace;
+      // bndry = pvfmm::FreeSpace;
+      bndry = pvfmm::Periodic;
       break;
     case 1:
       fn_input_ = fn_input_t1<Real_t>;
       fn_poten_ = fn_input_t1<Real_t>;
       fn_veloc_ = tbslas::get_vorticity_field<double,3>;
       mykernel  = &modified_laplace_kernel_d;
-      bndry = pvfmm::FreeSpace;
+      // bndry = pvfmm::FreeSpace;
+      bndry = pvfmm::Periodic;
       break;
     case 3:
       fn_input_ = fn_input_t1<Real_t>;

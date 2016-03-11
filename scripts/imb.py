@@ -48,50 +48,79 @@ def generate_command_args(de_list, \
         cmd_id = cmd_id + 1
     return cmd_args
 
-################################################################################
-# MAIN
-################################################################################
-if __name__ == '__main__':
+def test1():
     mpi_num_procs, omp_num_threads = utils.parse_args()
     num_steps = 2
     for merge_type in range(1,4):
-    # ############################################################################
-    # # TEST 1: V,C depth: [6] config: regular V, regular C
-    # ############################################################################
-        # de_factor = 1
-        # de_init   = 5
-        # dt_factor = 1
-        # dt_init   = 0.25
-        # tn_factor = 1.0
-        # tn_init   = 1
-        # test_init = 4
-        # test_factor = 0;
-        # cmd_args = generate_command_args(de_init, de_factor, \
-        #                              dt_init, dt_factor, \
-        #                              tn_init, tn_factor, \
-        #                              test_init, test_factor, \
-        #                              merge_type, \
-        #                              1)
-        # utils.execute_commands(cmd_args, 'test-1-merge-type-'+str(merge_type))
+    ############################################################################
+    # TEST 1: V,C depth: [6] config: regular V, regular C
+    ############################################################################
+        de_factor = 1
+        de_init   = 5
+        de_list = [de_init+cnt*de_factor                  for cnt in range(0, num_steps)]
 
-    # ############################################################################
-    # # TEST 2: V depth: [6] C depth: [5, 7, 9] config: regular V, irregular C
-    # ############################################################################
-        # de_factor = 1
-        # de_init   = 5
-        # dt_factor = 1
-        # dt_init   = 0.25
-        # tn_factor = 1.0
-        # tn_init   = 1
-        # test_init = 5
-        # test_factor = 0;
-        # cmd_args = generate_command_args(de_init, de_factor, \
-        #                              dt_init, dt_factor, \
-        #                              tn_init, tn_factor, \
-        #                              test_init, test_factor, \
-        #                              merge_type, \
-        #                              num_steps)
-        # utils.execute_commands(cmd_args, 'test-2-merge-type-'+str(merge_type))
+        dt_factor = 1
+        dt_init   = 0.25
+        dt_list = [dt_init*math.pow(dt_factor,float(cnt)) for cnt in range(0,num_steps)]
+
+        tn_factor = 1.0
+        tn_init   = 1
+        tn_list = [tn_init*math.pow(tn_factor,float(cnt)) for cnt in range(0,num_steps)]
+
+        test_init = 4
+        test_factor = 0;
+        test_list = [test_init+cnt*test_factor            for cnt in range(0,num_steps)]
+
+        # NUM MPI PROCESSES
+        np_list = [mpi_num_procs  for cnt in range(0, num_steps)]
+
+        # NUM OMP THREADS
+        nt_list = [omp_num_threads for cnt in range(0, num_steps)]
+
+        cmd_args = generate_command_args(de_list,
+                                        dt_list,
+                                        tn_list,
+                                        test_list,
+                                        merge_type,
+                                        np_list,
+                                        nt_list,
+                                        num_steps)
+        utils.execute_commands(cmd_args, 'test-1-merge-type-'+str(merge_type))
+
+    ############################################################################
+    # TEST 2: V depth: [6] C depth: [5, 7, 9] config: regular V, irregular C
+    ############################################################################
+        de_factor = 1
+        de_init   = 5
+        de_list = [de_init+cnt*de_factor                  for cnt in range(0, num_steps)]
+
+        dt_factor = 1
+        dt_init   = 0.25
+        dt_list = [dt_init*math.pow(dt_factor,float(cnt)) for cnt in range(0,num_steps)]
+
+        tn_factor = 1.0
+        tn_init   = 1
+        tn_list = [tn_init*math.pow(tn_factor,float(cnt)) for cnt in range(0,num_steps)]
+
+        test_init = 5
+        test_factor = 0;
+        test_list = [test_init+cnt*test_factor            for cnt in range(0,num_steps)]
+
+        # NUM MPI PROCESSES
+        np_list = [mpi_num_procs  for cnt in range(0, num_steps)]
+
+        # NUM OMP THREADS
+        nt_list = [omp_num_threads for cnt in range(0, num_steps)]
+
+        cmd_args = generate_command_args(de_list,
+                                        dt_list,
+                                        tn_list,
+                                        test_list,
+                                        merge_type,
+                                        np_list,
+                                        nt_list,
+                                        num_steps)
+        utils.execute_commands(cmd_args, 'test-2-merge-type-'+str(merge_type))
 
     ############################################################################
     # TEST 3: V,C depth: [5, 7, 9] config: irregular V, irregular C
@@ -118,13 +147,18 @@ if __name__ == '__main__':
         # NUM OMP THREADS
         nt_list = [omp_num_threads for cnt in range(0, num_steps)]
 
-        cmd_args = generate_command_args(de_list, \
-                                        dt_list, \
-                                        tn_list, \
-                                        test_list, \
-                                        merge_type, \
-                                        np_list, \
-                                        nt_list, \
+        cmd_args = generate_command_args(de_list,
+                                        dt_list,
+                                        tn_list,
+                                        test_list,
+                                        merge_type,
+                                        np_list,
+                                        nt_list,
                                         num_steps)
-
         utils.execute_commands(cmd_args, 'test-3-merge-type-'+str(merge_type))
+
+################################################################################
+# MAIN
+################################################################################
+if __name__ == '__main__':
+    test1()

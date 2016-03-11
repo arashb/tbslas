@@ -54,57 +54,18 @@ if __name__ == '__main__':
     mpi_num_procs, omp_num_threads = utils.parse_args()
     for merge_type in range(1,4):
         # ######################################################################
-        # # TEST 1: V,C depth: [6] config: regular V, regular C
-        # ######################################################################
-        # de_factor = 1
-        # de_init   = 5
-        # dt_factor = 1
-        # dt_init   = 0.25
-        # tn_factor = 1.0
-        # tn_init   = 1
-        # test_init = 4
-        # test_factor = 0;
-        # cmd_args = generate_command_args(de_init, de_factor, \
-        #                              dt_init, dt_factor, \
-        #                              tn_init, tn_factor, \
-        #                              test_init, test_factor, \
-        #                              merge_type, \
-        #                              1)
-        # utils.execute_commands(cmd_args, 'test-1-merge-type-'+str(merge_type))
-
-        # ######################################################################
-        # # TEST 2: V depth: [6] C depth: [5, 7, 9] config: regular V, irregular C
-        # ######################################################################
-        # de_factor = 1
-        # de_init   = 5
-        # dt_factor = 1
-        # dt_init   = 0.25
-        # tn_factor = 1.0
-        # tn_init   = 1
-        # test_init = 5
-        # test_factor = 0;
-        # cmd_args = generate_command_args(de_init, de_factor, \
-        #                              dt_init, dt_factor, \
-        #                              tn_init, tn_factor, \
-        #                              test_init, test_factor, \
-        #                              merge_type, \
-        #                              num_steps)
-        # utils.execute_commands(cmd_args, 'test-2-merge-type-'+str(merge_type))
-
-        # ######################################################################
         # # TEST 3: V,C depth: [5, 7, 9] config: irregular V, irregular C
         # ######################################################################
-        np_list = [\
-                1,\
-                2,\
-                4,\
-                # 8,\
-                # 16,\
-                # 32,\
+        np_list = [
+                1,
+                2,
+                4,
+                8,
+                16,
+                32,
                 ]
 
         num_steps = len(np_list)
-
         de_factor = 1
         de_init   = 6
         de_list   = [de_init for cnt in range(0,num_steps)]
@@ -120,13 +81,12 @@ if __name__ == '__main__':
         test_init = 6
         test_list = [test_init for cnt in range(0,num_steps)]
 
-        cmd_args = generate_command_args(de_list, \
-                                             dt_list, \
-                                             tn_list, \
-                                             test_list, \
-                                             merge_type, \
-                                             np_list, \
-                                             nt_list, \
-                                             num_steps)
-
+        cmd_args = generate_command_args(de_list,
+                                         dt_list,
+                                         tn_list,
+                                         test_list,
+                                         merge_type,
+                                         np_list,
+                                         nt_list,
+                                         num_steps)
         utils.execute_commands(cmd_args, 'test-3-merge-type-'+str(merge_type))

@@ -141,14 +141,16 @@ void RunAdvectDiff(int test, size_t N, size_t M, bool unif, int mult_order,
       fn_poten_ = get_diffusion_kernel_atT<Real_t>;
       fn_veloc_ = tbslas::get_vorticity_field<double,3>;
       mykernel  = &modified_laplace_kernel_d;
-      bndry = pvfmm::FreeSpace;
+      // bndry = pvfmm::FreeSpace;
+      bndry = pvfmm::Periodic;
       break;
     case 2:
       fn_input_ = fn_input_t2<Real_t>;
       fn_poten_ = fn_poten_t2<Real_t>;
       fn_veloc_ = tbslas::get_vorticity_field<double,3>;
       mykernel  = &modified_laplace_kernel_d;
-      bndry = pvfmm::FreeSpace;
+      // bndry = pvfmm::FreeSpace;
+      bndry = pvfmm::Periodic;
       break;
     case 3:
       fn_input_ = get_diffusion_kernel_atT_hom<Real_t>;

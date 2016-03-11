@@ -45,10 +45,7 @@ def generate_command_args(tl_list,\
         cmd_id = cmd_id + 1
     return cmd_args
 
-################################################################################
-# MAIN
-################################################################################
-if __name__ == '__main__':
+def conv_temporal():
     mpi_num_procs, omp_num_threads = utils.parse_args()
     num_steps = 8
     ############################################################################
@@ -87,79 +84,136 @@ if __name__ == '__main__':
                                      nt_list,\
                                      use_cubic,\
                                      num_steps)
+    # print cmd_args
+    utils.execute_commands(cmd_args,'temporal')
 
-    utils.execute_commands(cmd_args,'table1')
+def conv_spatial():
+    ############################################################################
+    # TEST 2: SPATIAL CONVERGENCE
+    ############################################################################
+    use_cubic     = True
+    # TREE TOLERANCE
+    tl_factor = 0.1
+    tl_init   = 1e-1
+    tl_list = [tl_init*math.pow(tl_factor,float(cnt)) for cnt in range(0,num_steps)]
 
-    # ############################################################################
-    # # TEST 2: SPATIAL CONVERGENCE
-    # ############################################################################
-    # use_cubic     = True
-    # # TREE TOLERANCE
-    # tl_factor = 0.1
-    # tl_init   = 1e-1
-    # tl_list = [tl_init*math.pow(tl_factor,float(cnt)) for cnt in range(0,num_steps)]
+    # TIME RESOLUTION
+    dt_factor = 1
+    dt_init   = 1e-3
+    dt_list = [dt_init*math.pow(dt_factor,float(cnt)) for cnt in range(0,num_steps)]
 
-    # # TIME RESOLUTION
-    # dt_factor = 1
-    # dt_init   = 1e-3
-    # dt_list = [dt_init*math.pow(dt_factor,float(cnt)) for cnt in range(0,num_steps)]
+    # NUM TIME STEPS
+    tn_factor = 1.0/dt_factor
+    tn_init   = 1#T_END/dt_init
+    tn_list = [tn_init*math.pow(tn_factor,float(cnt)) for cnt in range(0,num_steps)]
 
-    # # NUM TIME STEPS
-    # tn_factor = 1.0/dt_factor
-    # tn_init   = 1#T_END/dt_init
-    # tn_list = [tn_init*math.pow(tn_factor,float(cnt)) for cnt in range(0,num_steps)]
+    # NUM MPI PROCESSES
+    np_list = [mpi_num_procs  for cnt in range(0, num_steps)]
 
-    # # NUM MPI PROCESSES
-    # np_list = [mpi_num_procs  for cnt in range(0, num_steps)]
+    # NUM OMP THREADS
+    nt_list = [omp_num_threads for cnt in range(0, num_steps)]
 
-    # # NUM OMP THREADS
-    # nt_list = [omp_num_threads for cnt in range(0, num_steps)]
+    cmd_args = generate_command_args(tl_list,\
+                                     dt_list,\
+                                     tn_list,\
+                                     # de_list,\
+                                     # q_list, \
+                                     np_list,\
+                                     nt_list,\
+                                     use_cubic,\
+                                     num_steps)
 
-    # cmd_args = generate_command_args(tl_list,\
-    #                                  dt_list,\
-    #                                  tn_list,\
-    #                                  # de_list,\
-    #                                  # q_list, \
-    #                                  np_list,\
-    #                                  nt_list,\
-    #                                  use_cubic,\
-    #                                  num_steps)
+    utils.execute_commands(cmd_args,'spatial')
 
-    # utils.execute_commands(cmd_args,'table2')
+def conv_temporal_spatial():
+    ############################################################################
+    # TEST 3: TEMPORAL/SPATIAL CONVERGENCE
+    ############################################################################
+    use_cubic     = True
+    # TREE TOLERANCE
+    tl_factor = 0.1
+    tl_init   = 1e-1
+    tl_list = [tl_init*math.pow(tl_factor,float(cnt)) for cnt in range(0,num_steps)]
 
-    # ############################################################################
-    # # TEST 3: TEMPORAL/SPATIAL CONVERGENCE
-    # ############################################################################
-    # use_cubic     = True
-    # # TREE TOLERANCE
-    # tl_factor = 0.1
-    # tl_init   = 1e-1
-    # tl_list = [tl_init*math.pow(tl_factor,float(cnt)) for cnt in range(0,num_steps)]
+    # TIME RESOLUTION
+    dt_factor = 0.5
+    dt_init   = 1
+    dt_list = [dt_init*math.pow(dt_factor,float(cnt)) for cnt in range(0,num_steps)]
 
-    # # TIME RESOLUTION
-    # dt_factor = 0.5
-    # dt_init   = 1
-    # dt_list = [dt_init*math.pow(dt_factor,float(cnt)) for cnt in range(0,num_steps)]
+    # NUM TIME STEPS
+    tn_factor = 1.0/dt_factor
+    tn_init   = T_END/dt_init
+    tn_list = [tn_init*math.pow(tn_factor,float(cnt)) for cnt in range(0,num_steps)]
 
-    # # NUM TIME STEPS
-    # tn_factor = 1.0/dt_factor
-    # tn_init   = T_END/dt_init
-    # tn_list = [tn_init*math.pow(tn_factor,float(cnt)) for cnt in range(0,num_steps)]
+    # NUM MPI PROCESSES
+    np_list = [mpi_num_procs  for cnt in range(0, num_steps)]
 
-    # # NUM MPI PROCESSES
-    # np_list = [mpi_num_procs  for cnt in range(0, num_steps)]
+    # NUM OMP THREADS
+    nt_list = [omp_num_threads for cnt in range(0, num_steps)]
 
-    # # NUM OMP THREADS
-    # nt_list = [omp_num_threads for cnt in range(0, num_steps)]
+    cmd_args = generate_command_args(tl_list,\
+                                     dt_list,\
+                                     tn_list,\
+                                     # de_list,\
+                                     # q_list, \
+                                     np_list,\
+                                     nt_list,\
+                                     use_cubic,\
+                                     num_steps)
 
-    # cmd_args = generate_command_args(tl_list,\
-    #                                  dt_list,\
-    #                                  tn_list,\
-    #                                  # de_list,\
-    #                                  # q_list, \
-    #                                  np_list,\
-    #                                  nt_list,\
-    #                                  use_cubic,\
-    #                                  num_steps)
+    utils.execute_commands(cmd_args,'temporal-spatial')
 
-    # utils.execute_commands(cmd_args,'table3')
+def conv_temporal_spatial_long_time():
+    ############################################################################
+    # TEST 2: CONVERGENCE TEST FOR ADVECTION-DIFFUSION SOLVER
+    ############################################################################
+    mpi_num_procs, omp_num_threads = utils.parse_args()
+    prog          = 'advdiff-ss'
+    dt            = 0.0628
+    vtk_save_rate = 10
+    mrg_type      = 3
+    np            = mpi_num_procs
+    num_pnts      = 8**(math.floor(math.log(np,8)+1))
+    nt            = omp_num_threads
+
+    # UNIFORM
+    dp_list = [5    , 6    , 7    , 5     , 6      , 7    ]
+    cq_list = [3    , 3    , 3    , 3     , 3      , 3    ]
+    ci_list = [True , True , True , False , False  , False]
+    uf_list = [2    , 2    , 2    , 2     , 2      , 2    ]
+    dt_list = [dt   , dt/2 , dt/4 , dt    , dt/2   , dt/4 ]
+    tn_list = [100  , 200  , 400  , 100   , 200    , 400  ]
+
+    num_steps = len(dp_list)
+    pn_list = [num_pnts      for cnt in range(0,num_steps)]
+    tl_list = [1e-30         for cnt in range(0,num_steps)]
+    np_list = [np            for cnt in range(0,num_steps)]
+    nt_list = [nt            for cnt in range(0,num_steps)]
+    mg_list = [mrg_type      for cnt in range(0,num_steps)]
+    vs_list = [vtk_save_rate for cnt in range(0,num_steps)]
+
+    cmd_args = OrderedDict()
+    cmd_args = utils.generate_commands(
+        prog,
+        pn_list,
+        tl_list,
+        dp_list,
+        cq_list,
+        ci_list,
+        uf_list,
+        np_list,
+        nt_list,
+        dt_list,
+        tn_list,
+        vs_list,
+        mg_list)
+    utils.execute_commands(cmd_args, 'temporal-spatial-long-time')
+
+################################################################################
+# MAIN
+################################################################################
+if __name__ == '__main__':
+    conv_temporal()
+    # conv_spatial()
+    # conv_temporal_spatial()
+    # conv_temporal_spatial_long_time()
