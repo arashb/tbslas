@@ -71,7 +71,7 @@ VTK_DIR   = args.input_dir
 IMAGE_DIR = VTK_DIR+"/images-"+TIMESTR
 os.makedirs(IMAGE_DIR)
 
-CON_VTK_FILES    = VTK_DIR+"/"+"conc_T*_P.pvtu database"
+CON_VTK_FILES    = VTK_DIR+"/"+"conc01_T*_P.pvtu database"
 CON_VTK_FILES1_0 = VTK_DIR+"/"+"conc01_T0000_P.pvtu"
 CON_VTK_FILES2_0 = VTK_DIR+"/"+"conc02_T0000_P.pvtu"
 CON_VTK_FILES3_0 = VTK_DIR+"/"+"conc03_T0000_P.pvtu"
@@ -112,10 +112,6 @@ def vis_porous_three_spheres(rho_vtk_files, vel_vtk_files, conc_vtk_files1, conc
     draw_porous_media_IV()
     cut_porous_media()
 
-    OpenDatabase(vel_vtk_files, 1)
-    ActivateDatabase(vel_vtk_files)
-    draw_porous_velocity()
-
     OpenDatabase(conc_vtk_files1, 2)
     ActivateDatabase(conc_vtk_files1)
     draw_three_concentration_fields(2, 'b')
@@ -133,26 +129,41 @@ def vis_porous_three_spheres(rho_vtk_files, vel_vtk_files, conc_vtk_files1, conc
 
 def vis_porous_three_spheres_initial_camera_rotation(rho_vtk_files, vel_vtk_files, conc_vtk_files1, conc_vtk_files2, conc_vtk_files3, output_dir):
     OpenDatabase(rho_vtk_files, 0)
+    SetActivePlots(0)
     draw_porous_media_IV()
     cut_porous_media()
 
-    OpenDatabase(vel_vtk_files, 1)
+    SetActivePlots(1)
+    draw_porous_media_IV()
+    cut_porous_media(1)
+    translate_porous()
+
+    OpenDatabase(vel_vtk_files, 0)
     ActivateDatabase(vel_vtk_files)
-    draw_porous_velocity()
+    draw_porous_velocity(2,0)
 
-    OpenDatabase(conc_vtk_files1, 2)
+    OpenDatabase(vel_vtk_files, 0)
+    ActivateDatabase(vel_vtk_files)
+    draw_porous_velocity(3,1)
+    SetActivePlots(3)
+    translate_porous()
+
+    OpenDatabase(conc_vtk_files2, 0)
     ActivateDatabase(conc_vtk_files1)
-    draw_three_concentration_fields(2, 'b')
+    draw_three_concentration_fields(4, 'b')
 
-    OpenDatabase(conc_vtk_files2, 3)
+    OpenDatabase(conc_vtk_files2, 0)
     ActivateDatabase(conc_vtk_files2)
-    draw_three_concentration_fields(3, 'g')
+    draw_three_concentration_fields(5, 'g')
 
-    OpenDatabase(conc_vtk_files3, 4)
+    OpenDatabase(conc_vtk_files3, 0)
     ActivateDatabase(conc_vtk_files3)
-    draw_three_concentration_fields(4, 'y')
+    draw_three_concentration_fields(6, 'y')
 
     change_view_and_save(output_dir)
+
+    #save_images(output_dir)
+    translate_and_save(output_dir, 1, 3)
 
 ############################################################################
 # MAIN

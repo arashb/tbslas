@@ -65,7 +65,6 @@ def draw_porous_media_IV():
     SetPlotOptions(PseudocolorAtts)
 
     AddOperator("Resample", 0)
-    SetActivePlots(0)
     ResampleAtts = ResampleAttributes()
     ResampleAtts.useExtents = 1
     ResampleAtts.is3D = 1
@@ -89,7 +88,6 @@ def draw_porous_media_IV():
 def cut_porous_media(i=0):
 
     AddOperator("Clip", 0)
-    SetActivePlots(0)
     ClipAtts = ClipAttributes()
     ClipAtts.plane1Status = 1
     ClipAtts.plane2Status = 0
@@ -98,23 +96,80 @@ def cut_porous_media(i=0):
     if (i==0):
         ClipAtts.plane1Origin = (0.5, 0.5, 0.5)
         ClipAtts.plane1Normal = (0, 1, 1)
+        ClipAtts.planeInverse = 0
+    elif (i==1):
+        ClipAtts.plane1Origin = (0.5, 0.5, 0.5)
+        ClipAtts.plane1Normal = (0, 1, 1)
+        ClipAtts.planeInverse = 1
+
     else:
         ClipAtts.plane1Origin = (0.7, 0.5, 0.5)
         ClipAtts.plane1Normal = (-1, 0, 0)
+        ClipAtts.planeInverse = 0
 
-    ClipAtts.planeInverse = 0
+
     ClipAtts.planeToolControlledClipPlane = ClipAtts.Plane1
     SetOperatorOptions(ClipAtts, 0)
 
     DrawPlots()
 
+def translate_porous():
 
-def draw_porous_velocity(i=0):
+    AddOperator("Transform", 0)
+    ToggleLockViewMode()
+    ToggleMaintainViewMode()
+
+    TransformAtts = TransformAttributes()
+    TransformAtts.doTranslate = 1
+    TransformAtts.translateX = 0
+    TransformAtts.translateY = 0
+    TransformAtts.translateZ = 0
+
+    SetOperatorOptions(TransformAtts, 0)
+
+    DrawPlots()
+
+def translate_and_save(image_dir, material_plot_number=0, velocity_plot_number=1):
+    
+    d_x=0.01
+    d_y=0.01
+    d_z=0.0
+    r=int(floor((2.0)/d_x))
+
+    x=0
+    y=0
+    z=0
+    for i in range(r):
+
+	x=x+d_x
+	y=y+d_y
+	z=z+d_z
+
+	SetActivePlots(material_plot_number)
+	TransformAtts = TransformAttributes()
+	TransformAtts.doTranslate = 1
+	TransformAtts.translateX = x
+	TransformAtts.translateY = y
+	TransformAtts.translateZ = z
+	SetOperatorOptions(TransformAtts, 0)
+
+	SetActivePlots(velocity_plot_number)
+	TransformAtts = TransformAttributes()
+	TransformAtts.doTranslate = 1
+	TransformAtts.translateX = x
+	TransformAtts.translateY = y
+	TransformAtts.translateZ = z
+	SetOperatorOptions(TransformAtts, 0)
+
+	save_images(image_dir)
+
+
+def draw_porous_velocity(plot_number=2,i=0):
 
     AddPlot("Streamline", "cheb_value", 0, 0)
     StreamlineAtts = StreamlineAttributes()
 
-    SetActivePlots(1)
+    SetActivePlots(plot_number)
     StreamlineAtts.sourceType = StreamlineAtts.SpecifiedBox
     StreamlineAtts.boxExtents = (0.9, 1, 0, 1, 0, 1)
     StreamlineAtts.useWholeBox = 0
@@ -134,7 +189,7 @@ def draw_porous_velocity(i=0):
     SetPlotOptions(StreamlineAtts)
 
     if (i==0):
-        SetActivePlots(1)
+        SetActivePlots(plot_number)
         AddOperator("Clip", 0)
         ClipAtts = ClipAttributes()
         ClipAtts.plane1Status = 1
@@ -143,6 +198,19 @@ def draw_porous_velocity(i=0):
         ClipAtts.plane1Origin = (0.5, 0.5, 0.5)
         ClipAtts.plane1Normal = (0, 1, 1)
         ClipAtts.planeInverse = 0
+        ClipAtts.planeToolControlledClipPlane = ClipAtts.Plane1
+        SetOperatorOptions(ClipAtts, 0)
+
+    elif (i==1):
+        SetActivePlots(plot_number)
+        AddOperator("Clip", 0)
+        ClipAtts = ClipAttributes()
+        ClipAtts.plane1Status = 1
+        ClipAtts.plane2Status = 0
+        ClipAtts.plane3Status = 0
+        ClipAtts.plane1Origin = (0.5, 0.5, 0.5)
+        ClipAtts.plane1Normal = (0, 1, 1)
+        ClipAtts.planeInverse = 1
         ClipAtts.planeToolControlledClipPlane = ClipAtts.Plane1
         SetOperatorOptions(ClipAtts, 0)
 
