@@ -162,8 +162,9 @@ def vis_porous_three_spheres_initial_camera_rotation(rho_vtk_files, vel_vtk_file
 
     change_view_and_save(output_dir)
 
-    #save_images(output_dir)
-    translate_and_save(output_dir, 1, 3)
+    ToggleLockViewMode()
+    ToggleMaintainViewMode()
+    translate_and_save(output_dir, 2, 3)
 
 ############################################################################
 # MAIN

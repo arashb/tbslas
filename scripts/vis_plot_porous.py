@@ -116,8 +116,6 @@ def cut_porous_media(i=0):
 def translate_porous():
 
     AddOperator("Transform", 0)
-    ToggleLockViewMode()
-    ToggleMaintainViewMode()
 
     TransformAtts = TransformAttributes()
     TransformAtts.doTranslate = 1
@@ -160,6 +158,35 @@ def translate_and_save(image_dir, material_plot_number=0, velocity_plot_number=1
 	TransformAtts.translateY = y
 	TransformAtts.translateZ = z
 	SetOperatorOptions(TransformAtts, 0)
+
+	StreamlineAtts = StreamlineAttributes()
+	StreamlineAtts.sourceType = StreamlineAtts.SpecifiedBox
+	StreamlineAtts.boxExtents = (0.9+x, 1+x, 0+y, 1+y, 0+z, 1+z)
+	StreamlineAtts.useWholeBox = 0
+	StreamlineAtts.coloringMethod = StreamlineAtts.ColorBySpeed
+	StreamlineAtts.colorTableName = "Default"
+	StreamlineAtts.legendFlag = 0
+	StreamlineAtts.lightingFlag = 0
+	StreamlineAtts.legendMinFlag = 0
+	StreamlineAtts.legendMaxFlag = 1
+	StreamlineAtts.legendMin = 0
+	StreamlineAtts.legendMax = 0.05
+	StreamlineAtts.showSeeds = 0
+	StreamlineAtts.fillInterior = 1
+	StreamlineAtts.randomSamples = 1
+	StreamlineAtts.randomSeed = 0
+	StreamlineAtts.numberOfRandomSamples = 2000
+	SetPlotOptions(StreamlineAtts)
+
+        ClipAtts = ClipAttributes()
+	ClipAtts.plane1Status = 1
+        ClipAtts.plane2Status = 0
+        ClipAtts.plane3Status = 0
+        ClipAtts.plane1Origin = (0.5+x, 0.5+y, 0.5+z)
+        ClipAtts.plane1Normal = (0, 1, 1)
+        ClipAtts.planeInverse = 1
+        ClipAtts.planeToolControlledClipPlane = ClipAtts.Plane1
+        SetOperatorOptions(ClipAtts, 0)
 
 	save_images(image_dir)
 

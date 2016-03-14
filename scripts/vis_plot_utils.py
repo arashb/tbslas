@@ -45,8 +45,8 @@ def save_images(image_dir):
     SaveWindowAtts.fileName = "image_"
     SaveWindowAtts.quality = 100
     SaveWindowAtts.format = SaveWindowAtts.PNG  # BMP, CURVE, JPEG, OBJ, PNG, POSTSCRIPT, POVRAY, PPM, RGB, STL, TIFF, ULTRA, VTK, PLY
-    SaveWindowAtts.width = 2048
-    SaveWindowAtts.height = 2048
+    SaveWindowAtts.width = 4096
+    SaveWindowAtts.height = 4096
     SaveWindowAtts.screenCapture = 0
 
     #Traverse through states and save images
