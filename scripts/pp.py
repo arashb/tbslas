@@ -137,12 +137,9 @@ def pp_scal_s(mydoc, file_pp, PRINT_HEADER = True):
     - `output`:
     - `file_pp`:
     """
-    SCALE_TAG_LIST = ['+-AdvDif',\
-                      # '+-InitFMM_Cheb', \
-                      '+-SL', \
+    SCALE_TAG_LIST = ['+-Solve',\
+                      '+-SLM',  \
                       '+-FMM', \
-                      '+-CMerge' \
-                      '+-SMerge' \
                       ]
     ppnode_title  = mydoc.np
     ppnode_values = OrderedDict()
@@ -150,10 +147,8 @@ def pp_scal_s(mydoc, file_pp, PRINT_HEADER = True):
         for node in mydoc.node_list:
             if scale_tag in node.title:
                 print node.title
-                ppnode_values[node.title] = node.values['t_avg']
-                if '+-SL' in node.title:
-                    ppnode_values['f/s_total'] = node.values['f/s_total']
-                    print node.values['f/s_total']
+                ppnode_values['T'+scale_tag.replace('+-','')] = node.values['t_avg']
+                ppnode_values['F'+scale_tag.replace('+-','')] = node.values['f/s_total']
                 break
     ppnode = parser.pnode(ppnode_title, ppnode_values)
     if PRINT_HEADER:
@@ -284,9 +279,9 @@ if __name__ == '__main__':
     else:
         sys.exit()
 
-    # pp_func = pp_scal_s
+    pp_func = pp_scal_s
     # pp_func = pp_tree_eval_data
     # pp_func = pp_profile_data
     # pp_func = pp_perf_cubic
-    pp_func = pp_scal_ws
+    # pp_func = pp_scal_ws
     post_process(raw_files_dir, pp_func)

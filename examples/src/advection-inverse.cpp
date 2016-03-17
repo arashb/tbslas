@@ -332,16 +332,18 @@ int main (int argc, char **argv) {
 
         pvfmm::Profile::Tic(std::string("Solve_TN" + tbslas::ToString(static_cast<long long>(timestep))).c_str(), &comm, true);
         {
-        // =====================================================================
-        // SOLVE SEMILAG
-        // =====================================================================
-        pvfmm::Profile::Tic(std::string("SL_TN" + tbslas::ToString(static_cast<long long>(timestep))).c_str(), &sim_config->comm, false, 5);
-        tbslas::SolveSemilagInSitu(tvel,
-                                   tcon,
-                                   timestep,
-                                   sim_config->dt,
-                                   sim_config->num_rk_step);
-        pvfmm::Profile::Toc();
+	  // =====================================================================
+	  // SOLVE SEMILAG
+	  // =====================================================================
+	  pvfmm::Profile::Tic("SLM", &sim_config->comm, false, 5);
+	  tbslas::SolveSemilagInSitu(tvel,
+				     tcon,
+				     timestep,
+				     sim_config->dt,
+				     sim_config->num_rk_step);
+	  pvfmm::Profile::Toc();
+	}
+	pvfmm::Profile::Toc();        // solve
 
         // =====================================================================
         // REFINE TREE
@@ -353,11 +355,9 @@ int main (int argc, char **argv) {
         pvfmm::Profile::Tic("Balance21", &sim_config->comm, false, 5);
         tcon.Balance21(sim_config->bc);
         pvfmm::Profile::Toc();
-      }
-      pvfmm::Profile::Toc();        // solve
 
-      //TODO: ONLY FOR STEADY VELOCITY TREES
-      tvel.RefineTree();
+	//TODO: ONLY FOR STEADY VELOCITY TREES
+	tvel.RefineTree();
 
       // ======================================================================
       // Write2File

@@ -371,26 +371,26 @@ int main (int argc, char **argv) {
           // ===================================================================
           // SOLVE SEMILAG
           // ===================================================================
-          pvfmm::Profile::Tic(std::string("SL_TN" + tbslas::ToString(static_cast<long long>(timestep))).c_str(), &sim_config->comm, false, 5);
+          pvfmm::Profile::Tic("SLM", &sim_config->comm, false, 5);
           tbslas::SolveSemilagInSitu(tvel,
                                      tcon,
                                      timestep,
                                      sim_config->dt,
                                      sim_config->num_rk_step);
           pvfmm::Profile::Toc();
-
-          // ===================================================================
-          // REFINE TREE
-          // ===================================================================
-          pvfmm::Profile::Tic("RefineTree", &sim_config->comm, false, 5);
-          tcon.RefineTree();
-          pvfmm::Profile::Toc();
-
-          pvfmm::Profile::Tic("Balance21", &sim_config->comm, false, 5);
-          tcon.Balance21(sim_config->bc);
-          pvfmm::Profile::Toc();
         }
         pvfmm::Profile::Toc();        // solve
+
+	// ===================================================================
+	// REFINE TREE
+	// ===================================================================
+	pvfmm::Profile::Tic("RefineTree", &sim_config->comm, false, 5);
+	tcon.RefineTree();
+	pvfmm::Profile::Toc();
+
+	pvfmm::Profile::Tic("Balance21", &sim_config->comm, false, 5);
+	tcon.Balance21(sim_config->bc);
+	pvfmm::Profile::Toc();
 
         //TODO: ONLY FOR STEADY VELOCITY TREES
         tvel.RefineTree();

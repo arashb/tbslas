@@ -87,7 +87,7 @@ def scalws():
                         mg_list = [merge_type      ]
                         )[1]
                     cmd_id = cmd_id + 1
-                utils.execute_commands(cmd_args, prog+'-table-'+str(table_counter))
+                utils.execute_commands(cmd_args, 'scalws'+prog+'-table-'+str(table_counter))
                 table_counter = table_counter + 1
 
 def omp():
@@ -132,7 +132,7 @@ def omp():
         tn_list,
         vs_list,
         mg_list)
-    utils.execute_commands(cmd_args, 'omp')
+    utils.execute_commands(cmd_args, 'omp'+prog)
 
 def scals():
     mpi_num_procs, omp_num_threads = utils.parse_args()
@@ -146,13 +146,13 @@ def scals():
              2,
              4,
              8,
-             16,
-             32,
-             64,
+             # 16,
+             # 32,
+             # 64,
             ]
     mrg_type = 3;
     max_np        = max(np_list)
-    num_pnts      = 8**5#(math.floor(math.log(max_np,8)+1))
+    num_pnts      = 8**3#(math.floor(math.log(max_np,8)+1))
 
     num_steps = len(np_list)
     pn_list = [num_pnts        for cnt in range(0,num_steps)]
@@ -163,7 +163,7 @@ def scals():
     uf_list = [4               for cnt in range(0,num_steps)]
     nt_list = [omp_num_threads for cnt in range(0,num_steps)]
     dt_list = [0.125           for cnt in range(0,num_steps)]
-    tn_list = [10              for cnt in range(0,num_steps)]
+    tn_list = [1               for cnt in range(0,num_steps)]
     vs_list = [0               for cnt in range(0,num_steps)]
     mg_list = [mrg_type        for cnt in range(0,num_steps)]
 
@@ -182,7 +182,7 @@ def scals():
         tn_list,
         vs_list,
         mg_list)
-    utils.execute_commands(cmd_args, 'sscal')
+    utils.execute_commands(cmd_args, 'sscal'+prog)
 
 ################################################################################
 # MAIN

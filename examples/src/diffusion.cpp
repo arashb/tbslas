@@ -187,22 +187,26 @@ void RunDiffusion(int test_case, size_t N, size_t M, bool unif, int mult_order,
   // ======================================================================
   // DIFFUSUION SOLVER
   // ======================================================================
-  pvfmm::Profile::Tic("Solve", &comm, true);
-  for (int ts_counter = 1; ts_counter < NUM_TIME_STEPS+1; ts_counter++) {
-    // Setup FMM
+  for (int timestep = 1; timestep < NUM_TIME_STEPS+1; timestep++) {
+    pvfmm::Profile::Tic(std::string("Solve_TN" + tbslas::ToString(static_cast<long long>(timestep))).c_str(), &comm, true);
+
+    pvfmm::Profile::Tic("FMM",&comm,true);
     tree->InitFMM_Tree(false,bndry);
     tree->SetupFMM(fmm_mat);
     tree->RunFMM();
     tree->Copy_FMMOutput(); //Copy FMM output to tree Data.
+    pvfmm::Profile::Toc();
+
+    pvfmm::Profile::Toc();        // solve
 
     tcurr += TBSLAS_DT;
+
     if (sim_config->vtk_save_rate) {
-      if (ts_counter % sim_config->vtk_save_rate == 0)
-        tree->Write2File(tbslas::GetVTKFileName(ts_counter, sim_config->vtk_filename_variable).c_str(),
+      if (timestep % sim_config->vtk_save_rate == 0)
+        tree->Write2File(tbslas::GetVTKFileName(timestep, sim_config->vtk_filename_variable).c_str(),
                          tree_data.cheb_deg);
     }
   }
-  pvfmm::Profile::Toc();        // solve
 
   // =========================================================================
   // REPORT RESULTS

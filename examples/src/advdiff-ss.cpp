@@ -208,7 +208,6 @@ void RunAdvectDiff(int test, size_t N, size_t M, bool unif, int mult_order,
   //Set source coordinates.
   std::vector<Real_t> pt_coord;
   pt_coord = tbslas::point_distrib<Real_t>(tbslas::UnifGrid,N,comm);
-  // else pt_coord = tbslas::point_distrib<Real_t>(tbslas::RandElps,N,comm); //RandElps, RandGaus
   tree_data.max_pts  = M; // Points per octant.
   tree_data.pt_coord = pt_coord;
   //Print various parameters.
@@ -266,34 +265,6 @@ void RunAdvectDiff(int test, size_t N, size_t M, bool unif, int mult_order,
     tvel->Write2File(tbslas::GetVTKFileName(0, "velocity").c_str(), sim_config->vtk_order);
   }
 
-  // **********************************************************************
-  // SETUP CURRENT TIMESTEP TREE
-  // **********************************************************************
-  // FMM_Tree_t* treec = new FMM_Tree_t(comm);
-  // treec->Initialize(&tree_data);
-  // treec->InitFMM_Tree(false,bndry);
-  // int ts_num = 5;
-  // int ts_dt = TBSLAS_DT/ts_num;
-  // int ts = 0;
-  // for (; ts < ts_num; ts++) {
-  //   // **********************************************************************
-  //   // SOLVE DIFFUSION: FMM
-  //   // **********************************************************************
-  //   treec->InitFMM_Tree(false,bndry);
-  //   treec->SetupFMM(fmm_mat);
-  //   treec->RunFMM();
-  //   treec->Copy_FMMOutput();
-  //   // **********************************************************************
-  //   // SOLVE ADVECTION: SEMI-LAGRANGIAN
-  //   // **********************************************************************
-  //   tbslas::SolveSemilagInSitu(*tvel,
-  //                              *treec,
-  //                              1,
-  //                              ts_dt,
-  //                              sim_config->num_rk_step);
-  //   treec->RefineTree();
-  // }
-
   double in_al2,in_rl2,in_ali,in_rli;
   CheckChebOutput<FMM_Tree_t>(treec,
                               fn_poten_,
@@ -324,9 +295,36 @@ void RunAdvectDiff(int test, size_t N, size_t M, bool unif, int mult_order,
     vel_noct_min = vel_noct;
   }
 
-  int timestep = 1;
-  for (; timestep < NUM_TIME_STEPS+1; timestep +=1) {
+  // set the input_fn to NULL -> needed for adaptive refinement
+  {
+    std::vector<NodeType*>  nlist = treep->GetNodeList();
+    for(int i = 0; i < nlist.size(); i++) {
+      nlist[i]->input_fn = (void (*)(const Real_t* , int , Real_t*))NULL;
+    }
 
+    nlist = treec->GetNodeList();
+    for(int i = 0; i < nlist.size(); i++) {
+      nlist[i]->input_fn = (void (*)(const Real_t* , int , Real_t*))NULL;
+    }
+  }
+
+  // GET THE TREE PARAMETERS FROM CURRENT TREE
+  FMMNode_t* n_curr = treec->PostorderFirst();
+  while (n_curr != NULL) {
+    if(!n_curr->IsGhost() && n_curr->IsLeaf())
+      break;
+    n_curr = treec->PostorderNxt(n_curr);
+  }
+  int data_dof = n_curr->DataDOF();
+  int sdim     = treec->Dim();
+
+  int timestep = 1;
+  std::vector<double> dprts_points_pos;//(treen_points_pos.size());
+  std::vector<double> treep_points_val;//(treen_num_points*data_dof);
+  std::vector<double> treec_points_val;//(treen_num_points*data_dof);
+  std::vector<double> treen_points_val;//(treen_num_points*data_dof);
+
+  for (; timestep < NUM_TIME_STEPS+1; timestep +=1) {
     // =====================================================================
     // (SEMI) MERGE TO FIX IMBALANCE
     // =====================================================================
@@ -367,107 +365,96 @@ void RunAdvectDiff(int test, size_t N, size_t M, bool unif, int mult_order,
     // UPDATE THE SIMULATION CURRENT TIME
     tcurr += TBSLAS_DT;
 
-    // GET THE TREE PARAMETERS FROM CURRENT TREE
-    FMMNode_t* n_curr = treen->PostorderFirst();
-    while (n_curr != NULL) {
-      if(!n_curr->IsGhost() && n_curr->IsLeaf())
-        break;
-      n_curr = treen->PostorderNxt(n_curr);
-    }
-    int data_dof = n_curr->DataDOF();
-    int sdim     = treen->Dim();
-
-    pvfmm::Profile::Tic(std::string("Solve_TN" + tbslas::ToString(static_cast<long long>(timestep))).c_str(), &comm, true);
-    // =====================================================================
-    // SOLVE SEMILAG
-    // =====================================================================
-    pvfmm::Profile::Tic(std::string("SL_TN" + tbslas::ToString(static_cast<long long>(timestep))).c_str(), &sim_config->comm, false, 5);
-    // COLLECT THE MERGED TREE POINTS
-    std::vector<double> treen_points_pos;
-    tbslas::CollectChebTreeGridPoints(*treen, treen_points_pos);
-
-    int treen_num_points = treen_points_pos.size()/COORD_DIM;
-
     tbslas::NodeFieldFunctor<double,FMM_Tree_t> vel_evaluator(tvel);
     tbslas::NodeFieldFunctor<double,FMM_Tree_t> trc_evaluator(treec);
     tbslas::NodeFieldFunctor<double,FMM_Tree_t> trp_evaluator(treep);
 
-    // ===================================
-    // FIRST STEP BACKWARD TRAJ COMPUTATION
-    // ===================================
-    std::vector<double> tc_departure_points_pos(treen_points_pos.size());
-    // computing the departure points
-    ComputeTrajRK2(vel_evaluator,
-                   treen_points_pos,
-                   tcurr,
-                   tcurr - TBSLAS_DT,
-                   sim_config->num_rk_step,
-                   tc_departure_points_pos);
-    std::vector<double> treec_points_val(treen_num_points*data_dof);
-    trc_evaluator(tc_departure_points_pos.data(), treen_num_points, treec_points_val.data());
+    pvfmm::Profile::Tic(std::string("Solve_TN" + tbslas::ToString(static_cast<long long>(timestep))).c_str(), &comm, true);
+    {
+      // =====================================================================
+      // SOLVE SEMILAG
+      // =====================================================================
+      // COLLECT THE MERGED TREE POINTS
+      // std::vector<double> treen_points_pos;
+      // tbslas::CollectChebTreeGridPoints(*treen, treen_points_pos);
+      tbslas::CollectChebTreeGridPoints(*treen, dprts_points_pos);
+      int treen_num_points = dprts_points_pos.size()/COORD_DIM;
+      // dprts_points_pos.resize(treen_points_pos.size());
+      treep_points_val.resize(treen_num_points*data_dof);
+      treec_points_val.resize(treen_num_points*data_dof);
+      treen_points_val.resize(treen_num_points*data_dof);
 
-    // ===================================
-    // SECOND STEP BACKWARD TRAJ COMPUTATION
-    // ===================================
-    std::vector<double> tp_departure_points_pos(treen_points_pos.size());
-    ComputeTrajRK2(vel_evaluator,
-                   tc_departure_points_pos,
-                   tcurr - TBSLAS_DT,
-                   tcurr - TBSLAS_DT*2,
-                   sim_config->num_rk_step,
-                   tp_departure_points_pos);
-    std::vector<double> treep_points_val(treen_num_points*data_dof);
-    trp_evaluator(tp_departure_points_pos.data(), treen_num_points,  treep_points_val.data());
+      pvfmm::Profile::Tic("SLM", &sim_config->comm, false, 5);
+      {
+	// ===================================
+	// FIRST STEP BACKWARD TRAJ COMPUTATION
+	// ===================================
+	ComputeTrajRK2(vel_evaluator,
+		       // treen_points_pos,
+		       dprts_points_pos,
+		       tcurr,
+		       tcurr - TBSLAS_DT,
+		       sim_config->num_rk_step,
+		       dprts_points_pos);
+	trc_evaluator(dprts_points_pos.data(), treen_num_points, treec_points_val.data());
+	// ===================================
+	// SECOND STEP BACKWARD TRAJ COMPUTATION
+	// ===================================
+	ComputeTrajRK2(vel_evaluator,
+		       dprts_points_pos,
+		       tcurr - TBSLAS_DT,
+		       tcurr - TBSLAS_DT*2,
+		       sim_config->num_rk_step,
+		       dprts_points_pos);
+	trp_evaluator(dprts_points_pos.data(), treen_num_points,  treep_points_val.data());
+	// ===================================
+	// COMBINE AND STORE THE SEMILAG VALUES
+	// ===================================
+	double ccoeff = 4.0/3;
+	double pcoeff = 1.0/3;
 
-    // ===================================
-    // COMNIME AND STORE THE SEMILAG VALUES
-    // ===================================
-    std::vector<double> treen_points_val(treen_num_points*data_dof);
-    // combining of treep and treec vals
-    double ccoeff = 4.0/3;
-    double pcoeff = 1.0/3;
-    for (int i = 0; i < treen_points_val.size(); i++) {
-      treen_points_val[i] = ccoeff*treec_points_val[i] - pcoeff*treep_points_val[i] ;
-    }
+#pragma omp parallel for
+	for (int i = 0; i < treen_points_val.size(); i++) {
+	  treen_points_val[i] = ccoeff*treec_points_val[i] - pcoeff*treep_points_val[i] ;
+	}
 
-    // use the previous time step's tree as the tree for the next time step
-    FMMNode_t* n_next = treen->PostorderFirst();
-    while (n_next != NULL) {
-      if(!n_next->IsGhost() && n_next->IsLeaf()) break;
-      n_next = treen->PostorderNxt(n_next);
-    }
+	FMMNode_t* n_next = treen->PostorderFirst();
+	while (n_next != NULL) {
+	  if(!n_next->IsGhost() && n_next->IsLeaf()) break;
+	  n_next = treen->PostorderNxt(n_next);
+	}
 
-    int num_points_per_node = (cheb_deg+1)*(cheb_deg+1)*(cheb_deg+1);
-    int tree_next_node_counter = 0;
-    while (n_next != NULL) {
-      if (n_next->IsLeaf() && !n_next->IsGhost()) {
-	tbslas::NewPt2ChebPt<double>(&treen_points_val[tree_next_node_counter*num_points_per_node*data_dof],
-				     cheb_deg, data_dof);
-        pvfmm::cheb_approx<double, double>(
-            &treen_points_val[tree_next_node_counter*num_points_per_node*data_dof],
-            cheb_deg,
-            data_dof,
-            &(n_next->ChebData()[0]));
-        tree_next_node_counter++;
+	int num_points_per_node = (cheb_deg+1)*(cheb_deg+1)*(cheb_deg+1);
+	int tree_next_node_counter = 0;
+	while (n_next != NULL) {
+	  if (n_next->IsLeaf() && !n_next->IsGhost()) {
+	    tbslas::NewPt2ChebPt<double>(&treen_points_val[tree_next_node_counter*num_points_per_node*data_dof],
+					 cheb_deg, data_dof);
+	    pvfmm::cheb_approx<double, double>(&treen_points_val[tree_next_node_counter*num_points_per_node*data_dof],
+					       cheb_deg,
+					       data_dof,
+					       &(n_next->ChebData()[0]));
+	    tree_next_node_counter++;
+	  }
+	  n_next = treen->PostorderNxt(n_next);
+	}
+
+	pvfmm::Profile::Add_FLOP(3*treen_points_val.size()); // for combining the two previous time steps values
       }
-      n_next = treen->PostorderNxt(n_next);
-    }
-    pvfmm::Profile::Toc();  // SL
+      pvfmm::Profile::Toc();  // SL
 
-    // =========================================================================
-    // RUN FMM
-    // =========================================================================
-    // set the input_fn to NULL -> needed for adaptive refinement
-    std::vector<NodeType*>  ncurr_list = treen->GetNodeList();
-    for(int i = 0; i < ncurr_list.size(); i++) {
-      ncurr_list[i]->input_fn = (void (*)(const Real_t* , int , Real_t*))NULL;
+      // =========================================================================
+      // RUN FMM
+      // =========================================================================
+      pvfmm::Profile::Tic("FMM",&comm,true);
+      treen->InitFMM_Tree(false,bndry);
+      treen->SetupFMM(fmm_mat);
+      treen->RunFMM();
+      treen->Copy_FMMOutput(); //Copy FMM output to tree Data.
+      pvfmm::Profile::Toc();
+
     }
-    pvfmm::Profile::Tic("FMM",&comm,true);
-    treen->InitFMM_Tree(false,bndry);
-    treen->SetupFMM(fmm_mat);
-    treen->RunFMM();
-    treen->Copy_FMMOutput(); //Copy FMM output to tree Data.
-    pvfmm::Profile::Toc();
+    pvfmm::Profile::Toc();        // solve
 
     // =====================================================================
     // REFINE TREE
@@ -479,8 +466,6 @@ void RunAdvectDiff(int test, size_t N, size_t M, bool unif, int mult_order,
     pvfmm::Profile::Tic("Balance21", &sim_config->comm, false, 5);
     treen->Balance21(sim_config->bc);
     pvfmm::Profile::Toc();
-
-    pvfmm::Profile::Toc();        // solve
 
     //TODO: ONLY FOR STEADY VELOCITY TREES
     tvel->RefineTree();
@@ -502,7 +487,6 @@ void RunAdvectDiff(int test, size_t N, size_t M, bool unif, int mult_order,
     treep = treec;
     treec = treen;
   }
-
 
   // =========================================================================
   // REPORT RESULTS

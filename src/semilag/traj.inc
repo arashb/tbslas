@@ -32,11 +32,13 @@ IntegrateRK2(FieldFunctor field_fn,
 
   // FIXME: currently only time independent
   field_fn(xinit.data(), num_points, vtmp.data());
+#pragma omp parallel for
   for (int i = 0; i < xinit.size(); i++)
     xtmp[i] = xinit[i] + 0.5*dt*vtmp[i];
 
   // FIXME: currently only time independent
   field_fn(xtmp.data(), num_points, vtmp.data());
+#pragma omp parallel for
   for (int i = 0; i < xinit.size(); i++)
     xsol[i] = xinit[i] + dt*vtmp[i];
 
@@ -57,6 +59,7 @@ ComputeTrajRK2(FieldFunctor field_fn,
   // FIXME: currently only time independent
   real_t tau = (tfinal - tinit)/num_rk_step;
 
+#pragma omp parallel for
   for (int i = 0; i < xinit.size(); i++)
     xsol[i] = xinit[i];
 
