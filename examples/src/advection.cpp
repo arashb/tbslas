@@ -54,6 +54,7 @@ get_gaussian_field_cylinder_atT(const real_t* points_pos,
                                 real_t* out) {
   real_t xc      = 0.6;
   real_t yc      = 0.5;
+  real_t zc      = 0.5;
 
   real_t theta0 = atan((yc-0.5)/(xc-0.5));
   real_t r = sqrt((xc-0.5)*(xc-0.5) + (yc-0.5)*(yc-0.5));
@@ -62,17 +63,29 @@ get_gaussian_field_cylinder_atT(const real_t* points_pos,
   const real_t theta   = 0.0;
   const real_t sigma_x = 0.06;
   const real_t sigma_y = 0.06;
+  const real_t sigma_z = 0.06;
   const real_t A       = 1.0;
 
-  tbslas::get_gaussian_field_cylinder<real_t, sdim>(points_pos,
-                                                    num_points,
-                                                    out,
-                                                    xc,
-                                                    yc,
-                                                    theta,
-                                                    sigma_x,
-                                                    sigma_y,
-                                                    A);
+  // tbslas::get_gaussian_field_cylinder<real_t, sdim>(points_pos,
+  //                                                   num_points,
+  //                                                   out,
+  //                                                   xc,
+  //                                                   yc,
+  //                                                   theta,
+  //                                                   sigma_x,
+  //                                                   sigma_y,
+  //                                                   A);
+  tbslas::get_gaussian_field_3d<real_t, sdim>(points_pos,
+                                              num_points,
+                                              out,
+                                              xc,
+                                              yc,
+                                              zc,
+                                              A,
+                                              sigma_x,
+                                              sigma_y,
+                                              sigma_z );
+
 }
 
 template<typename real_t, int sdim>
@@ -326,11 +339,11 @@ int main (int argc, char **argv) {
     // std::vector<double> xtmp(num_points*3);
     // xtmp[0] = 1.0;
     // xtmp[1] = 1.0;
-    // xtmp[2] = 0.8;
-    // std::vector<double> vtmp(num_points);
-    // tbslas::NodeFieldFunctor<double,Tree_t> cfun = tbslas::NodeFieldFunctor<double,Tree_t>(&tcon);
+    // xtmp[2] = 0.4;
+    // std::vector<double> vtmp(num_points*3);
+    // tbslas::NodeFieldFunctor<double,Tree_t> cfun = tbslas::NodeFieldFunctor<double,Tree_t>(&tvel);
     // cfun(xtmp.data(), num_points, vtmp.data());
-    // std::cout << "vals: " << vtmp[0] << " " << vtmp[1] << " " << vtmp[10] << std::endl;
+    // std::cout << "vals: " << vtmp[0] << " " << vtmp[1] << " " << vtmp[2] << std::endl;
 
     int timestep = 1;
     for (; timestep < sim_config->total_num_timestep+1; timestep++) {
@@ -381,16 +394,16 @@ int main (int argc, char **argv) {
         }
         pvfmm::Profile::Toc();        // solve
 
-	// ===================================================================
-	// REFINE TREE
-	// ===================================================================
-	pvfmm::Profile::Tic("RefineTree", &sim_config->comm, false, 5);
-	tcon.RefineTree();
-	pvfmm::Profile::Toc();
+        // ===================================================================
+        // REFINE TREE
+        // ===================================================================
+        pvfmm::Profile::Tic("RefineTree", &sim_config->comm, false, 5);
+        tcon.RefineTree();
+        pvfmm::Profile::Toc();
 
-	pvfmm::Profile::Tic("Balance21", &sim_config->comm, false, 5);
-	tcon.Balance21(sim_config->bc);
-	pvfmm::Profile::Toc();
+        pvfmm::Profile::Tic("Balance21", &sim_config->comm, false, 5);
+        tcon.Balance21(sim_config->bc);
+        pvfmm::Profile::Toc();
 
         //TODO: ONLY FOR STEADY VELOCITY TREES
         tvel.RefineTree();
