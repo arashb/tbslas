@@ -23,7 +23,6 @@ import os
 # LOCAL IMPORT
 ################################################################################
 import utils
-# from submit_job_supermuc import get_job_file
 
 ################################################################################
 # GLOBALS
@@ -65,9 +64,16 @@ module unload mpi.ibm
 module load mpi.intel
 ./.run_python.sh {JOB_id} {NUM_PROCS} {NUM_THREADS}\n"""
 
+
 def get_supermuc_batch_file (num_nodes, num_procs, num_threads, queue, job_id, TIMESTR, total_time):
         print os.environ['HOME']
-        file_handler = open(job_id[:-3]+'_'+TIMESTR+'.cmd',"w")
+
+	output_dir='./tmp'
+	if not os.path.exists(output_dir):
+		os.makedirs(output_dir)
+
+	file_name= os.path.join(output_dir, job_id[:-3]+'_'+TIMESTR+'.cmd')
+        file_handler = open(file_name,"w")
 
         global commands
         commands=commands.format(JOB_ID=job_id[:-3],\
@@ -83,11 +89,13 @@ def get_supermuc_batch_file (num_nodes, num_procs, num_threads, queue, job_id, T
         file_handler.write(commands)
         file_handler.close()
 
-        return './'+job_id[:-3]+'_'+TIMESTR+'.cmd'
+        return file_name
 
-def submit_job(job_id, num_nodes, num_procs, num_threads, total_time, queue=None):
+def submit_job(job_id, num_nodes, num_procs, num_threads, total_time=None, queue=None):
     print '--> submit job ' + job_id + ' ...'
     cmd_list = [];
+    if not total_time:
+        total_time = '01:00:00'
     if 'stampede' in HOSTNAME:          # TACC Stampede cluster
         if not queue:
             queue = 'normal'
@@ -150,14 +158,16 @@ def submit_job(job_id, num_nodes, num_procs, num_threads, total_time, queue=None
 if __name__ == '__main__':
     USAGE = 'USAGE: python submit_job.py <job-id> <num-nodes> <mpi-num-processes> <omp-num-threads> <total-time>'
     print sys.argv
-    if len(sys.argv) < 6:
+    if len(sys.argv) < 5:
         print USAGE
         sys.exit()
-    if len(sys.argv) >= 6:
+    if len(sys.argv) >= 5:
         job_id      = sys.argv[1]
         num_nodes   = int(sys.argv[2])
         num_procs   = int(sys.argv[3])
         num_threads = int(sys.argv[4])
+    total_time=None
+    if len(sys.argv) >= 6:
         total_time  = sys.argv[5]
     queue = None
     if len(sys.argv) >= 7:

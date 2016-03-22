@@ -32,17 +32,17 @@ def generate_command_args(de_list, \
     cmd_args = OrderedDict()
     cmd_id = 1;
     for counter in range(0,num_steps):
-        ARGS    = ['-N'   , str(8**math.ceil(math.log(np_list[counter],8))), \
-                   '-tol' , str(1e-10),                                      \
-                   '-q'   , str(5),                                          \
-                   '-d'   , str(de_list[counter]),                           \
-                   '-dt'  , str(dt_list[counter]),                           \
-                   '-tn'  , str(tn_list[counter]),                           \
-                   '-test', str(test_list[counter]),                         \
-                   '-merge', str(mt_list[counter]),                                \
-                   '-vsr'  , str(0),                                          \
-                   # '-cubic',str(1),                                        \
-                   # '-cuf'  ,str(8),                                        \
+        ARGS    = ['-N'   , str(8**math.ceil(math.log(np_list[counter],8))), 
+                   '-tol' , str(1e-10),                                      
+                   '-q'   , str(5),                                          
+                   '-d'   , str(de_list[counter]),                           
+                   '-dt'  , str(dt_list[counter]),                           
+                   '-tn'  , str(tn_list[counter]),                           
+                   '-test', str(test_list[counter]),                         
+                   '-merge', str(mt_list[counter]),                               
+                   '-vsr'  , str(0),                                         
+                   # '-cubic',str(1),                                        
+                   # '-cuf'  ,str(8),                                        
                    '-omp' , str(nt_list[counter])]
         cmd_args[cmd_id] = utils.determine_command_prefix(np_list[counter]) + [EXEC] + ARGS
         cmd_id = cmd_id + 1
@@ -180,6 +180,15 @@ def test3():
 # MAIN
 ################################################################################
 if __name__ == '__main__':
+    tbslas_dir = os.environ['TBSLAS_RESULT_DIR']
+    import time
+    TIMESTR       = time.strftime("%Y%m%d-%H%M%S-")+str(time.time())
+    os.environ['TBSLAS_RESULT_DIR'] =  os.path.join(tbslas_dir,'imb-'+TIMESTR)
+    if not os.path.exists(os.environ['TBSLAS_RESULT_DIR']):
+        os.makedirs(os.environ['TBSLAS_RESULT_DIR'])
+
     # test1()
     # test2()
     test3()
+
+    os.environ['TBSLAS_RESULT_DIR'] = tbslas_dir

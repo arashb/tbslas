@@ -211,7 +211,16 @@ def conv_temporal_spatial_long_time():
 # MAIN
 ################################################################################
 if __name__ == '__main__':
+    tbslas_dir = os.environ['TBSLAS_RESULT_DIR']
+    import time
+    TIMESTR       = time.strftime("%Y%m%d-%H%M%S-")+str(time.time())
+    os.environ['TBSLAS_RESULT_DIR'] =  os.path.join(tbslas_dir,'conv-advection-inv-'+TIMESTR)
+    if not os.path.exists(os.environ['TBSLAS_RESULT_DIR']):
+        os.makedirs(os.environ['TBSLAS_RESULT_DIR'])
+
     conv_temporal()
     conv_spatial()
     conv_temporal_spatial()
     conv_temporal_spatial_long_time()
+
+    os.environ['TBSLAS_RESULT_DIR'] = tbslas_dir

@@ -18,6 +18,7 @@ import socket
 import time
 import sys
 import os
+import uuid
 from collections import OrderedDict
 
 ################################################################################
@@ -29,7 +30,7 @@ import pp
 ################################################################################
 # GLOBALS
 ################################################################################
-TIMESTR       = time.strftime("%Y%m%d-%H%M%S")
+TIMESTR       = time.strftime("%Y%m%d-%H%M%S")+str(time.time())
 RESULT_TAG_HEADER  = '#TBSLAS-HEADER: '
 RESULT_TAG         = '#TBSLAS-RESULT: '
 
@@ -66,7 +67,7 @@ def parse_args():
 
 def get_output_prefix():
     # return SCRIPT_ID+'-np'+str(num_proces).zfill(5)+'-'+TIMESTR
-    return SCRIPT_ID+'-'+TIMESTR
+    return SCRIPT_ID+'-'+TIMESTR#+'-'+str(uuid.uuid4())
 
 
 def get_result_dir_prefix():
@@ -212,7 +213,8 @@ def execute_commands(cmds, id, pp_func = None):
     PRINT_PRFL_HEADER = True
     # open output files
     tbslas_result_dir, output_prefix = get_result_dir_prefix()
-    TBSLAS_RESULT_DIR_PREFIX = os.path.join(tbslas_result_dir, output_prefix)
+    TBSLAS_RESULT_DIR_PREFIX = tbslas_result_dir
+    # TBSLAS_RESULT_DIR_PREFIX = os.path.join(tbslas_result_dir, output_prefix)
     if not os.path.exists(TBSLAS_RESULT_DIR_PREFIX):
         os.makedirs(TBSLAS_RESULT_DIR_PREFIX)
     flist = []
@@ -281,3 +283,37 @@ def execute_commands(cmds, id, pp_func = None):
     [f.close() for f in flist]
     # reset the env. variable
     os.environ['TBSLAS_RESULT_DIR'] = tbslas_result_dir
+
+def run(
+    ID,
+    prog,
+    pn_list,
+    tl_list,
+    dp_list,
+    cq_list,
+    ci_list,
+    uf_list,
+    np_list,
+    nt_list,
+    dt_list,
+    tn_list,
+    vs_list,
+    mg_list,
+    tt_list):
+
+    cmd_args = OrderedDict()
+    cmd_args = generate_commands(prog,
+                                 pn_list,
+                                 tl_list,
+                                 dp_list,
+                                 cq_list,
+                                 ci_list,
+                                 uf_list,
+                                 np_list,
+                                 nt_list,
+                                 dt_list,
+                                 tn_list,
+                                 vs_list,
+                                 mg_list,
+                                 tt_list)
+    execute_commands(cmd_args, ID)
