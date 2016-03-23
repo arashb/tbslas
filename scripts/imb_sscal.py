@@ -37,30 +37,31 @@ def sscal():
     8,
     16,
     32,
-    # 64
+    64
     ]
-    num_threads = 10
-    for nn in nn_list:
-        total_time = '04:00:00'
+    for num_nodes in nn_list:
+        total_time = '00:30:00'
         prog  = 'advection'
         # prog  = 'advdiff-ss'
         mg_list = [cnt      for cnt in range(1,4)]
         # mg_list = [3]
+        num_threads = 16
+        num_procs   = num_nodes
         num_pnts = 8**3
         num_steps = len(mg_list)
-        np_list = [2*nn   for cnt in range(0,num_steps)]
+        np_list = [num_procs       for cnt in range(0,num_steps)]
+        nt_list = [num_threads for cnt in range(0,num_steps)]
         pn_list = [num_pnts        for cnt in range(0,num_steps)]
-        tl_list = [1e-5            for cnt in range(0,num_steps)]
-        dp_list = [10              for cnt in range(0,num_steps)]
+        tl_list = [1e-6            for cnt in range(0,num_steps)]
+        dp_list = [11              for cnt in range(0,num_steps)]
         cq_list = [5               for cnt in range(0,num_steps)]
         ci_list = [False           for cnt in range(0,num_steps)]
         uf_list = [4               for cnt in range(0,num_steps)]
-        nt_list = [num_threads for cnt in range(0,num_steps)]
         dt_list = [0.25            for cnt in range(0,num_steps)]
         tn_list = [1               for cnt in range(0,num_steps)]
         vs_list = [0               for cnt in range(0,num_steps)]
         tt_list = [6               for cnt in range(0,num_steps)]
-        ID=prog+'-sscal-np-'+str(2*nn).zfill(5)
+        ID=prog+'-sscal-np-'+str(num_procs).zfill(5)
         
         print tbslas_res_dir
         job_name= job.get_python_job('imb-sscal',
@@ -80,7 +81,7 @@ def sscal():
                                      mg_list,
                                      tt_list,
                                      tbslas_res_dir)
-        sj.submit_job(job_name, nn, 2*nn, num_threads, total_time)
+        sj.submit_job(job_name, num_nodes, num_procs, num_threads, total_time)
 
     os.environ['TBSLAS_RESULT_DIR'] = tbslas_dir
 
