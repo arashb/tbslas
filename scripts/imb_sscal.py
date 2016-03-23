@@ -23,6 +23,13 @@ def sscal():
     ############################################################################
     # STRONG SCALING
     ############################################################################
+    tbslas_dir = os.environ['TBSLAS_RESULT_DIR']
+    import time
+    TIMESTR       = time.strftime("%Y%m%d-%H%M%S-")+str(time.time())
+    tbslas_res_dir =  os.path.join(tbslas_dir,'imb-sscal-'+TIMESTR)
+    if not os.path.exists(tbslas_res_dir):
+        os.makedirs(tbslas_res_dir)
+
     nn_list = [
     1,
     2,
@@ -54,40 +61,35 @@ def sscal():
         vs_list = [0               for cnt in range(0,num_steps)]
         tt_list = [6               for cnt in range(0,num_steps)]
         ID=prog+'-sscal-np-'+str(2*nn).zfill(5)
-
+        
+        print tbslas_res_dir
         job_name= job.get_python_job('imb-sscal',
-                                 ID,
-                                 prog,
-                                 pn_list,
-                                 tl_list,
-                                 dp_list,
-                                 cq_list,
-                                 ci_list,
-                                 uf_list,
-                                 np_list,
-                                 nt_list,
-                                 dt_list,
-                                 tn_list,
-                                 vs_list,
-                                 mg_list,
-                                 tt_list)
+                                     ID,
+                                     prog,
+                                     pn_list,
+                                     tl_list,
+                                     dp_list,
+                                     cq_list,
+                                     ci_list,
+                                     uf_list,
+                                     np_list,
+                                     nt_list,
+                                     dt_list,
+                                     tn_list,
+                                     vs_list,
+                                     mg_list,
+                                     tt_list,
+                                     tbslas_res_dir)
         sj.submit_job(job_name, nn, 2*nn, num_threads, total_time)
+
+    os.environ['TBSLAS_RESULT_DIR'] = tbslas_dir
 
 ################################################################################
 # MAIN
 ################################################################################
 if __name__ == '__main__':
-    tbslas_dir = os.environ['TBSLAS_RESULT_DIR']
-    import time
-    TIMESTR       = time.strftime("%Y%m%d-%H%M%S-")+str(time.time())
-    os.environ['TBSLAS_RESULT_DIR'] =  os.path.join(tbslas_dir,'imb-sscal-'+TIMESTR)
-    if not os.path.exists(os.environ['TBSLAS_RESULT_DIR']):
-        os.makedirs(os.environ['TBSLAS_RESULT_DIR'])
-
         sscal()
-        # wscal()
 
-    os.environ['TBSLAS_RESULT_DIR'] = tbslas_dir
 
 
 

@@ -22,6 +22,7 @@ TIMESTR       = time.strftime("%Y%m%d-%H%M%S")
 
 pyscript=\
 """
+import os
 from collections import OrderedDict
 import utils
 def run():
@@ -60,7 +61,10 @@ def run():
     utils.execute_commands(cmd_args, ID)
 
 if __name__ == '__main__':
+    tbslas_dir = os.environ['TBSLAS_RESULT_DIR']
+    os.environ['TBSLAS_RESULT_DIR'] = \'{PY_OUTPUT_DIR}\'
     run()
+    os.environ['TBSLAS_RESULT_DIR'] = tbslas_dir
 """
 def get_python_job(job_id,
                    ID,
@@ -77,12 +81,15 @@ def get_python_job(job_id,
                    tn_list,
                    vs_list,
                    mg_list,
-                   tt_list):
+                   tt_list,
+                   tbslas_output_dir=None):
+
+    if not tbslas_output_dir:
+        tbslas_output_dir = os.environ['TBSLAS_RESULT_DIR']
+    if not os.path.exists(tbslas_output_dir):
+        os.makedirs(tbslas_output_dir)
 
     output_dir='./'
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
-
     file_name= os.path.join(output_dir, job_id+'_'+TIMESTR+'_'+str(uuid.uuid4())+'.pyjob')
     file_handler = open(file_name,"w")
     global pyscript
@@ -100,7 +107,8 @@ def get_python_job(job_id,
                              PY_TN=tn_list,
                              PY_VS=vs_list,
                              PY_MG=mg_list,
-                             PY_TT=tt_list)
+                             PY_TT=tt_list,
+                             PY_OUTPUT_DIR=tbslas_output_dir)
 
     file_handler.write(commands)
     file_handler.close()
