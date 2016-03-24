@@ -36,24 +36,30 @@ def sscal():
     4,
     8,
     16,
-    32,
-    64
+    # 32,
+    # 64,
+    # 128,
+    # 256,
+    # 512
     ]
     for num_nodes in nn_list:
         total_time = '00:30:00'
+        num_threads = 7
+        num_procs   = 4*num_nodes
+        queue = 'micro'
+
         prog  = 'advection'
         # prog  = 'advdiff-ss'
-        mg_list = [cnt      for cnt in range(1,4)]
+        mg_list = [1, 3, 2]
         # mg_list = [3]
-        num_threads = 16
-        num_procs   = num_nodes
-        num_pnts = 8**3
+
+        num_pnts = 8**5
         num_steps = len(mg_list)
         np_list = [num_procs       for cnt in range(0,num_steps)]
         nt_list = [num_threads for cnt in range(0,num_steps)]
         pn_list = [num_pnts        for cnt in range(0,num_steps)]
-        tl_list = [1e-6            for cnt in range(0,num_steps)]
-        dp_list = [11              for cnt in range(0,num_steps)]
+        tl_list = [1e-9            for cnt in range(0,num_steps)]
+        dp_list = [8              for cnt in range(0,num_steps)]
         cq_list = [5               for cnt in range(0,num_steps)]
         ci_list = [False           for cnt in range(0,num_steps)]
         uf_list = [4               for cnt in range(0,num_steps)]
@@ -62,8 +68,7 @@ def sscal():
         vs_list = [0               for cnt in range(0,num_steps)]
         tt_list = [6               for cnt in range(0,num_steps)]
         ID=prog+'-sscal-np-'+str(num_procs).zfill(5)
-        
-        print tbslas_res_dir
+
         job_name= job.get_python_job('imb-sscal',
                                      ID,
                                      prog,
@@ -81,7 +86,7 @@ def sscal():
                                      mg_list,
                                      tt_list,
                                      tbslas_res_dir)
-        sj.submit_job(job_name, num_nodes, num_procs, num_threads, total_time)
+        sj.submit_job(job_name, num_nodes, num_procs, num_threads, total_time, queue)
 
     os.environ['TBSLAS_RESULT_DIR'] = tbslas_dir
 
@@ -90,8 +95,3 @@ def sscal():
 ################################################################################
 if __name__ == '__main__':
         sscal()
-
-
-
-
-

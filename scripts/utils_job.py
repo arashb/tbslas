@@ -18,9 +18,32 @@ import sys
 from collections import OrderedDict
 import uuid
 
-TIMESTR       = time.strftime("%Y%m%d-%H%M%S")
+def get_python_job(job_id,
+                   ID,
+                   prog,
+                   pn_list,
+                   tl_list,
+                   dp_list,
+                   cq_list,
+                   ci_list,
+                   uf_list,
+                   np_list,
+                   nt_list,
+                   dt_list,
+                   tn_list,
+                   vs_list,
+                   mg_list,
+                   tt_list,
+                   tbslas_output_dir=None):
 
-pyscript=\
+    if not tbslas_output_dir:
+        tbslas_output_dir = os.environ['TBSLAS_RESULT_DIR']
+    if not os.path.exists(tbslas_output_dir):
+        os.makedirs(tbslas_output_dir)
+
+    TIMESTR       = time.strftime("%Y%m%d-%H%M%S")
+
+    pyscript=\
 """
 import os
 from collections import OrderedDict
@@ -66,29 +89,6 @@ if __name__ == '__main__':
     run()
     os.environ['TBSLAS_RESULT_DIR'] = tbslas_dir
 """
-def get_python_job(job_id,
-                   ID,
-                   prog,
-                   pn_list,
-                   tl_list,
-                   dp_list,
-                   cq_list,
-                   ci_list,
-                   uf_list,
-                   np_list,
-                   nt_list,
-                   dt_list,
-                   tn_list,
-                   vs_list,
-                   mg_list,
-                   tt_list,
-                   tbslas_output_dir=None):
-
-    if not tbslas_output_dir:
-        tbslas_output_dir = os.environ['TBSLAS_RESULT_DIR']
-    if not os.path.exists(tbslas_output_dir):
-        os.makedirs(tbslas_output_dir)
-
     output_dir='./'
     file_name= os.path.join(output_dir, job_id+'_'+TIMESTR+'_'+str(uuid.uuid4())+'.pyjob')
     file_handler = open(file_name,"w")
