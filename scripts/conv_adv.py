@@ -74,7 +74,7 @@ def conv_temporal():
     ##############################
     # VISUALIZATION
     ##############################
-    vtk_save_rate = 10
+    vtk_save_rate = 0
     vs_list = [vtk_save_rate for cnt in range(0,num_steps)]
 
     cmd_args = OrderedDict()
@@ -151,7 +151,7 @@ def conv_spatial():
     ##############################
     # VISUALIZATION
     ##############################
-    vtk_save_rate = 10
+    vtk_save_rate = 0
     vs_list = [vtk_save_rate for cnt in range(0,num_steps)]
 
     cmd_args = OrderedDict()
@@ -172,6 +172,10 @@ def conv_spatial():
     utils.execute_commands(cmd_args, 'spatial')
 
 def conv_temporal_spatial():
+    mpi_num_procs, omp_num_threads = utils.parse_args()
+    prog = 'advection'
+    num_steps = 8
+
     ############################################################################
     # TEST 3: TEMPORAL/SPATIAL ERROR
     ############################################################################
@@ -193,16 +197,16 @@ def conv_temporal_spatial():
     # NUM OMP THREADS
     nt_list = [omp_num_threads for cnt in range(0, num_steps)]
 
-    cmd_args = generate_command_args(tl_list,\
-                                     dt_list,\
-                                     tn_list,\
-                                     # de_list,\
-                                     # q_list, \
-                                     np_list,\
-                                     nt_list,\
-                                     num_steps)
+    # cmd_args = generate_command_args(tl_list,\
+    #                                  dt_list,\
+    #                                  tn_list,\
+    #                                  # de_list,\
+    #                                  # q_list, \
+    #                                  np_list,\
+    #                                  nt_list,\
+    #                                  num_steps)
 
-    utils.execute_commands(cmd_args, 'temporal-spatial')
+    # utils.execute_commands(cmd_args, 'temporal-spatial')
 
 def conv_temporal_spatial_long_time():
     ############################################################################
@@ -211,7 +215,7 @@ def conv_temporal_spatial_long_time():
     mpi_num_procs, omp_num_threads = utils.parse_args()
     prog          = 'advection'
     dt            = 0.0628
-    vsr = 10
+    vsr           = 0
     mrg_type      = 3
     np            = mpi_num_procs
     num_pnts      = 8**(math.floor(math.log(np,8)+1))
@@ -240,7 +244,7 @@ def conv_temporal_spatial_long_time():
     np_list = [np            for cnt in range(0,num_steps)]
     nt_list = [nt            for cnt in range(0,num_steps)]
     mg_list = [mrg_type      for cnt in range(0,num_steps)]
-    vs_list = [vtk_save_rate for cnt in range(0,num_steps)]
+    vs_list = [vsr           for cnt in range(0,num_steps)]
 
     cmd_args = OrderedDict()
     cmd_args = utils.generate_commands(
@@ -263,7 +267,17 @@ def conv_temporal_spatial_long_time():
 # MAIN
 ################################################################################
 if __name__ == '__main__':
+    tbslas_dir = os.environ['TBSLAS_RESULT_DIR']
+    import time
+    TIMESTR       = time.strftime("%Y%m%d-%H%M%S-")+str(time.time())
+    os.environ['TBSLAS_RESULT_DIR'] =  os.path.join(tbslas_dir,'conv-advection-'+TIMESTR)
+    if not os.path.exists(os.environ['TBSLAS_RESULT_DIR']):
+        os.makedirs(os.environ['TBSLAS_RESULT_DIR'])
+
     conv_temporal()
     conv_spatial()
     conv_temporal_spatial()
     conv_temporal_spatial_long_time()
+
+    os.environ['TBSLAS_RESULT_DIR'] = tbslas_dir
+

@@ -18,18 +18,19 @@ import socket
 import time
 import sys
 import os
+import uuid
 from collections import OrderedDict
 
 ################################################################################
 # LOCAL IMPORT
 ################################################################################
-import parser
-import pp
+import utils_parser as parser
+import utils_pp as pp
 
 ################################################################################
 # GLOBALS
 ################################################################################
-TIMESTR       = time.strftime("%Y%m%d-%H%M%S")
+TIMESTR       = time.strftime("%Y%m%d-%H%M%S")+str(time.time())
 RESULT_TAG_HEADER  = '#TBSLAS-HEADER: '
 RESULT_TAG         = '#TBSLAS-RESULT: '
 
@@ -66,7 +67,7 @@ def parse_args():
 
 def get_output_prefix():
     # return SCRIPT_ID+'-np'+str(num_proces).zfill(5)+'-'+TIMESTR
-    return SCRIPT_ID+'-'+TIMESTR
+    return SCRIPT_ID+'-'+TIMESTR#+'-'+str(uuid.uuid4())
 
 
 def get_result_dir_prefix():
@@ -110,29 +111,31 @@ def generate_commands(
     # executable name
     prog,
     # number of points
-    pn_list,
+    pn_list = None,
     # tree tolerance
-    tl_list,
+    tl_list = None,
     # maximux tree depth
-    dp_list,
+    dp_list = None,
     # cheybishev degree
-    cq_list,
+    cq_list = None,
     # cubic interpolation
-    ci_list,
+    ci_list = None,
     # upsampling factor in cubic interp
-    uf_list,
+    uf_list = None,
     # number of processes
-    np_list,
+    np_list = None,
     # number of threads
-    nt_list,
+    nt_list = None,
     # temporal resolution
-    dt_list,
+    dt_list = None,
     # number of time steps
-    tn_list,
+    tn_list = None,
     # save VTK files
-    vs_list,
+    vs_list = None,
     # load-balancing (tree merge) method
-    mg_list):
+    mg_list = None,
+    # test number
+    tt_list = None):
 
     num_steps = len(pn_list)
     EXEC = os.path.join(TBSLAS_EXAMPLES_BIN_DIR, prog)
@@ -141,16 +144,29 @@ def generate_commands(
     cmd_args = OrderedDict()
     cmd_id = 1;
     for counter in range(0,num_steps):
-        ARGS    = ['-N'     , str(pn_list[counter]),
-                   '-tol'   , str(tl_list[counter]),
-                   '-d'     , str(dp_list[counter]),
-                   '-q'     , str(cq_list[counter]),
-                   '-cuf'   , str(uf_list[counter]),
-                   '-tn'    , str(tn_list[counter]),
-                   '-dt'    , str(dt_list[counter]),
-                   '-merge' , str(mg_list[counter]),
-                   '-omp'   , str(nt_list[counter]),
-                   '-vsr'   , str(vs_list[counter])]
+        ARGS = []
+        if pn_list:
+            ARGS.extend(['-N'     , str(pn_list[counter])])
+        if tl_list:
+            ARGS.extend(['-tol'   , str(tl_list[counter])])
+        if dp_list:
+            ARGS.extend(['-d'     , str(dp_list[counter])])
+        if cq_list:
+            ARGS.extend(['-q'     , str(cq_list[counter])])
+        if uf_list:
+            ARGS.extend(['-cuf'   , str(uf_list[counter])])
+        if tn_list:
+            ARGS.extend(['-tn'    , str(tn_list[counter])])
+        if dt_list:
+            ARGS.extend(['-dt'    , str(dt_list[counter])])
+        if mg_list:
+            ARGS.extend(['-merge' , str(mg_list[counter])])
+        if nt_list:
+            ARGS.extend(['-omp'   , str(nt_list[counter])])
+        if vs_list:
+            ARGS.extend(['-vsr'   , str(vs_list[counter])])
+        if tt_list:
+            ARGS.extend(['-test'   , str(tt_list[counter])])
         if ci_list[counter]:
             ARGS = ARGS + ['-cubic', '1']
         cmd_args[cmd_id] = determine_command_prefix(np_list[counter]) + [EXEC] + ARGS
@@ -197,7 +213,8 @@ def execute_commands(cmds, id, pp_func = None):
     PRINT_PRFL_HEADER = True
     # open output files
     tbslas_result_dir, output_prefix = get_result_dir_prefix()
-    TBSLAS_RESULT_DIR_PREFIX = os.path.join(tbslas_result_dir, output_prefix)
+    TBSLAS_RESULT_DIR_PREFIX = tbslas_result_dir
+    # TBSLAS_RESULT_DIR_PREFIX = os.path.join(tbslas_result_dir, output_prefix)
     if not os.path.exists(TBSLAS_RESULT_DIR_PREFIX):
         os.makedirs(TBSLAS_RESULT_DIR_PREFIX)
     flist = []
@@ -266,3 +283,37 @@ def execute_commands(cmds, id, pp_func = None):
     [f.close() for f in flist]
     # reset the env. variable
     os.environ['TBSLAS_RESULT_DIR'] = tbslas_result_dir
+
+def run(
+    ID,
+    prog,
+    pn_list,
+    tl_list,
+    dp_list,
+    cq_list,
+    ci_list,
+    uf_list,
+    np_list,
+    nt_list,
+    dt_list,
+    tn_list,
+    vs_list,
+    mg_list,
+    tt_list):
+
+    cmd_args = OrderedDict()
+    cmd_args = generate_commands(prog,
+                                 pn_list,
+                                 tl_list,
+                                 dp_list,
+                                 cq_list,
+                                 ci_list,
+                                 uf_list,
+                                 np_list,
+                                 nt_list,
+                                 dt_list,
+                                 tn_list,
+                                 vs_list,
+                                 mg_list,
+                                 tt_list)
+    execute_commands(cmd_args, ID)

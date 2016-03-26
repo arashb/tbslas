@@ -158,14 +158,14 @@ def conv_temporal_spatial_long_time():
     # TEST 2: CONVERGENCE TEST FOR ADVECTION-INVERSE
     ############################################################################
     mpi_num_procs, omp_num_threads = utils.parse_args()
-    prog          = 'advection-inverse'
-    tfinal        = 1.0
-    dt            = tfinal/100
-    vtk_save_rate = 10
-    mrg_type      = 3
-    np            = mpi_num_procs
-    num_pnts      = 8**(math.floor(math.log(np,8)+1))
-    nt            = omp_num_threads
+    prog     = 'advection-inverse'
+    tfinal   = 1.0
+    dt       = tfinal/100
+    vsr      = 10
+    mrg_type = 3
+    np       = mpi_num_procs
+    num_pnts = 8**(math.floor(math.log(np,8)+1))
+    nt       = omp_num_threads
 
     # UNIFORM
     dp_list = [6    , 7    , 8    , 6     , 7     , 8    ]
@@ -211,7 +211,16 @@ def conv_temporal_spatial_long_time():
 # MAIN
 ################################################################################
 if __name__ == '__main__':
+    tbslas_dir = os.environ['TBSLAS_RESULT_DIR']
+    import time
+    TIMESTR       = time.strftime("%Y%m%d-%H%M%S-")+str(time.time())
+    os.environ['TBSLAS_RESULT_DIR'] =  os.path.join(tbslas_dir,'conv-advection-inv-'+TIMESTR)
+    if not os.path.exists(os.environ['TBSLAS_RESULT_DIR']):
+        os.makedirs(os.environ['TBSLAS_RESULT_DIR'])
+
     conv_temporal()
     conv_spatial()
     conv_temporal_spatial()
     conv_temporal_spatial_long_time()
+
+    os.environ['TBSLAS_RESULT_DIR'] = tbslas_dir

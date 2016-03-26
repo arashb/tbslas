@@ -18,21 +18,24 @@ import socket
 import time
 import sys
 import os
+import uuid
 
 ################################################################################
 # LOCAL IMPORT
 ################################################################################
 import utils
-# from submit_job_supermuc import get_job_file
 
 ################################################################################
 # GLOBALS
 ################################################################################
-TIMESTR    = time.strftime("%Y%m%d-%H%M%S")
 HOSTNAME   = socket.getfqdn()
 
+
+def get_supermuc_batch_file (nnodes, nprocs, nthreads, myqueue, job_id, TIMESTR, total_time):
+        print os.environ['HOME']
+
 #template job script
-commands=\
+        commands=\
 """#! /usr/bin/ksh
 #@ shell = /usr/bin/ksh
 #@ job_type = MPICH
@@ -65,29 +68,35 @@ module unload mpi.ibm
 module load mpi.intel
 ./.run_python.sh {JOB_id} {NUM_PROCS} {NUM_THREADS}\n"""
 
-def get_supermuc_batch_file (num_nodes, num_procs, num_threads, queue, job_id, TIMESTR, total_time):
-        print os.environ['HOME']
-        file_handler = open(job_id[:-3]+'_'+TIMESTR+'.cmd',"w")
+        output_dir='./'
+        # if not os.path.exists(output_dir):
+        #         os.makedirs(output_dir)
 
-        global commands
-        commands=commands.format(JOB_ID=job_id[:-3],\
-        JOB_id=job_id,\
-        QUEUE=queue,\
-        TOTAL_TIME=total_time,\
-        NUM_NODES=num_nodes,\
-        NUM_PROCS=num_procs,\
-        NUM_THREADS=num_threads,\
-        TBSLAS_RESULT_DIR=os.environ['TBSLAS_RESULT_DIR'],\
-        TBSLAS_DIR=os.environ['TBSLAS_DIR'])
+        file_name= os.path.join(output_dir, job_id[:-3]+'_'+TIMESTR+'.cmd')
+        file_handler = open(file_name,"w")
+
+        commands=commands.format(JOB_ID=job_id[:-3],
+                                 JOB_id=job_id,
+                                 QUEUE=myqueue,
+                                 TOTAL_TIME=total_time,
+                                 NUM_NODES=nnodes,
+                                 NUM_PROCS=nprocs,
+                                 NUM_THREADS=nthreads,
+                                 TBSLAS_RESULT_DIR=os.environ['TBSLAS_RESULT_DIR'],
+                                 TBSLAS_DIR=os.environ['TBSLAS_DIR'])
 
         file_handler.write(commands)
         file_handler.close()
 
-        return './'+job_id[:-3]+'_'+TIMESTR+'.cmd'
+        return file_name
 
-def submit_job(job_id, num_nodes, num_procs, num_threads, total_time, queue=None):
+def submit_job(job_id, num_nodes, num_procs, num_threads, total_time=None, queue=None):
     print '--> submit job ' + job_id + ' ...'
+    TIMESTR    = time.strftime("%Y%m%d-%H%M%S-")+str(uuid.uuid4())
+
     cmd_list = [];
+    if not total_time:
+        total_time = '01:00:00'
     if 'stampede' in HOSTNAME:          # TACC Stampede cluster
         if not queue:
             queue = 'normal'
@@ -127,6 +136,7 @@ def submit_job(job_id, num_nodes, num_procs, num_threads, total_time, queue=None
     elif 'sm.lrz.de' in HOSTNAME:      # LRZ SuperMUC cluster
         if not queue:
             queue = 'micro'
+
         jobfile = get_supermuc_batch_file(num_nodes, num_procs, num_threads, queue, job_id, TIMESTR, total_time)
         CMD_JOB = ['llsubmit',str(jobfile)]
         cmd_list.extend([CMD_JOB])
@@ -150,14 +160,16 @@ def submit_job(job_id, num_nodes, num_procs, num_threads, total_time, queue=None
 if __name__ == '__main__':
     USAGE = 'USAGE: python submit_job.py <job-id> <num-nodes> <mpi-num-processes> <omp-num-threads> <total-time>'
     print sys.argv
-    if len(sys.argv) < 6:
+    if len(sys.argv) < 5:
         print USAGE
         sys.exit()
-    if len(sys.argv) >= 6:
+    if len(sys.argv) >= 5:
         job_id      = sys.argv[1]
         num_nodes   = int(sys.argv[2])
         num_procs   = int(sys.argv[3])
         num_threads = int(sys.argv[4])
+    total_time=None
+    if len(sys.argv) >= 6:
         total_time  = sys.argv[5]
     queue = None
     if len(sys.argv) >= 7:

@@ -139,6 +139,15 @@ def test3():
 # MAIN
 ################################################################################
 if __name__ == '__main__':
+    tbslas_dir = os.environ['TBSLAS_RESULT_DIR']
+    import time
+    TIMESTR       = time.strftime("%Y%m%d-%H%M%S-")+str(time.time())
+    os.environ['TBSLAS_RESULT_DIR'] =  os.path.join(tbslas_dir,'conv-cubic-'+TIMESTR)
+    if not os.path.exists(os.environ['TBSLAS_RESULT_DIR']):
+        os.makedirs(os.environ['TBSLAS_RESULT_DIR'])
+
     test1()
     test2()
     test3()
+
+    os.environ['TBSLAS_RESULT_DIR'] = tbslas_dir
