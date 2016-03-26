@@ -23,6 +23,66 @@
 
 #include "utils/common.h"
 
+namespace pvfmm {
+template <class Real, class Vec = Real>
+void vec_eval(int n, int d0, int d, int dof, Real *px, Real *py, Real *pz,
+              Real *coeff, Real *tmp_out) {
+  const int VecLen = sizeof(Vec) / sizeof(Real);
+
+  for (int l0 = 0; l0 < dof; l0++) {
+    for (int l1 = 0; l1 < n; l1 += 4*VecLen) {
+      Vec u0 = zero_intrin<Vec>();
+      Vec u1 = zero_intrin<Vec>();
+      Vec u2 = zero_intrin<Vec>();
+      Vec u3 = zero_intrin<Vec>();
+      for (int i = 0; i < d; i++) {
+        Vec v0 = zero_intrin<Vec>();
+        Vec v1 = zero_intrin<Vec>();
+        Vec v2 = zero_intrin<Vec>();
+        Vec v3 = zero_intrin<Vec>();
+        Vec pz0_ = load_intrin<Vec>(&pz[i * n + l1+0*VecLen]);
+        Vec pz1_ = load_intrin<Vec>(&pz[i * n + l1+1*VecLen]);
+        Vec pz2_ = load_intrin<Vec>(&pz[i * n + l1+2*VecLen]);
+        Vec pz3_ = load_intrin<Vec>(&pz[i * n + l1+3*VecLen]);
+        for (int j = 0; i + j < d; j++) {
+          Vec w0 = zero_intrin<Vec>();
+          Vec w1 = zero_intrin<Vec>();
+          Vec w2 = zero_intrin<Vec>();
+          Vec w3 = zero_intrin<Vec>();
+          Vec py0_ = load_intrin<Vec>(&py[j * n + l1+0*VecLen]);
+          Vec py1_ = load_intrin<Vec>(&py[j * n + l1+1*VecLen]);
+          Vec py2_ = load_intrin<Vec>(&py[j * n + l1+2*VecLen]);
+          Vec py3_ = load_intrin<Vec>(&py[j * n + l1+3*VecLen]);
+          for (int k = 0; i + j + k < d; k++) {
+            Vec px0_ = load_intrin<Vec>(&px[k * n + l1+0*VecLen]);
+            Vec px1_ = load_intrin<Vec>(&px[k * n + l1+1*VecLen]);
+            Vec px2_ = load_intrin<Vec>(&px[k * n + l1+2*VecLen]);
+            Vec px3_ = load_intrin<Vec>(&px[k * n + l1+3*VecLen]);
+            Vec c = set_intrin<Vec, Real>(coeff[k + d0 * (j + d0 * (i + d0 * l0))]);
+            w0 = add_intrin(w0, mul_intrin(px0_, c));
+            w1 = add_intrin(w1, mul_intrin(px1_, c));
+            w2 = add_intrin(w2, mul_intrin(px2_, c));
+            w3 = add_intrin(w3, mul_intrin(px3_, c));
+          }
+          v0 = add_intrin(v0, mul_intrin(py0_, w0));
+          v1 = add_intrin(v1, mul_intrin(py1_, w1));
+          v2 = add_intrin(v2, mul_intrin(py2_, w2));
+          v3 = add_intrin(v3, mul_intrin(py3_, w3));
+        }
+        u0 = add_intrin(u0, mul_intrin(pz0_, v0));
+        u1 = add_intrin(u1, mul_intrin(pz1_, v1));
+        u2 = add_intrin(u2, mul_intrin(pz2_, v2));
+        u3 = add_intrin(u3, mul_intrin(pz3_, v3));
+      }
+      store_intrin(&tmp_out[l0 * n + l1+0*VecLen], u0);
+      store_intrin(&tmp_out[l0 * n + l1+1*VecLen], u1);
+      store_intrin(&tmp_out[l0 * n + l1+2*VecLen], u2);
+      store_intrin(&tmp_out[l0 * n + l1+3*VecLen], u3);
+    }
+  }
+}
+}
+
 namespace tbslas {
 
 template <class Real_t>
@@ -113,10 +173,7 @@ void EvalNodesLocal(std::vector<typename Tree_t::Node_t*>& nodes,
   }
 
   bool use_cubic=0;//sim_config->use_cubic;
-  double tt0=0;
-  double tt1=0;
-  double tt2=0;
-#pragma omp parallel for reduction(+:tt0,tt1,tt2)
+#pragma omp parallel for
   for (size_t pid=0;pid<omp_p;pid++) {
     size_t a=((pid+0)*nodes.size())/omp_p;
     size_t b=((pid+1)*nodes.size())/omp_p;
@@ -176,15 +233,17 @@ void EvalNodesLocal(std::vector<typename Tree_t::Node_t*>& nodes,
     pvfmm::Matrix<Real_t> py;
     pvfmm::Matrix<Real_t> pz;
 
+    pvfmm::Vector<Real_t> coeff_;
+    { // Set coeff_
+      int d0=nodes[0]->ChebDeg()+1+8;
+      coeff_.ReInit(d0*d0*d0*data_dof);
+      coeff_.SetZero();
+    }
+
     ////////////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////////////
 
-    double ttt0=0;
-    double ttt1=0;
-    double ttt2=0;
-
-    ttt2-=omp_get_wtime();
     for (size_t j=a;j<b;j++) {
       const size_t n_pts=part_indx[j+1]-part_indx[j];
       if(!n_pts) continue;
@@ -198,24 +257,42 @@ void EvalNodesLocal(std::vector<typename Tree_t::Node_t*>& nodes,
         //////////////////////////////////////////////////////////////
         // CHEBYSHEV INTERPOLATION
         //////////////////////////////////////////////////////////////
-        coord.resize(n_pts*COORD_DIM);
+        coord.resize((n_pts+16)*COORD_DIM);
         for (size_t i=0;i<n_pts;i++) {
           // scale to [-1,1] -> used in cheb_eval
           coord[i*COORD_DIM+0]=(coord_ptr[i*COORD_DIM+0]-c[0])*2.0*s-1.0;
           coord[i*COORD_DIM+1]=(coord_ptr[i*COORD_DIM+1]-c[1])*2.0*s-1.0;
           coord[i*COORD_DIM+2]=(coord_ptr[i*COORD_DIM+2]-c[2])*2.0*s-1.0;
         }
-
-        if (tmp_out.Dim()<n_pts*data_dof) {
-          tmp_out.Resize(n_pts*data_dof);
+        for (size_t i=n_pts;i<n_pts+16;i++) {
+          // scale to [-1,1] -> used in cheb_eval
+          coord[i*COORD_DIM+0]=0.0;
+          coord[i*COORD_DIM+1]=0.0;
+          coord[i*COORD_DIM+2]=0.0;
         }
+
         if(coord.size()){
           pvfmm::Vector<Real_t>& coeff=nodes[j]->ChebData();
           int cheb_deg=nodes[j]->ChebDeg();
           int d=cheb_deg+1;
-          int n=coord.size()/COORD_DIM;
-          int dof=coeff.Dim()/((d*(d+1)*(d+2))/6);
-          assert(coeff.Dim()==(size_t)(d*(d+1)*(d+2)*dof)/6);
+          int d0;
+          for(d0=d;d0%4;d0++);
+          int n=n_pts;
+          for(;n%16;n++);
+          assert(coeff.Dim()==(size_t)(d*(d+1)*(d+2)*data_dof)/6);
+          { // set coeff_
+            long indx=0;
+            for(int l0=0;l0<data_dof;l0++){
+              for(int i=0;i<d;i++){
+                for(int j=0;i+j<d;j++){
+                  for(int k=0;i+j+k<d;k++){
+                    coeff_[k+d0*(j+d0*(i+d0*l0))]=coeff[indx];
+                    indx++;
+                  }
+                }
+              }
+            }
+          }
 
           cx.resize(n);
           cy.resize(n);
@@ -226,32 +303,59 @@ void EvalNodesLocal(std::vector<typename Tree_t::Node_t*>& nodes,
             cz[i]=coord[i*COORD_DIM+2];
           }
 
-          px.Resize(d,n);
-          py.Resize(d,n);
-          pz.Resize(d,n);
+          px.Resize(d0,n); px.SetZero();
+          py.Resize(d0,n); py.SetZero();
+          pz.Resize(d0,n); pz.SetZero();
           pvfmm::cheb_poly(cheb_deg,&(cx[0]),n,&(px[0][0]));
           pvfmm::cheb_poly(cheb_deg,&(cy[0]),n,&(py[0][0]));
           pvfmm::cheb_poly(cheb_deg,&(cz[0]),n,&(pz[0][0]));
 
-          for(int l0=0;l0<dof;l0++){
-            for(int l1=0; l1<n; l1++){
-              int indx=l0*((d*(d+1)*(d+2))/6);
-              Real_t v=0;
-              for(int i=0;i<d;i++){
-                for(int j=0;i+j<d;j++){
-                  Real_t p=pz[i][l1]*py[j][l1];
-                  for(int k=0;i+j+k<d;k++){
-                    v+=p*px[k][l1]*coeff[indx];
-                    indx++;
-                  }
-                }
+          if (tmp_out.Dim()<n*data_dof) {
+            tmp_out.Resize(n*data_dof);
+          }
+          if(pvfmm::mem::TypeTraits<Real_t>::ID()==pvfmm::mem::TypeTraits<float>::ID()){
+            typedef float Real;
+            #if defined __MIC__
+              #define Vec_t Real_t
+            #elif defined __AVX__
+              #define Vec_t __m256
+            #elif defined __SSE3__
+              #define Vec_t __m128
+            #else
+              #define Vec_t Real
+            #endif
+            ::pvfmm::vec_eval<Real, Vec_t>(n,d0,d,data_dof, (Real*)&px[0][0], (Real*)&py[0][0], (Real*)&pz[0][0], (Real*)&coeff_[0], (Real*)&tmp_out[0]);
+            #undef Vec_t
+          }else if(pvfmm::mem::TypeTraits<Real_t>::ID()==pvfmm::mem::TypeTraits<double>::ID()){
+            typedef double Real;
+            #if defined __MIC__
+              #define Vec_t Real_t
+            #elif defined __AVX__
+              #define Vec_t __m256d
+            #elif defined __SSE3__
+              #define Vec_t __m128d
+            #else
+              #define Vec_t Real
+            #endif
+            ::pvfmm::vec_eval<Real, Vec_t>(n,d0,d,data_dof, (Real*)&px[0][0], (Real*)&py[0][0], (Real*)&pz[0][0], (Real*)&coeff_[0], (Real*)&tmp_out[0]);
+            #undef Vec_t
+          }else{
+            typedef Real_t Real;
+            #define Vec_t Real
+            ::pvfmm::vec_eval<Real, Vec_t>(n,d0,d,data_dof, (Real*)&px[0][0], (Real*)&py[0][0], (Real*)&pz[0][0], (Real*)&coeff_[0], (Real*)&tmp_out[0]);
+            #undef Vec_t
+          }
+
+          { // Copy to trg_value
+            Real_t *trg_value_ = &trg_value[0] + part_indx[j] * data_dof;
+            for (long i = 0; i < n_pts; i++) {
+              for (int j = 0; j < data_dof; j++) {
+                trg_value_[i * data_dof + j] = tmp_out[j * n + i];
               }
-              tmp_out[l1*dof+l0]=v;
             }
           }
         }
 
-        output = &tmp_out[0];
       } else {
         query_values.resize(n_pts*data_dof);
         query_points.resize(n_pts*COORD_DIM);
@@ -262,7 +366,6 @@ void EvalNodesLocal(std::vector<typename Tree_t::Node_t*>& nodes,
         // if(!sim_config->cubic_use_analytical) {
           pvfmm::Vector<Real_t>& coeff_=nodes[j]->ChebData();
           pvfmm::Vector<Real_t> reg_grid_vals_tmp(reg_grid_num_points*data_dof, &reg_grid_vals[0], false);
-          ttt0-=omp_get_wtime();
           { // cheb_eval
             int cheb_deg=nodes[0]->ChebDeg();
             size_t d=(size_t)cheb_deg+1;
@@ -333,7 +436,6 @@ void EvalNodesLocal(std::vector<typename Tree_t::Node_t*>& nodes,
                 }
             }
           }
-          ttt0+=omp_get_wtime();
         // } else {   // evaluate using analytical function
         //   std::vector<Real_t> reg_grid_anal_coord(3);
         //   std::vector<Real_t> reg_grid_anal_vals(1*data_dof);
@@ -364,26 +466,18 @@ void EvalNodesLocal(std::vector<typename Tree_t::Node_t*>& nodes,
           query_points[pi*COORD_DIM+1] = (coord_ptr[pi*COORD_DIM+1]-c[1])*s;
           query_points[pi*COORD_DIM+2] = (coord_ptr[pi*COORD_DIM+2]-c[2])*s;
         }
-        ttt1-=omp_get_wtime();
         fast_interp(reg_grid_vals, data_dof, reg_grid_resolution, query_points, query_values);
-        ttt1+=omp_get_wtime();
         output = &query_values[0];
+
+        memcpy(&trg_value[0]+part_indx[j]*data_dof, output, n_pts*data_dof*sizeof(Real_t));
       } // end of cubic interpolation
-
-      memcpy(&trg_value[0]+part_indx[j]*data_dof, output, n_pts*data_dof*sizeof(Real_t));
     }
-    ttt2+=omp_get_wtime();
-
-    tt0+=ttt0;
-    tt1+=ttt1;
-    tt2+=ttt2;
   }
-  std::cout<<tt0/omp_get_max_threads()<<' '<<tt1/omp_get_max_threads()<<' '<<tt2/omp_get_max_threads()<<'\n';
   if (use_cubic){
     pvfmm::Profile::Add_FLOP(trg_coord.Dim()/COORD_DIM * (COORD_DIM*16 + data_dof*192)); // cubic interpolation
   }else{
     long d=nodes[0]->ChebDeg()+1;
-    pvfmm::Profile::Add_FLOP(trg_coord.Dim()/COORD_DIM * ( COORD_DIM*d*3 + ((d*(d+1)*(d+2))/6) * data_dof * 3 ) );
+    pvfmm::Profile::Add_FLOP(trg_coord.Dim()/COORD_DIM * ( COORD_DIM*d*3 + ((d*(d+1)*(d+2))/6) * data_dof * 2 ) );
   }
 }
 
