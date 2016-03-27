@@ -3,26 +3,84 @@
 #ifndef _TBSLAS_CHEB_H_
 #define _TBSLAS_CHEB_H_
 
+#ifndef __USE_SPARSE_GRID__
+#define __USE_SPARSE_GRID__ 1
+#endif
+
 namespace tbslas{
 
-template <class T>
-std::vector<T> new_nodes(int deg, int dim){
-  unsigned int d=deg+1;
+template <class Real>
+std::vector<Real> new_nodes(int deg, int dim){
 
-  std::vector<T> x(d);
-  T scal=1.0/pvfmm::cos<T>(0.5*pvfmm::const_pi<T>()/d);
-  for(int i=0;i<d;i++) x[i]=-pvfmm::cos<T>((i+(T)0.5)*pvfmm::const_pi<T>()/d)*scal*0.5+0.5;
-  if(dim==1) return x;
+  assert(deg<20);
+  assert(dim<4);
+  static std::vector<Real> y[20][4];
 
-  unsigned int n1=pvfmm::pow<unsigned int>(d,dim);
-  std::vector<T> y(n1*dim);
-  for(int i=0;i<dim;i++){
-    unsigned int n2=pvfmm::pow<unsigned int>(d,i);
-    for(int j=0;j<n1;j++){
-      y[j*dim+i]=x[(j/n2)%d];
+  if(!y[deg][dim].size()){
+    #pragma omp critical(NEW_NODES)
+    if(!y[deg][dim].size()){
+      unsigned int d=deg+1;
+      std::vector<Real> x(d);
+      Real scal=1.0/pvfmm::cos<Real>(0.5*pvfmm::const_pi<Real>()/d);
+      for(int i=0;i<d;i++) x[i]=-pvfmm::cos<Real>((i+(Real)0.5)*pvfmm::const_pi<Real>()/d)*scal*0.5+0.5;
+
+      unsigned int n1=pvfmm::pow<unsigned int>(d,dim);
+      std::vector<Real> y_(n1*dim);
+      for(int i=0;i<dim;i++){
+        unsigned int n2=pvfmm::pow<unsigned int>(d,i);
+        for(int j=0;j<n1;j++){
+          y_[j*dim+i]=x[(j/n2)%d];
+        }
+      }
+
+      { // build sparse mesh
+        #if __USE_SPARSE_GRID__
+        assert(dim==3);
+        long Ncoeff=((deg+1)*(deg+2)*(deg+3))/6;
+        std::vector<Real> buff((deg+1)*(deg+1+3*2));
+        std::vector<Real> coord=y_;
+        pvfmm::Matrix<Real> Mcoord(coord.size()/3,3);
+        for(long i=0;i<coord.size();i++) Mcoord[0][i]=coord[i]*2.0-1.0;
+
+        pvfmm::Matrix<Real> M0(Mcoord.Dim(0),Ncoeff);
+        for(long i=0;i<Mcoord.Dim(0);i++){
+          Real* coord=&Mcoord[i][0];
+          pvfmm::cheb_eval(deg, coord, &M0[i][0], &buff[0]);
+        }
+
+        pvfmm::Vector<int> flag(Mcoord.Dim(0));
+        flag.SetZero();
+        for(long i=0;i<Ncoeff;i++){
+          long max_indx=0;
+          std::vector<Real> norm;
+          for(long j=0;j<Mcoord.Dim(0);j++){
+            pvfmm::Matrix<Real> q(1, Ncoeff, &M0[j][0]);
+            pvfmm::Matrix<Real> norm2=q*q.Transpose();
+            norm.push_back(sqrt(norm2[0][0]));
+            if(norm.back()>norm[max_indx]) max_indx=j;
+          }
+          flag[max_indx]=1;
+          pvfmm::Matrix<Real> q(1,Ncoeff,&M0[max_indx][0]);
+          for(long j=0;j<Ncoeff;j++) q[0][j]*=1.0/norm[max_indx];
+          M0=M0-(M0*q.Transpose())*q;
+        }
+
+        y_.clear();
+        for(long i=0;i<flag.Dim();i++){
+          if(flag[i]){
+            y_.push_back(coord[i*3+0]);
+            y_.push_back(coord[i*3+1]);
+            y_.push_back(coord[i*3+2]);
+          }
+        }
+        #endif
+      }
+
+      y[deg][dim].swap(y_);
     }
   }
-  return y;
+
+  return y[deg][dim];
 }
 
 template <class T>

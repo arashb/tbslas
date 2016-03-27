@@ -257,6 +257,9 @@ int main (int argc, char **argv) {
     sim_config->vtk_filename_variable   = "conc";
     sim_config->bc = bc;
 
+
+    tbslas::new_nodes<Tree_t::Real_t>(sim_config->tree_chebyshev_order, 3);
+
     // =========================================================================
     // INIT THE VELOCITY TREE
     // =========================================================================

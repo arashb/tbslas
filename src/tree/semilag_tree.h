@@ -34,6 +34,7 @@ void SolveSemilagTree(TreeType& tvel_curr,
                       const int timestep,
                       const typename TreeType::Real_t dt,
                       int num_rk_step = 1) {
+  assert(false); // don't know what this function does, should be deprecated.
   typedef typename TreeType::Node_t NodeType;
   typedef typename TreeType::Real_t RealType;
   tbslas::SimConfig* sim_config = tbslas::SimConfigSingleton::Instance();
@@ -121,7 +122,24 @@ void SolveSemilagInSitu(TreeType& tvel_curr,
   int data_dof = n_curr->DataDOF();
   int cheb_deg = n_curr->ChebDeg();
   int sdim     = tree_curr.Dim();
-  int num_points_per_node = (cheb_deg+1)*(cheb_deg+1)*(cheb_deg+1);
+  int num_points_per_node; //= (cheb_deg+1)*(cheb_deg+1)*(cheb_deg+1);
+  long Ncoeff=(cheb_deg+1)*(cheb_deg+2)*(cheb_deg+3)/6;
+  static pvfmm::Matrix<RealType> M;
+  { // Compute interpolation matrix
+    std::vector<RealType> coord=new_nodes<RealType>(cheb_deg,3);
+    if(M.Dim(0)!=coord.size()/3 || M.Dim(1)!=Ncoeff){
+      for(int i=0;i<coord.size();i++) coord[i]=coord[i]*2.0-1.0;
+      M.ReInit(coord.size()/3,Ncoeff);
+      M.SetZero();
+      std::vector<RealType> buff((cheb_deg+1)*(cheb_deg+1+3*2));
+      for(long i=0;i<M.Dim(0);i++){
+        pvfmm::cheb_eval(cheb_deg, &coord[i*3], &M[i][0], &buff[0]);
+      }
+      M=M.pinv().Transpose();
+    }
+    num_points_per_node=coord.size()/3;
+  }
+
 
   std::vector<RealType> points_pos_all_nodes;
   tbslas::CollectChebTreeGridPoints(tree_curr, points_pos_all_nodes);
@@ -148,24 +166,44 @@ void SolveSemilagInSitu(TreeType& tvel_curr,
     if(!n_next->IsGhost() && n_next->IsLeaf()) break;
     n_next = tree_curr.PostorderNxt(n_next);
   }
-
-  int tree_next_node_counter = 0;
+  std::vector<NodeType*> nodes;
   while (n_next != NULL) {
-    if (n_next->IsLeaf() && !n_next->IsGhost()) {
-      // convert the function values at scaled points
-      // to function values at first kind chebyshev point
-      tbslas::NewPt2ChebPt<RealType>(
-          &points_val_local_nodes[tree_next_node_counter*num_points_per_node*data_dof],
-          cheb_deg, data_dof);
-      pvfmm::cheb_approx<RealType, RealType>(
-          &points_val_local_nodes[tree_next_node_counter*num_points_per_node*data_dof],
-          cheb_deg,
-          data_dof,
-          &(n_next->ChebData()[0]));
-      tree_next_node_counter++;
-    }
+    if (n_next->IsLeaf() && !n_next->IsGhost()) nodes.push_back(n_next);
     n_next = tree_curr.PostorderNxt(n_next);
   }
+
+  int omp_p=omp_get_max_threads();
+  pvfmm::Matrix<RealType> Mvalue(points_val_local_nodes.size()/num_points_per_node,num_points_per_node,&points_val_local_nodes[0],false);
+  pvfmm::Matrix<RealType> Mcoeff(points_val_local_nodes.size()/num_points_per_node,Ncoeff);
+  #pragma omp parallel for schedule(static)
+  for(int pid=0;pid<omp_p;pid++){
+    long a=(pid+0)*nodes.size()/omp_p;
+    long b=(pid+1)*nodes.size()/omp_p;
+    pvfmm::Matrix<RealType> Mi((b-a)*data_dof, Mvalue.Dim(1), &Mvalue[a*data_dof][0], false);
+    pvfmm::Matrix<RealType> Mo((b-a)*data_dof, Mcoeff.Dim(1), &Mcoeff[a*data_dof][0], false);
+    pvfmm::Matrix<RealType>::GEMM(Mo, Mi, M);
+    for(long j=0;j<b-a;j++){
+      memcpy(&(nodes[a+j]->ChebData()[0]), &Mo[j*data_dof][0], Ncoeff*data_dof*sizeof(RealType));
+    }
+  }
+
+  //int tree_next_node_counter = 0;
+  //while (n_next != NULL) {
+  //  if (n_next->IsLeaf() && !n_next->IsGhost()) {
+  //    // convert the function values at scaled points
+  //    // to function values at first kind chebyshev point
+  //    tbslas::NewPt2ChebPt<RealType>(
+  //        &points_val_local_nodes[tree_next_node_counter*num_points_per_node*data_dof],
+  //        cheb_deg, data_dof);
+  //    pvfmm::cheb_approx<RealType, RealType>(
+  //        &points_val_local_nodes[tree_next_node_counter*num_points_per_node*data_dof],
+  //        cheb_deg,
+  //        data_dof,
+  //        &(n_next->ChebData()[0]));
+  //    tree_next_node_counter++;
+  //  }
+  //  n_next = tree_curr.PostorderNxt(n_next);
+  //}
   // pvfmm::Profile::Toc();
 }
 
