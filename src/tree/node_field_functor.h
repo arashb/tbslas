@@ -200,7 +200,7 @@ void EvalNodesLocal(std::vector<typename Tree_t::Node_t*>& nodes,
     for (size_t j=node_start;j<node_end;j++) {
       size_t pt_start=std::max<long>(pt_start0, part_indx[j]);
       size_t pt_end=std::min<long>(pt_end0, part_indx[j+1]);
-      if(pt_start<pt_end) continue;
+      if(pt_start>pt_end) continue;
       const size_t n_pts=pt_end-pt_start;
 
       Real_t* c = nodes[j]->Coord();
