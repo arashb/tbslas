@@ -19,7 +19,7 @@ std::vector<Real> new_nodes(int deg, int dim){
   if(!y[deg][dim].size()){
     #pragma omp critical(NEW_NODES)
     if(!y[deg][dim].size()){
-      unsigned int d=deg+1;
+      unsigned int d=(deg+3)+1;
       std::vector<Real> x(d);
       Real scal=1.0/pvfmm::cos<Real>(0.5*pvfmm::const_pi<Real>()/d);
       for(int i=0;i<d;i++) x[i]=-pvfmm::cos<Real>((i+(Real)0.5)*pvfmm::const_pi<Real>()/d)*scal*0.5+0.5;
@@ -36,16 +36,16 @@ std::vector<Real> new_nodes(int deg, int dim){
       { // build sparse mesh
         #if __USE_SPARSE_GRID__
         assert(dim==3);
-        long Ncoeff=((deg+1)*(deg+2)*(deg+3))/6;
-        std::vector<Real> buff((deg+1)*(deg+1+3*2));
         std::vector<Real> coord=y_;
         pvfmm::Matrix<Real> Mcoord(coord.size()/3,3);
         for(long i=0;i<coord.size();i++) Mcoord[0][i]=coord[i]*2.0-1.0;
 
+        long Ncoeff=(d*(d+1)*(d+2))/6;
+        std::vector<Real> buff(d*(d+3*2));
         pvfmm::Matrix<Real> M0(Mcoord.Dim(0),Ncoeff);
         for(long i=0;i<Mcoord.Dim(0);i++){
           Real* coord=&Mcoord[i][0];
-          pvfmm::cheb_eval(deg, coord, &M0[i][0], &buff[0]);
+          pvfmm::cheb_eval(d-1, coord, &M0[i][0], &buff[0]);
         }
 
         pvfmm::Vector<int> flag(Mcoord.Dim(0));

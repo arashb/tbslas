@@ -122,23 +122,38 @@ void SolveSemilagInSitu(TreeType& tvel_curr,
   int data_dof = n_curr->DataDOF();
   int cheb_deg = n_curr->ChebDeg();
   int sdim     = tree_curr.Dim();
-  int num_points_per_node; //= (cheb_deg+1)*(cheb_deg+1)*(cheb_deg+1);
-  long Ncoeff=(cheb_deg+1)*(cheb_deg+2)*(cheb_deg+3)/6;
   static pvfmm::Matrix<RealType> M;
   { // Compute interpolation matrix
-    std::vector<RealType> coord=new_nodes<RealType>(cheb_deg,3);
-    if(M.Dim(0)!=coord.size()/3 || M.Dim(1)!=Ncoeff){
-      for(int i=0;i<coord.size();i++) coord[i]=coord[i]*2.0-1.0;
+    long Ncoeff=(cheb_deg+1)*(cheb_deg+2)*(cheb_deg+3)/6;
+    if(M.Dim(1)!=Ncoeff){
+      std::vector<RealType> coord=new_nodes<RealType>(cheb_deg,3);
       M.ReInit(coord.size()/3,Ncoeff);
-      M.SetZero();
-      std::vector<RealType> buff((cheb_deg+1)*(cheb_deg+1+3*2));
-      for(long i=0;i<M.Dim(0);i++){
-        pvfmm::cheb_eval(cheb_deg, &coord[i*3], &M[i][0], &buff[0]);
+
+      int cheb_deg_=(cheb_deg+3);
+      long Ncoeff_=(cheb_deg_+1)*(cheb_deg_+2)*(cheb_deg_+3)/6;
+      pvfmm::Matrix<RealType> M_(coord.size()/3,Ncoeff_);
+      std::vector<RealType> buff((cheb_deg_+1)*(cheb_deg_+1+3*2));
+      for(long i=0;i<M_.Dim(0);i++){
+        for(int j=i*3;j<(i+1)*3;j++) coord[j]=coord[j]*2.0-1.0;
+        pvfmm::cheb_eval(cheb_deg_, &coord[i*3], &M_[i][0], &buff[0]);
       }
-      M=M.pinv().Transpose();
+      M_=M_.pinv().Transpose();
+
+      long indx=0, indx_=0;
+      for(int i0=0;i0<=cheb_deg_;i0++){
+        for(int i1=0;i0+i1<=cheb_deg_;i1++){
+          for(int i2=0;i0+i1+i2<=cheb_deg_;i2++){
+            if(i0+i1+i2<=cheb_deg){
+              for(long j=0;j<M.Dim(0);j++) M[j][indx]=M_[j][indx_];
+              indx++;
+            }
+            indx_++;
+          }
+        }
+      }
     }
-    num_points_per_node=coord.size()/3;
   }
+  int num_points_per_node=M.Dim(0);
 
 
   std::vector<RealType> points_pos_all_nodes;
@@ -173,8 +188,8 @@ void SolveSemilagInSitu(TreeType& tvel_curr,
   }
 
   int omp_p=omp_get_max_threads();
-  pvfmm::Matrix<RealType> Mvalue(points_val_local_nodes.size()/num_points_per_node,num_points_per_node,&points_val_local_nodes[0],false);
-  pvfmm::Matrix<RealType> Mcoeff(points_val_local_nodes.size()/num_points_per_node,Ncoeff);
+  pvfmm::Matrix<RealType> Mvalue(points_val_local_nodes.size()/num_points_per_node,M.Dim(0),&points_val_local_nodes[0],false);
+  pvfmm::Matrix<RealType> Mcoeff(points_val_local_nodes.size()/num_points_per_node,M.Dim(1));
   #pragma omp parallel for schedule(static)
   for(int pid=0;pid<omp_p;pid++){
     long a=(pid+0)*nodes.size()/omp_p;
@@ -183,7 +198,7 @@ void SolveSemilagInSitu(TreeType& tvel_curr,
     pvfmm::Matrix<RealType> Mo((b-a)*data_dof, Mcoeff.Dim(1), &Mcoeff[a*data_dof][0], false);
     pvfmm::Matrix<RealType>::GEMM(Mo, Mi, M);
     for(long j=0;j<b-a;j++){
-      memcpy(&(nodes[a+j]->ChebData()[0]), &Mo[j*data_dof][0], Ncoeff*data_dof*sizeof(RealType));
+      memcpy(&(nodes[a+j]->ChebData()[0]), &Mo[j*data_dof][0], M.Dim(1)*data_dof*sizeof(RealType));
     }
   }
 
