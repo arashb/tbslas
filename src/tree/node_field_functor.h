@@ -172,59 +172,10 @@ void EvalNodesLocal(std::vector<typename Tree_t::Node_t*>& nodes,
                                   nodes[j]->GetMortonId()) - &trg_mid[0];
   }
 
-  bool use_cubic=0;//sim_config->use_cubic;
 #pragma omp parallel for
   for (size_t pid=0;pid<omp_p;pid++) {
-    size_t a=((pid+0)*nodes.size())/omp_p;
-    size_t b=((pid+1)*nodes.size())/omp_p;
-
     std::vector<Real_t> coord;
     pvfmm::Vector<Real_t> tmp_out;    // buffer used in chebyshev evaluation
-    std::vector<Real_t> query_values; // buffer used in cubic interpolation
-    std::vector<Real_t> query_points;
-    Real_t* output = NULL;
-
-    ////////////////////////////////////////////////////////////////////////////////////////
-    ////////////////////////////////////////////////////////////////////////////////////////
-    ////////////////////////////////////////////////////////////////////////////////////////
-    // ************************************************************
-    // CONSTRUCT REGULAR GRID
-    // ************************************************************
-    int reg_grid_resolution =
-        nodes[0]->ChebDeg()*sim_config->cubic_upsampling_factor;
-    Real_t spacing = 1.0/(reg_grid_resolution-1);
-    std::vector<Real_t> reg_grid_coord_1d(reg_grid_resolution);
-    tbslas::get_reg_grid_points<Real_t, 1>(reg_grid_resolution,
-                                           reg_grid_coord_1d.data());
-
-    // ************************************************************
-    // EVALUATE AT THE REGULAR GRID
-    // ************************************************************
-    int reg_grid_num_points = std::pow(static_cast<double>(reg_grid_resolution), COORD_DIM);
-    std::vector<Real_t> reg_grid_vals(reg_grid_num_points*data_dof);
-
-    // scale to [-1,1] -> used in cheb_eval
-    std::vector<Real_t> x(reg_grid_resolution);
-    for(size_t i=0;i<reg_grid_resolution;i++) {
-      x[i] = -1.0+2.0*reg_grid_coord_1d[i];
-    }
-
-    pvfmm::Matrix<Real_t> Mp1;
-    pvfmm::Vector<Real_t> v1, v2;
-    { // Precomputation
-      int cheb_deg=nodes[0]->ChebDeg();
-      std::vector<Real_t> p1(reg_grid_resolution*(cheb_deg+1));
-      pvfmm::cheb_poly(cheb_deg,&x[0],reg_grid_resolution,&p1[0]);
-      Mp1.ReInit(cheb_deg+1,reg_grid_resolution,&p1[0]);
-
-      // Create work buffers
-      size_t buff_size=std::max(cheb_deg+1,reg_grid_resolution)*std::max(cheb_deg+1,reg_grid_resolution)*std::max(cheb_deg+1,reg_grid_resolution)*data_dof;
-      v1.Resize(buff_size);
-      v2.Resize(buff_size);
-    }
-    ////////////////////////////////////////////////////////////////////////////////////////
-    ////////////////////////////////////////////////////////////////////////////////////////
-    ////////////////////////////////////////////////////////////////////////////////////////
 
     std::vector<Real_t> cx;
     std::vector<Real_t> cy;
@@ -234,26 +185,30 @@ void EvalNodesLocal(std::vector<typename Tree_t::Node_t*>& nodes,
     pvfmm::Matrix<Real_t> pz;
 
     pvfmm::Vector<Real_t> coeff_;
-    { // Set coeff_
+    { // Init coeff_
       int d0=nodes[0]->ChebDeg()+1+8;
       coeff_.ReInit(d0*d0*d0*data_dof);
       coeff_.SetZero();
     }
 
-    ////////////////////////////////////////////////////////////////////////////////////////
-    ////////////////////////////////////////////////////////////////////////////////////////
-    ////////////////////////////////////////////////////////////////////////////////////////
-
-    for (size_t j=a;j<b;j++) {
-      const size_t n_pts=part_indx[j+1]-part_indx[j];
-      if(!n_pts) continue;
+    size_t pt_start0=((pid+0)*trg_mid.Dim())/omp_p;
+    size_t pt_end0=((pid+1)*trg_mid.Dim())/omp_p;
+    long node_start=std::lower_bound(&part_indx[0], &part_indx[0]+part_indx.size(), pt_start0)-&part_indx[0]-1;
+    long node_end=std::lower_bound(&part_indx[0], &part_indx[0]+part_indx.size(), pt_end0)-&part_indx[0];
+    node_start=std::max<long>(0,std::min<long>(node_start, nodes.size()));
+    node_end=std::max<long>(0,std::min<long>(node_end, nodes.size()));
+    for (size_t j=node_start;j<node_end;j++) {
+      size_t pt_start=std::max<long>(pt_start0, part_indx[j]);
+      size_t pt_end=std::min<long>(pt_end0, part_indx[j+1]);
+      if(pt_start<pt_end) continue;
+      const size_t n_pts=pt_end-pt_start;
 
       Real_t* c = nodes[j]->Coord();
       size_t  d = nodes[j]->Depth();
       Real_t  s = (Real_t)(1ULL<<d);
 
-      Real_t* coord_ptr = &trg_coord[0]+part_indx[j]*COORD_DIM;
-      if (!use_cubic) {
+      Real_t* coord_ptr = &trg_coord[0]+pt_start*COORD_DIM;
+      {
         //////////////////////////////////////////////////////////////
         // CHEBYSHEV INTERPOLATION
         //////////////////////////////////////////////////////////////
@@ -347,7 +302,7 @@ void EvalNodesLocal(std::vector<typename Tree_t::Node_t*>& nodes,
           }
 
           { // Copy to trg_value
-            Real_t *trg_value_ = &trg_value[0] + part_indx[j] * data_dof;
+            Real_t *trg_value_ = &trg_value[0] + pt_start * data_dof;
             for (long i = 0; i < n_pts; i++) {
               for (int j = 0; j < data_dof; j++) {
                 trg_value_[i * data_dof + j] = tmp_out[j * n + i];
@@ -355,127 +310,10 @@ void EvalNodesLocal(std::vector<typename Tree_t::Node_t*>& nodes,
             }
           }
         }
-
-      } else {
-        query_values.resize(n_pts*data_dof);
-        query_points.resize(n_pts*COORD_DIM);
-
-        // ************************************************************
-        // EVALUATE AT THE REGULAR GRID
-        // ************************************************************
-        // if(!sim_config->cubic_use_analytical) {
-          pvfmm::Vector<Real_t>& coeff_=nodes[j]->ChebData();
-          pvfmm::Vector<Real_t> reg_grid_vals_tmp(reg_grid_num_points*data_dof, &reg_grid_vals[0], false);
-          { // cheb_eval
-            int cheb_deg=nodes[0]->ChebDeg();
-            size_t d=(size_t)cheb_deg+1;
-            size_t n_coeff=(d*(d+1)*(d+2))/6;
-            size_t dof=coeff_.Dim()/n_coeff;
-            assert(coeff_.Dim()==dof*n_coeff);
-
-            size_t n1=x.size();
-            assert(reg_grid_vals_tmp.Dim()==n1*n1*n1*dof);
-
-            { // Rearrange coefficients into a tensor.
-              pvfmm::Vector<Real_t> coeff(d*d*d*dof,&v1[0],false);
-              coeff.SetZero();
-              size_t indx=0;
-              for(size_t l=0;l<dof;l++){
-                for(size_t i=0;i<d;i++){
-                  for(size_t j=0;j<d-i;j++){
-                    Real_t* coeff_ptr=&coeff[(j+(i+l*d)*d)*d];
-                    for(size_t k=0;k<d-i-j;k++){
-                      coeff_ptr[k]=coeff_[indx];
-                      indx++;
-                    }
-                  }
-                }
-              }
-            }
-
-            { // Apply Mp1
-              pvfmm::Matrix<Real_t> Mi  ( d* d*dof, d,&v1[0],false);
-              pvfmm::Matrix<Real_t> Mo  ( d* d*dof,n1,&v2[0],false);
-              pvfmm::Matrix<Real_t>::GEMM(Mo, Mi, Mp1);
-
-              pvfmm::Matrix<Real_t> Mo_t(n1, d* d*dof,&v1[0],false);
-              for(size_t i=0;i<Mo.Dim(0);i++)
-                for(size_t j=0;j<Mo.Dim(1);j++){
-                  Mo_t[j][i]=Mo[i][j];
-                }
-            }
-            { // Apply Mp1
-              pvfmm::Matrix<Real_t> Mi  (n1* d*dof, d,&v1[0],false);
-              pvfmm::Matrix<Real_t> Mo  (n1* d*dof,n1,&v2[0],false);
-              pvfmm::Matrix<Real_t>::GEMM(Mo, Mi, Mp1);
-
-              pvfmm::Matrix<Real_t> Mo_t(n1,n1* d*dof,&v1[0],false);
-              for(size_t i=0;i<Mo.Dim(0);i++)
-                for(size_t j=0;j<Mo.Dim(1);j++){
-                  Mo_t[j][i]=Mo[i][j];
-                }
-            }
-            { // Apply Mp1
-              pvfmm::Matrix<Real_t> Mi  (n1*n1*dof, d,&v1[0],false);
-              pvfmm::Matrix<Real_t> Mo  (n1*n1*dof,n1,&v2[0],false);
-              pvfmm::Matrix<Real_t>::GEMM(Mo, Mi, Mp1);
-
-              pvfmm::Matrix<Real_t> Mo_t(n1,n1*n1*dof,&v1[0],false);
-              for(size_t i=0;i<Mo.Dim(0);i++)
-                for(size_t j=0;j<Mo.Dim(1);j++){
-                  Mo_t[j][i]=Mo[i][j];
-                }
-            }
-
-            { // Copy to reg_grid_vals_tmp
-              pvfmm::Matrix<Real_t> Mo  ( n1*n1*n1,dof,&v1[0],false);
-              pvfmm::Matrix<Real_t> Mo_t(dof,n1*n1*n1,&reg_grid_vals_tmp[0],false);
-              for(size_t i=0;i<Mo.Dim(0);i++)
-                for(size_t j=0;j<Mo.Dim(1);j++){
-                  Mo_t[j][i]=Mo[i][j];
-                }
-            }
-          }
-        // } else {   // evaluate using analytical function
-        //   std::vector<Real_t> reg_grid_anal_coord(3);
-        //   std::vector<Real_t> reg_grid_anal_vals(1*data_dof);
-        //   pvfmm::Vector<Real_t> reg_grid_vals_tmp(reg_grid_num_points*data_dof, &reg_grid_vals[0], false);
-        //   int nx = reg_grid_resolution;
-        //   for (int xi = 0; xi < nx; xi++) {
-        //     for (int yi = 0; yi < nx; yi++) {
-        //       for (int zi = 0; zi < nx; zi++) {
-        //         reg_grid_anal_coord[0] = c[0] + reg_grid_coord_1d[xi]/s;
-        //         reg_grid_anal_coord[1] = c[1] + reg_grid_coord_1d[yi]/s;
-        //         reg_grid_anal_coord[2] = c[2] + reg_grid_coord_1d[zi]/s;
-        //         assert(!nodes[j]->input_fn.IsEmpty());
-        //         nodes[j]->input_fn(reg_grid_anal_coord.data(),
-        //                            1,
-        //                            reg_grid_anal_vals.data());
-        //         for(int l=0;l<data_dof;l++)
-        //           reg_grid_vals_tmp[xi+(yi+(zi+l*nx)*nx)*nx] = reg_grid_anal_vals[l];
-        //       }
-        //     }
-        //   }
-        // }
-        // ************************************************************
-        // 3D CUBIC INTERPOLATION
-        // ************************************************************
-        // scale to [0,1] in local node
-        for ( int pi = 0; pi < n_pts; pi++) {
-          query_points[pi*COORD_DIM+0] = (coord_ptr[pi*COORD_DIM+0]-c[0])*s;
-          query_points[pi*COORD_DIM+1] = (coord_ptr[pi*COORD_DIM+1]-c[1])*s;
-          query_points[pi*COORD_DIM+2] = (coord_ptr[pi*COORD_DIM+2]-c[2])*s;
-        }
-        fast_interp(reg_grid_vals, data_dof, reg_grid_resolution, query_points, query_values);
-        output = &query_values[0];
-
-        memcpy(&trg_value[0]+part_indx[j]*data_dof, output, n_pts*data_dof*sizeof(Real_t));
-      } // end of cubic interpolation
+      }
     }
   }
-  if (use_cubic){
-    pvfmm::Profile::Add_FLOP(trg_coord.Dim()/COORD_DIM * (COORD_DIM*16 + data_dof*192)); // cubic interpolation
-  }else{
+  { // Add FLOP
     long d=nodes[0]->ChebDeg()+1;
     pvfmm::Profile::Add_FLOP(trg_coord.Dim()/COORD_DIM * ( COORD_DIM*d*3 + ((d*(d+1)*(d+2))/6) * data_dof * 2 ) );
   }
