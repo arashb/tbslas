@@ -50,19 +50,33 @@ std::vector<Real> new_nodes(int deg, int dim){
 
         pvfmm::Vector<int> flag(Mcoord.Dim(0));
         flag.SetZero();
+        std::vector<Real> q(Ncoeff);
+        std::vector<Real> norm(Mcoord.Dim(0));
         for(long i=0;i<Ncoeff;i++){
-          long max_indx=0;
-          std::vector<Real> norm;
-          for(long j=0;j<Mcoord.Dim(0);j++){
-            pvfmm::Matrix<Real> q(1, Ncoeff, &M0[j][0]);
-            pvfmm::Matrix<Real> norm2=q*q.Transpose();
-            norm.push_back(sqrt(norm2[0][0]));
-            if(norm.back()>norm[max_indx]) max_indx=j;
+          #pragma omp parallel for schedule(static)
+          for(long j=0;j<Mcoord.Dim(0);j++){ // compute norm
+            Real dot=0;
+            for(long k=0;k<Ncoeff;k++) dot+=M0[j][k]*M0[j][k];
+            norm[j]=sqrt(dot);
           }
-          flag[max_indx]=1;
-          pvfmm::Matrix<Real> q(1,Ncoeff,&M0[max_indx][0]);
-          for(long j=0;j<Ncoeff;j++) q[0][j]*=1.0/norm[max_indx];
-          M0=M0-(M0*q.Transpose())*q;
+
+          long pivot=0;
+          for(long j=0;j<Mcoord.Dim(0);j++){ // determine pivot
+            if(norm[j]>norm[pivot]) pivot=j;
+          }
+          flag[pivot]=1;
+
+          Real norm_inv=1.0/norm[pivot];
+          #pragma omp parallel for schedule(static)
+          for(long i=0;i<Ncoeff;i++){ // set q
+            q[i]=M0[pivot][i]*norm_inv;
+          }
+          #pragma omp parallel for schedule(static)
+          for(long i=0;i<Mcoord.Dim(0);i++){ // compute M0=M0-M*q*q^T
+            Real dot=0;
+            for(long j=0;j<M0.Dim(1);j++) dot+=M0[i][j]*q[j];
+            for(long j=0;j<M0.Dim(1);j++) M0[i][j]-=dot*q[j];
+          }
         }
 
         y_.clear();
