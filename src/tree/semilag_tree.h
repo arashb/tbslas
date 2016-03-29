@@ -122,6 +122,8 @@ void SolveSemilagInSitu(TreeType& tvel_curr,
   int data_dof = n_curr->DataDOF();
   int cheb_deg = n_curr->ChebDeg();
   int sdim     = tree_curr.Dim();
+  int num_points_per_node=(cheb_deg+1)*(cheb_deg+1)*(cheb_deg+1);
+  #if __USE_SPARSE_GRID__
   static pvfmm::Matrix<RealType> M;
   { // Compute interpolation matrix
     long Ncoeff=(cheb_deg+1)*(cheb_deg+2)*(cheb_deg+3)/6;
@@ -153,7 +155,8 @@ void SolveSemilagInSitu(TreeType& tvel_curr,
       }
     }
   }
-  int num_points_per_node=M.Dim(0);
+  num_points_per_node=M.Dim(0);
+  #endif
 
 
   std::vector<RealType> points_pos_all_nodes;
@@ -187,6 +190,7 @@ void SolveSemilagInSitu(TreeType& tvel_curr,
     n_next = tree_curr.PostorderNxt(n_next);
   }
 
+  #if __USE_SPARSE_GRID__
   int omp_p=omp_get_max_threads();
   pvfmm::Matrix<RealType> Mvalue(points_val_local_nodes.size()/num_points_per_node,M.Dim(0),&points_val_local_nodes[0],false);
   pvfmm::Matrix<RealType> Mcoeff(points_val_local_nodes.size()/num_points_per_node,M.Dim(1));
@@ -201,24 +205,21 @@ void SolveSemilagInSitu(TreeType& tvel_curr,
       memcpy(&(nodes[a+j]->ChebData()[0]), &Mo[j*data_dof][0], M.Dim(1)*data_dof*sizeof(RealType));
     }
   }
-
-  //int tree_next_node_counter = 0;
-  //while (n_next != NULL) {
-  //  if (n_next->IsLeaf() && !n_next->IsGhost()) {
-  //    // convert the function values at scaled points
-  //    // to function values at first kind chebyshev point
-  //    tbslas::NewPt2ChebPt<RealType>(
-  //        &points_val_local_nodes[tree_next_node_counter*num_points_per_node*data_dof],
-  //        cheb_deg, data_dof);
-  //    pvfmm::cheb_approx<RealType, RealType>(
-  //        &points_val_local_nodes[tree_next_node_counter*num_points_per_node*data_dof],
-  //        cheb_deg,
-  //        data_dof,
-  //        &(n_next->ChebData()[0]));
-  //    tree_next_node_counter++;
-  //  }
-  //  n_next = tree_curr.PostorderNxt(n_next);
-  //}
+  #else
+  #pragma omp parallel for schedule(static)
+  for(int tree_next_node_counter=0;tree_next_node_counter<nodes.size();tree_next_node_counter++){
+    // convert the function values at scaled points
+    // to function values at first kind chebyshev point
+    tbslas::NewPt2ChebPt<RealType>(
+        &points_val_local_nodes[tree_next_node_counter*num_points_per_node*data_dof],
+        cheb_deg, data_dof);
+    pvfmm::cheb_approx<RealType, RealType>(
+        &points_val_local_nodes[tree_next_node_counter*num_points_per_node*data_dof],
+        cheb_deg,
+        data_dof,
+        &(nodes[tree_next_node_counter]->ChebData()[0]));
+  }
+  #endif
   // pvfmm::Profile::Toc();
 }
 

@@ -4,7 +4,7 @@
 #define _TBSLAS_CHEB_H_
 
 #ifndef __USE_SPARSE_GRID__
-#define __USE_SPARSE_GRID__ 1
+#define __USE_SPARSE_GRID__ 0
 #endif
 
 namespace tbslas{
@@ -19,7 +19,11 @@ std::vector<Real> new_nodes(int deg, int dim){
   if(!y[deg][dim].size()){
     #pragma omp critical(NEW_NODES)
     if(!y[deg][dim].size()){
-      unsigned int d=(deg+3)+1;
+      unsigned int d=deg+1;
+      #if __USE_SPARSE_GRID__
+      d+=3;
+      #endif
+
       std::vector<Real> x(d);
       Real scal=1.0/pvfmm::cos<Real>(0.5*pvfmm::const_pi<Real>()/d);
       for(int i=0;i<d;i++) x[i]=-pvfmm::cos<Real>((i+(Real)0.5)*pvfmm::const_pi<Real>()/d)*scal*0.5+0.5;
