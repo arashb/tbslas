@@ -36,17 +36,18 @@ def sscal():
     4,
     8,
     16,
-    # 32,
-    # 64,
-    # 128,
-    # 256,
-    # 512
+    32,
+    64,
+    128,
+    256,
+    512,
+    1024
     ]
     for num_nodes in nn_list:
         total_time = '00:30:00'
-        num_threads = 7
-        num_procs   = 4*num_nodes
-        queue = 'micro'
+        num_threads = 8
+        num_procs   = 2*num_nodes
+        queue = 'large'
 
         # prog  = 'advdiff-ss'
         merge_type_list = [1, 3, 2]

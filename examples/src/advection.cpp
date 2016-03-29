@@ -351,17 +351,21 @@ int main (int argc, char **argv) {
     int timestep = 1;
     for (; timestep < sim_config->total_num_timestep+1; timestep++) {
 
+
+        pvfmm::Profile::Tic(std::string("Solve_TN" + tbslas::ToString(static_cast<long long>(timestep))).c_str(), &comm, true);
+        {
+
         // =====================================================================
         // (SEMI) MERGE TO FIX IMBALANCE
         // =====================================================================
         switch(merge) {
           case 2:
-            pvfmm::Profile::Tic("CMerge", &sim_config->comm, false, 5);
+            pvfmm::Profile::Tic("Merge", &sim_config->comm, false, 5);
             tbslas::MergeTree(tvel, tcon);
             pvfmm::Profile::Toc();
             break;
           case 3:
-            pvfmm::Profile::Tic("SMerge", &sim_config->comm, false, 5);
+            pvfmm::Profile::Tic("Merge", &sim_config->comm, false, 5);
             tbslas::SemiMergeTree(tvel, tcon);
             pvfmm::Profile::Toc();
             break;
@@ -370,6 +374,7 @@ int main (int argc, char **argv) {
         // =====================================================================
         // ESTIMATE THE PROBLEM SIZE -> NUMBER OF TREES' OCTANTS
         // =====================================================================
+	pvfmm::Profile::Tic("CountLVS", &sim_config->comm, false, 5);
         if (sim_config->profile) {
           int con_noct = tbslas::CountNumLeafNodes(tcon);
           con_noct_sum += con_noct;
@@ -381,9 +386,8 @@ int main (int argc, char **argv) {
           if (vel_noct > vel_noct_max) vel_noct_max = vel_noct;
           if (vel_noct < vel_noct_min) vel_noct_min = vel_noct;
         }
+	pvfmm::Profile::Toc();
 
-        pvfmm::Profile::Tic(std::string("Solve_TN" + tbslas::ToString(static_cast<long long>(timestep))).c_str(), &comm, true);
-        {
           // ===================================================================
           // SOLVE SEMILAG
           // ===================================================================
@@ -394,8 +398,7 @@ int main (int argc, char **argv) {
                                      sim_config->dt,
                                      sim_config->num_rk_step);
           pvfmm::Profile::Toc();
-        }
-        pvfmm::Profile::Toc();        // solve
+
 
         // ===================================================================
         // REFINE TREE
@@ -407,6 +410,10 @@ int main (int argc, char **argv) {
         pvfmm::Profile::Tic("Balance21", &sim_config->comm, false, 5);
         tcon.Balance21(sim_config->bc);
         pvfmm::Profile::Toc();
+
+        }
+        pvfmm::Profile::Toc();        // solve
+
 
         //TODO: ONLY FOR STEADY VELOCITY TREES
         tvel.RefineTree();
