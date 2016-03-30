@@ -176,7 +176,7 @@ def translate_and_save(image_dir, material_plot_number=0, velocity_plot_number=1
 	StreamlineAtts.randomSamples = 1
 	StreamlineAtts.randomSeed = 0
 	StreamlineAtts.numberOfRandomSamples = 2000
-	StreamlineAtts.lineWidth=1
+	StreamlineAtts.lineWidth=2
 	SetPlotOptions(StreamlineAtts)
 
         ClipAtts = ClipAttributes()
@@ -214,7 +214,7 @@ def draw_porous_velocity(plot_number=2,i=0):
     StreamlineAtts.randomSamples = 1
     StreamlineAtts.randomSeed = 0
     StreamlineAtts.numberOfRandomSamples = 2000
-    StreamlineAtts.lineWidth=1
+    StreamlineAtts.lineWidth=2
     SetPlotOptions(StreamlineAtts)
 
     if (i==0):

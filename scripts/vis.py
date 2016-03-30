@@ -112,6 +112,10 @@ def vis_porous_three_spheres(rho_vtk_files, vel_vtk_files, conc_vtk_files1, conc
     draw_porous_media_IV()
     cut_porous_media()
 
+    OpenDatabase(vel_vtk_files, 1)
+    ActivateDatabase(vel_vtk_files)
+    draw_porous_velocity()
+
     OpenDatabase(conc_vtk_files1, 2)
     ActivateDatabase(conc_vtk_files1)
     draw_three_concentration_fields(2, 'b')
@@ -164,7 +168,7 @@ def vis_porous_three_spheres_initial_camera_rotation(rho_vtk_files, vel_vtk_file
 
     ToggleLockViewMode()
     ToggleMaintainViewMode()
-    translate_and_save(output_dir, 2, 3)
+    translate_and_save(output_dir, 1, 3)
 
 ############################################################################
 # MAIN
