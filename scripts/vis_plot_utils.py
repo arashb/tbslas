@@ -45,8 +45,8 @@ def save_images(image_dir):
     SaveWindowAtts.fileName = "image_"
     SaveWindowAtts.quality = 100
     SaveWindowAtts.format = SaveWindowAtts.PNG  # BMP, CURVE, JPEG, OBJ, PNG, POSTSCRIPT, POVRAY, PPM, RGB, STL, TIFF, ULTRA, VTK, PLY
-    SaveWindowAtts.width = 4096
-    SaveWindowAtts.height = 4096
+    SaveWindowAtts.width = 2048
+    SaveWindowAtts.height = 2048
     SaveWindowAtts.screenCapture = 0
 
     #Traverse through states and save images
@@ -73,3 +73,11 @@ def change_view_and_save(image_dir, theta_i=pi/4, theta_f=7*pi/12):
         SetView3D(v)
         theta=theta+d_theta
         save_images(image_dir)
+
+    theta=theta_f
+    v.imageZoom = 1.0
+    v.viewNormal = (cos(theta), cos(phi)*sin(theta), sin(phi)*sin(theta))
+    v.viewUp = (0, 0, 1)
+    SetView3D(v)
+    theta=theta+d_theta
+    save_images(image_dir)
