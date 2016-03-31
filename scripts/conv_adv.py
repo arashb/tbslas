@@ -222,22 +222,23 @@ def conv_temporal_spatial_long_time():
     nt            = omp_num_threads
 
     # UNIFORM
-#     tl_list = [1e-30         for cnt in range(0,num_steps)]
-#     dp_list = [5    , 6    , 7    , 5     , 6     , 7    ]
-#     cq_list = [3    , 3    , 3    , 3     , 3     , 3    ]
-#     ci_list = [True , True , True , False , False , False]
-#     uf_list = [2    , 2    , 2    , 2     , 2     , 2    ]
-#     dt_list = [dt   , dt/2 , dt/4 , dt    , dt/2  , dt/4 ]
-#     tn_list = [100  , 200  , 400  , 100   , 200   , 400  ]
+    dp_list = [5    , 6    , 7    ]#, 5     , 6     , 7    ]
+    cq_list = [3    , 3    , 3    ]#, 3     , 3     , 3    ]
+    ci_list = [False , False , False ]#, False , False , False]
+    uf_list = [2    , 2    , 2    ]#, 2     , 2     , 2    ]
+    dt_list = [dt   , dt/2 , dt/4 ]#, dt    , dt/2  , dt/4 ]
+    tn_list = [100  , 200  , 400  ]#, 100   , 200   , 400  ]
+    num_steps = len(dp_list)
+    tl_list = [1e-30         for cnt in range(0,num_steps)]
 
     # ADAPTIVE
-    tl_list = [1e-02, 1e-03, 1e-04, 1e-02 , 1e-03 , 1e-04]
-    dp_list = [15   , 15   , 15   , 15    , 15    , 15   ]
-    cq_list = [3    , 3    , 3    , 3     , 3     , 3    ]
-    ci_list = [True , True , True , False , False , False]
-    uf_list = [2    , 2    , 2    , 2     , 2     , 2    ]
-    dt_list = [dt   , dt/2 , dt/4 , dt    , dt/2  , dt/4 ]
-    tn_list = [100  , 200  , 400  , 100   , 200   , 400  ]
+    # tl_list = [1e-02, 1e-03, 1e-04, 1e-02 , 1e-03 , 1e-04]
+    # dp_list = [15   , 15   , 15   , 15    , 15    , 15   ]
+    # cq_list = [3    , 3    , 3    , 3     , 3     , 3    ]
+    # ci_list = [True , True , True , False , False , False]
+    # uf_list = [2    , 2    , 2    , 2     , 2     , 2    ]
+    # dt_list = [dt   , dt/2 , dt/4 , dt    , dt/2  , dt/4 ]
+    # tn_list = [100  , 200  , 400  , 100   , 200   , 400  ]
 
     num_steps = len(dp_list)
     pn_list = [num_pnts      for cnt in range(0,num_steps)]
@@ -275,9 +276,9 @@ if __name__ == '__main__':
         os.makedirs(os.environ['TBSLAS_RESULT_DIR'])
 
     conv_temporal()
-    conv_spatial()
-    conv_temporal_spatial()
-    conv_temporal_spatial_long_time()
+    # conv_spatial()
+    # conv_temporal_spatial()
+    # conv_temporal_spatial_long_time()
 
     os.environ['TBSLAS_RESULT_DIR'] = tbslas_dir
 

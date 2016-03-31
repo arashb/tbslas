@@ -42,21 +42,31 @@ double TBSLAS_DIFF_COEFF;
 double TBSLAS_ALPHA;
 // current simulation time
 // double tcurr = 0.25;
-double tcurr_init = 25;
-double tcurr = 25;
+double tcurr_init = 2.5;
+double tcurr = 2.5;
 
 typedef tbslas::MetaData<std::string,
                          std::string,
                          std::string> MetaData_t;
 
 template <class Real_t>
+void get_hopf_field_wrapper(const Real_t* coord,
+                    int n,
+                    Real_t* out) {
+  const Real_t xc = 0.5;
+  const Real_t yc = 0.5;
+  const Real_t zc = 0.5;
+  tbslas::get_hopf_field(coord, n, out, xc, yc, zc);
+}
+
+template <class Real_t>
 void get_diffusion_kernel_atT(const Real_t* coord,
                  int n,
                  Real_t* out) {
   const Real_t amp = 1e-2;
-  const Real_t xc = 0.5;
-  const Real_t yc = 0.5;
-  const Real_t zc = 0.5;
+  const Real_t xc = 0.6;
+  const Real_t yc = 0.6;
+  const Real_t zc = 0.6;
   tbslas::diffusion_kernel(coord,
                            n,
                            out,
@@ -164,6 +174,13 @@ void RunAdvectDiff(int test, size_t N, size_t M, bool unif, int mult_order,
       fn_input_ = fn_input_t2<Real_t>;//get_slotted_cylinder<double,3>;
       fn_poten_ = fn_input_t2<Real_t>;//get_slotted_cylinder<double,3>;
       fn_veloc_ = tbslas::get_vel_field_hom_x<double,3>;
+      mykernel  = &modified_laplace_kernel_d;
+      bndry = pvfmm::Periodic;
+      break;
+    case 5:
+      fn_input_ = get_diffusion_kernel_atT<Real_t>;
+      fn_poten_ = get_diffusion_kernel_atT<Real_t>;
+      fn_veloc_ = get_hopf_field_wrapper<double>;
       mykernel  = &modified_laplace_kernel_d;
       bndry = pvfmm::Periodic;
       break;
@@ -590,7 +607,7 @@ int main (int argc, char **argv) {
 
   NUM_TIME_STEPS    = sim_config->total_num_timestep;
   TBSLAS_DT         = sim_config->dt;
-  TBSLAS_DIFF_COEFF = 0.0001;
+  TBSLAS_DIFF_COEFF = 0.001;
   TBSLAS_ALPHA      = 3.0/2.0/TBSLAS_DT/TBSLAS_DIFF_COEFF;
   // =========================================================================
   // PRINT METADATA
