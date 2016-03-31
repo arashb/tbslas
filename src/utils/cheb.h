@@ -10,8 +10,35 @@
 namespace tbslas{
 
 template <class Real>
-std::vector<Real> new_nodes(int deg, int dim){
+static void GramSchmidt(pvfmm::Matrix<Real>& M0, pvfmm::Vector<int>& flag, long pivot, std::vector<Real>& q){
+  Real eps=1.0;
+  while(eps+(Real)1.0>1.0) eps*=0.5;
+  eps=sqrt(eps);
 
+  Real norm=0;
+  { // set q, norm=|q|_2
+    for(long i=0;i<M0.Dim(1);i++){ // set q
+      q[i]=M0[pivot][i];
+      norm+=q[i]*q[i];
+    }
+    norm=sqrt(norm);
+    Real norm_inv=1.0/norm;
+    for(long i=0;i<M0.Dim(1);i++){ // normalize q
+      q[i]*=norm_inv;
+    }
+  }
+  flag[pivot]=1;
+  if(norm<eps) return;
+  #pragma omp parallel for schedule(static)
+  for(long i=0;i<M0.Dim(0);i++){ // compute M0=M0-M*q*q^T
+    Real dot=0;
+    for(long j=0;j<M0.Dim(1);j++) dot+=M0[i][j]*q[j];
+    for(long j=0;j<M0.Dim(1);j++) M0[i][j]-=dot*q[j];
+  }
+}
+
+template <class Real>
+std::vector<Real> new_nodes(int deg, int dim){
   assert(deg<20);
   assert(dim<4);
   static std::vector<Real> y[20][4];
@@ -20,9 +47,6 @@ std::vector<Real> new_nodes(int deg, int dim){
     #pragma omp critical(NEW_NODES)
     if(!y[deg][dim].size()){
       unsigned int d=deg+1;
-      #if __USE_SPARSE_GRID__
-      d+=3;
-      #endif
 
       std::vector<Real> x(d);
       Real scal=1.0/pvfmm::cos<Real>(0.5*pvfmm::const_pi<Real>()/d);
@@ -39,6 +63,10 @@ std::vector<Real> new_nodes(int deg, int dim){
 
       { // build sparse mesh
         #if __USE_SPARSE_GRID__
+        Real eps=1.0;
+        while(eps+(Real)1.0>1.0) eps*=0.5;
+        eps=sqrt(eps);
+
         assert(dim==3);
         std::vector<Real> coord=y_;
         pvfmm::Matrix<Real> Mcoord(coord.size()/3,3);
@@ -56,30 +84,51 @@ std::vector<Real> new_nodes(int deg, int dim){
         flag.SetZero();
         std::vector<Real> q(Ncoeff);
         std::vector<Real> norm(Mcoord.Dim(0));
+
         for(long i=0;i<Ncoeff;i++){
-          #pragma omp parallel for schedule(static)
-          for(long j=0;j<Mcoord.Dim(0);j++){ // compute norm
-            Real dot=0;
-            for(long k=0;k<Ncoeff;k++) dot+=M0[j][k]*M0[j][k];
-            norm[j]=sqrt(dot);
-          }
-
           long pivot=0;
-          for(long j=0;j<Mcoord.Dim(0);j++){ // determine pivot
-            if(norm[j]>norm[pivot]) pivot=j;
+          { // set pivot
+            #pragma omp parallel for schedule(static)
+            for(long j=0;j<Mcoord.Dim(0);j++){
+              Real dot=0;
+              for(long k=0;k<Ncoeff;k++) dot+=M0[j][k]*M0[j][k];
+              norm[j]=sqrt(dot);
+            }
+            for(long j=0;j<Mcoord.Dim(0);j++){
+              if(norm[j]>norm[pivot]) pivot=j;
+            }
+            if(norm[pivot]<eps) continue;
           }
-          flag[pivot]=1;
 
-          Real norm_inv=1.0/norm[pivot];
-          #pragma omp parallel for schedule(static)
-          for(long i=0;i<Ncoeff;i++){ // set q
-            q[i]=M0[pivot][i]*norm_inv;
+          { // Add all symmetric points
+            long j0=(pivot)%d;
+            long j1=(pivot/d)%d;
+            long j2=(pivot/d/d)%d;
+
+            for(int k0=0;k0<2;k0++)
+            for(int k1=0;k1<2;k1++)
+            for(int k2=0;k2<2;k2++){
+              long j0_=(k0? d-j0-1 : j0);
+              long j1_=(k1? d-j1-1 : j1);
+              long j2_=(k2? d-j2-1 : j2);
+
+              long pivot_=0;
+              pivot_=j0_+d*(j1_+d*j2_); GramSchmidt(M0, flag, pivot_, q);
+              pivot_=j1_+d*(j2_+d*j0_); GramSchmidt(M0, flag, pivot_, q);
+              pivot_=j2_+d*(j0_+d*j1_); GramSchmidt(M0, flag, pivot_, q);
+              pivot_=j2_+d*(j1_+d*j0_); GramSchmidt(M0, flag, pivot_, q);
+              pivot_=j1_+d*(j0_+d*j2_); GramSchmidt(M0, flag, pivot_, q);
+              pivot_=j0_+d*(j2_+d*j1_); GramSchmidt(M0, flag, pivot_, q);
+            }
           }
-          #pragma omp parallel for schedule(static)
-          for(long i=0;i<Mcoord.Dim(0);i++){ // compute M0=M0-M*q*q^T
-            Real dot=0;
-            for(long j=0;j<M0.Dim(1);j++) dot+=M0[i][j]*q[j];
-            for(long j=0;j<M0.Dim(1);j++) M0[i][j]-=dot*q[j];
+        }
+
+        for(long i=0;i<M0.Dim(0);i++){ // Add boundary points
+          long j0=i%d;
+          long j1=(i/d)%d;
+          long j2=(i/d/d)%d;
+          if(j0==0 || j1==0 || j2==0 || j0==d-1 || j1==d-1 || j2==d-1){
+            GramSchmidt(M0, flag, i, q);
           }
         }
 
@@ -101,126 +150,36 @@ std::vector<Real> new_nodes(int deg, int dim){
   return y[deg][dim];
 }
 
-template <class T>
-static pvfmm::Matrix<T>
-NewPt2ChebPt_matrix(int cheb_deg){ // There are many other ways to construct this matrix
-  int d=cheb_deg+1;
-  pvfmm::Matrix<T> M(d,d);
+template <class Real>
+void GetPt2CoeffMatrix(int cheb_deg, pvfmm::Matrix<Real>& M){
+  long Ncoeff=(cheb_deg+1)*(cheb_deg+2)*(cheb_deg+3)/6;
+  if(M.Dim(1)!=Ncoeff){
+    std::vector<Real> coord=new_nodes<Real>(cheb_deg,3);
+    M.ReInit(coord.size()/3,Ncoeff);
 
-#if 1 // Using Lagrange interpolation
+    int cheb_deg_=(cheb_deg+0);
+    long Ncoeff_=(cheb_deg_+1)*(cheb_deg_+2)*(cheb_deg_+3)/6;
+    pvfmm::Matrix<Real> M_(coord.size()/3,Ncoeff_);
+    std::vector<Real> buff((cheb_deg_+1)*(cheb_deg_+1+3*2));
+    for(long i=0;i<M_.Dim(0);i++){
+      for(int j=i*3;j<(i+1)*3;j++) coord[j]=coord[j]*2.0-1.0;
+      pvfmm::cheb_eval(cheb_deg_, &coord[i*3], &M_[i][0], &buff[0]);
+    }
+    M_=M_.pinv().Transpose();
 
-  std::vector<T> x=pvfmm::cheb_nodes<T>(cheb_deg,1);
-  std::vector<T> y=tbslas::new_nodes<T>(cheb_deg,1);
-  for(int i=0;i<d;i++){
-    for(int j=0;j<d;j++){
-      T M_=1;
-      for(int k=0;k<d;k++){
-        if(i!=k) M_*=(x[j]-y[k])/(y[i]-y[k]);
+    long indx=0, indx_=0;
+    for(int i0=0;i0<=cheb_deg_;i0++){
+      for(int i1=0;i0+i1<=cheb_deg_;i1++){
+        for(int i2=0;i0+i1+i2<=cheb_deg_;i2++){
+          if(i0+i1+i2<=cheb_deg){
+            for(long j=0;j<M.Dim(0);j++) M[j][indx]=M_[j][indx_];
+            indx++;
+          }
+          indx_++;
+        }
       }
-      M[i][j]=M_;
     }
   }
-
-#else // More stable but only works for scaled Chebyshev nodes
-
-  pvfmm::Matrix<T> M_p2c;
-  { // Compute M_p2c
-    std::vector<T> x(d);
-    for(int i=0;i<d;i++) x[i]=-pvfmm::cos<T>((i+(T)0.5)*pvfmm::const_pi<T>()/d);
-
-    std::vector<T> p(d*d);
-    pvfmm::cheb_poly(cheb_deg,&x[0],d,&p[0]);
-    for(int i=d;i<d*d;i++) p[i]=p[i]*2.0;
-    for(int i=0;i<d*d;i++) p[i]=p[i]/d;
-    pvfmm::Matrix<T> M(d,d,&p[0],false);
-    M_p2c=M.Transpose();
-  }
-
-  pvfmm::Matrix<T> M_c2p;
-  { // Compute M_c2p
-    std::vector<T> x(d);
-    T scal=pvfmm::cos<T>(0.5*pvfmm::const_pi<T>()/d); //// This is important
-    for(int i=0;i<d;i++) x[i]=-pvfmm::cos<T>((i+(T)0.5)*pvfmm::const_pi<T>()/d)*scal;
-
-    std::vector<T> p(d*d);
-    pvfmm::cheb_poly(cheb_deg,&x[0],d,&p[0]);
-    M_c2p.ReInit(d,d,&p[0]);
-  }
-  M=M_p2c*M_c2p;
-
-#endif
-
-  return M;
-}
-
-template <class T>
-void NewPt2ChebPt(T* fn_v, int cheb_deg, int dof, pvfmm::mem::MemoryManager* mem_mgr=NULL) {
-  int d=cheb_deg+1;
-
-  // Precompute
-  pvfmm::Matrix<T>* Mp=NULL;
-  static std::vector<pvfmm::Matrix<T> > precomp;
-  #pragma omp critical (CHEB_APPROX)
-  {
-    if(precomp.size()<=(size_t)d){
-      precomp .resize(d+1);
-    }
-    if(precomp [d].Dim(0)==0 && precomp [d].Dim(1)==0){
-      precomp[d]=NewPt2ChebPt_matrix<T>(cheb_deg);
-    }
-    Mp=&precomp[d];
-  }
-
-  // Create work buffers
-  size_t buff_size=dof*d*d*d;
-  T* buff=pvfmm::mem::aligned_new<T>(2*buff_size,mem_mgr);
-  T* buff1=buff+buff_size*0;
-  T* buff2=buff+buff_size*1;
-
-  { // Apply Mp along x-dimension
-    pvfmm::Matrix<T> Mi(dof*d*d,d,fn_v,false);
-    pvfmm::Matrix<T> Mo(dof*d*d,d,buff2,false);
-    pvfmm::Matrix<T>::GEMM(Mo, Mi, *Mp);
-
-    pvfmm::Matrix<T> Mo_t(d,dof*d*d,buff1,false);
-    for(size_t i=0;i<Mo.Dim(0);i++)
-    for(size_t j=0;j<Mo.Dim(1);j++){
-      Mo_t[j][i]=Mo[i][j];
-    }
-  }
-  { // Apply Mp along y-dimension
-    pvfmm::Matrix<T> Mi(d*dof*d,d,buff1,false);
-    pvfmm::Matrix<T> Mo(d*dof*d,d,buff2,false);
-    pvfmm::Matrix<T>::GEMM(Mo, Mi, *Mp);
-
-    pvfmm::Matrix<T> Mo_t(d,d*dof*d,buff1,false);
-    for(size_t i=0;i<Mo.Dim(0);i++)
-    for(size_t j=0;j<Mo.Dim(1);j++){
-      Mo_t[j][i]=Mo[i][j];
-    }
-  }
-  { // Apply Mp along z-dimension
-    pvfmm::Matrix<T> Mi(d*d*dof,d,buff1,false);
-    pvfmm::Matrix<T> Mo(d*d*dof,d,buff2,false);
-    pvfmm::Matrix<T>::GEMM(Mo, Mi, *Mp);
-
-    pvfmm::Matrix<T> Mo_t(d,d*d*dof,buff1,false);
-    for(size_t i=0;i<Mo.Dim(0);i++)
-    for(size_t j=0;j<Mo.Dim(1);j++){
-      Mo_t[j][i]=Mo[i][j];
-    }
-  }
-  { // Set output
-    pvfmm::Matrix<T> Mo(d*d*d,dof,buff1,false);
-    pvfmm::Matrix<T> Mo_t(dof,d*d*d,fn_v,false);
-    for(size_t i=0;i<Mo.Dim(0);i++)
-    for(size_t j=0;j<Mo.Dim(1);j++){
-      Mo_t[j][i]=Mo[i][j];
-    }
-  }
-
-  // Free memory
-  pvfmm::mem::aligned_delete<T>(buff,mem_mgr);
 }
 
 }//end namespace
