@@ -119,6 +119,7 @@ void fn_poten_t2(const Real_t* coord,
 template <class Real_t>
 void RunAdvectDiff(int test, size_t N, size_t M, bool unif, int mult_order,
                    int cheb_deg, int depth, bool adap, Real_t tol, int merge, MPI_Comm comm) {
+  typedef double RealType;
   typedef pvfmm::FMM_Node<pvfmm::Cheb_Node<Real_t> > FMMNode_t;
   typedef pvfmm::FMM_Cheb<FMMNode_t> FMM_Mat_t;
   typedef pvfmm::FMM_Tree<FMM_Mat_t> FMM_Tree_t;
@@ -440,21 +441,43 @@ void RunAdvectDiff(int test, size_t N, size_t M, bool unif, int mult_order,
 	  if(!n_next->IsGhost() && n_next->IsLeaf()) break;
 	  n_next = treen->PostorderNxt(n_next);
 	}
+  std::vector<NodeType*> nodes;
+  while (n_next != NULL) {
+    if (n_next->IsLeaf() && !n_next->IsGhost()) nodes.push_back(n_next);
+    n_next = treen->PostorderNxt(n_next);
+  }
 
-	int num_points_per_node = (cheb_deg+1)*(cheb_deg+1)*(cheb_deg+1);
-	int tree_next_node_counter = 0;
-	while (n_next != NULL) {
-	  if (n_next->IsLeaf() && !n_next->IsGhost()) {
-	    tbslas::NewPt2ChebPt<double>(&treen_points_val[tree_next_node_counter*num_points_per_node*data_dof],
-					 cheb_deg, data_dof);
-	    pvfmm::cheb_approx<double, double>(&treen_points_val[tree_next_node_counter*num_points_per_node*data_dof],
-					       cheb_deg,
-					       data_dof,
-					       &(n_next->ChebData()[0]));
-	    tree_next_node_counter++;
-	  }
-	  n_next = treen->PostorderNxt(n_next);
-	}
+	//int num_points_per_node = (cheb_deg+1)*(cheb_deg+1)*(cheb_deg+1);
+	//int tree_next_node_counter = 0;
+	//while (n_next != NULL) {
+	//  if (n_next->IsLeaf() && !n_next->IsGhost()) {
+	//    tbslas::NewPt2ChebPt<double>(&treen_points_val[tree_next_node_counter*num_points_per_node*data_dof],
+	//				 cheb_deg, data_dof);
+	//    pvfmm::cheb_approx<double, double>(&treen_points_val[tree_next_node_counter*num_points_per_node*data_dof],
+	//				       cheb_deg,
+	//				       data_dof,
+	//				       &(n_next->ChebData()[0]));
+	//    tree_next_node_counter++;
+	//  }
+	//  n_next = treen->PostorderNxt(n_next);
+	//}
+  int omp_p=omp_get_max_threads();
+  static pvfmm::Matrix<RealType> M;
+  tbslas::GetPt2CoeffMatrix<RealType>(cheb_deg, M);
+  int num_points_per_node=M.Dim(0);
+  pvfmm::Matrix<RealType> Mvalue(treen_points_val.size()/num_points_per_node,M.Dim(0),&treen_points_val[0],false);
+  pvfmm::Matrix<RealType> Mcoeff(treen_points_val.size()/num_points_per_node,M.Dim(1));
+  #pragma omp parallel for schedule(static)
+  for(int pid=0;pid<omp_p;pid++){
+    long a=(pid+0)*nodes.size()/omp_p;
+    long b=(pid+1)*nodes.size()/omp_p;
+    pvfmm::Matrix<RealType> Mi((b-a)*data_dof, Mvalue.Dim(1), &Mvalue[a*data_dof][0], false);
+    pvfmm::Matrix<RealType> Mo((b-a)*data_dof, Mcoeff.Dim(1), &Mcoeff[a*data_dof][0], false);
+    pvfmm::Matrix<RealType>::GEMM(Mo, Mi, M);
+    for(long j=0;j<b-a;j++){
+      memcpy(&(nodes[a+j]->ChebData()[0]), &Mo[j*data_dof][0], M.Dim(1)*data_dof*sizeof(RealType));
+    }
+  }
 
 	pvfmm::Profile::Add_FLOP(3*treen_points_val.size()); // for combining the two previous time steps values
       }
