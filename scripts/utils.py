@@ -135,7 +135,11 @@ def generate_commands(
     # load-balancing (tree merge) method
     mg_list = None,
     # test number
-    tt_list = None):
+    tt_list = None,
+    # diffusivity for advection-diffusion solver
+    di_list = None,
+    # alpha value for advection-diffusion solver
+    ea_list = None):
 
     num_steps = len(pn_list)
     EXEC = os.path.join(TBSLAS_EXAMPLES_BIN_DIR, prog)
@@ -167,6 +171,10 @@ def generate_commands(
             ARGS.extend(['-vsr'   , str(vs_list[counter])])
         if tt_list:
             ARGS.extend(['-test'   , str(tt_list[counter])])
+        if di_list:
+            ARGS.extend(['-diff'   , str(di_list[counter])])
+        if ea_list:
+            ARGS.extend(['-ea'   , str(ea_list[counter])])
         if ci_list[counter]:
             ARGS = ARGS + ['-cubic', '1']
         cmd_args[cmd_id] = determine_command_prefix(np_list[counter]) + [EXEC] + ARGS
@@ -299,7 +307,9 @@ def run(
     tn_list,
     vs_list,
     mg_list,
-    tt_list):
+    tt_list,
+    di_list=None,
+    ea_list=None):
 
     cmd_args = OrderedDict()
     cmd_args = generate_commands(prog,
@@ -315,5 +325,7 @@ def run(
                                  tn_list,
                                  vs_list,
                                  mg_list,
-                                 tt_list)
+                                 tt_list,
+                                 di_list,
+                                 ea_list)
     execute_commands(cmd_args, ID)

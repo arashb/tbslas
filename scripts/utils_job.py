@@ -34,6 +34,8 @@ def get_python_job(job_id,
                    vs_list,
                    mg_list,
                    tt_list,
+                   di_list=None,
+                   ea_list=None,
                    tbslas_output_dir=None):
 
     if not tbslas_output_dir:
@@ -64,6 +66,8 @@ def run():
     vs_list={PY_VS}
     mg_list={PY_MG}
     tt_list={PY_TT}
+    di_list={PY_DI}
+    ea_list={PY_EA}
 
     cmd_args = OrderedDict()
     cmd_args = utils.generate_commands(
@@ -80,7 +84,9 @@ def run():
         tn_list,
         vs_list,
         mg_list,
-        tt_list)
+        tt_list,
+        di_list,
+        ea_list)
     utils.execute_commands(cmd_args, ID)
 
 if __name__ == '__main__':
@@ -108,6 +114,8 @@ if __name__ == '__main__':
                              PY_VS=vs_list,
                              PY_MG=mg_list,
                              PY_TT=tt_list,
+                             PY_DI=di_list,
+                             PY_EA=ea_list,
                              PY_OUTPUT_DIR=tbslas_output_dir)
 
     file_handler.write(commands)

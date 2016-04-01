@@ -40,19 +40,59 @@ int NUM_TIME_STEPS = 1;
 double TBSLAS_DT;
 double TBSLAS_DIFF_COEFF;
 double TBSLAS_ALPHA;
+double EXP_ALPHA;
 // current simulation time
 // double tcurr = 0.25;
-double tcurr_init = 2.5;
-double tcurr = 2.5;
+double tcurr_init = 25;
+double tcurr = 25;
 
 typedef tbslas::MetaData<std::string,
                          std::string,
                          std::string> MetaData_t;
 
 template <class Real_t>
+void get_exp_alpha_field_wrapper(const Real_t* coord,
+                                  int n,
+                                  Real_t* out) {
+  const Real_t xc = 0.6;
+  const Real_t yc = 0.6;
+  const Real_t zc = 0.6;
+  const Real_t R = 0.1;
+  const Real_t alpha = EXP_ALPHA;
+  tbslas::get_exp_alpha_field(coord, n, out, xc, yc, zc, R, alpha);
+}
+
+template <class Real_t>
+void get_multiple_guassian_kernel_wraper(const Real_t* coord,
+                                         int n,
+                                         Real_t* out) {
+  // FIRST GAUSSIAN
+  const Real_t xc1  = 0.6;
+  const Real_t yc1  = 0.6;
+  const Real_t zc1  = 0.6;
+  std::vector<Real_t> out1(n);
+  tbslas::gaussian_kernel(coord, n, out1.data(), xc1, yc1, zc1);
+  // FIRST GAUSSIAN
+  const Real_t xc2  = 0.4;
+  const Real_t yc2  = 0.4;
+  const Real_t zc2  = 0.4;
+  std::vector<Real_t> out2(n);
+  tbslas::gaussian_kernel(coord, n, out2.data(), xc2, yc2, zc2);
+  // FIRST GAUSSIAN
+  const Real_t xc3  = 0.3;
+  const Real_t yc3  = 0.3;
+  const Real_t zc3  = 0.7;
+  std::vector<Real_t> out3(n);
+  tbslas::gaussian_kernel(coord, n, out3.data(), xc3, yc3, zc3);
+  for (int i = 0; i < n; i++) {
+    out[i] = out1[i] + out2[i] + out3[i];
+  }
+}
+
+template <class Real_t>
 void get_hopf_field_wrapper(const Real_t* coord,
-                    int n,
-                    Real_t* out) {
+                            int n,
+                            Real_t* out) {
   const Real_t xc = 0.5;
   const Real_t yc = 0.5;
   const Real_t zc = 0.5;
@@ -61,12 +101,12 @@ void get_hopf_field_wrapper(const Real_t* coord,
 
 template <class Real_t>
 void get_diffusion_kernel_atT(const Real_t* coord,
-                 int n,
-                 Real_t* out) {
+                              int n,
+                              Real_t* out) {
   const Real_t amp = 1e-2;
-  const Real_t xc = 0.6;
-  const Real_t yc = 0.6;
-  const Real_t zc = 0.6;
+  const Real_t xc = 0.5;
+  const Real_t yc = 0.5;
+  const Real_t zc = 0.5;
   tbslas::diffusion_kernel(coord,
                            n,
                            out,
@@ -79,9 +119,29 @@ void get_diffusion_kernel_atT(const Real_t* coord,
 }
 
 template <class Real_t>
+void get_diffusion_kernel_hopf(const Real_t* coord,
+                               int n,
+                               Real_t* out) {
+  const Real_t amp = 1e-2;
+  const Real_t xc = 0.6;
+  const Real_t yc = 0.6;
+  const Real_t zc = 0.6;
+  double time_curr = 2.5;
+  tbslas::diffusion_kernel(coord,
+                           n,
+                           out,
+                           TBSLAS_DIFF_COEFF,
+                           time_curr,
+                           amp,
+                           xc,
+                           yc,
+                           zc);
+}
+
+template <class Real_t>
 void get_diffusion_kernel_atT_hom(const Real_t* coord,
-              int n,
-              Real_t* out) {
+                                  int n,
+                                  Real_t* out) {
   const Real_t amp = 1e-2;
   const Real_t xc = 0.5+(tcurr-tcurr_init)*-0.5;
   const Real_t yc = 0.5;
@@ -179,8 +239,15 @@ void RunAdvectDiff(int test, size_t N, size_t M, bool unif, int mult_order,
       bndry = pvfmm::Periodic;
       break;
     case 5:
-      fn_input_ = get_diffusion_kernel_atT<Real_t>;
-      fn_poten_ = get_diffusion_kernel_atT<Real_t>;
+      fn_input_ = get_diffusion_kernel_hopf<Real_t>;
+      fn_poten_ = get_diffusion_kernel_hopf<Real_t>;
+      fn_veloc_ = get_hopf_field_wrapper<double>;
+      mykernel  = &modified_laplace_kernel_d;
+      bndry = pvfmm::Periodic;
+      break;
+    case 6:
+      fn_input_ = get_exp_alpha_field_wrapper<Real_t>;
+      fn_poten_ = get_exp_alpha_field_wrapper<Real_t>;
       fn_veloc_ = get_hopf_field_wrapper<double>;
       mykernel  = &modified_laplace_kernel_d;
       bndry = pvfmm::Periodic;
@@ -201,67 +268,37 @@ void RunAdvectDiff(int test, size_t N, size_t M, bool unif, int mult_order,
   sim_config->bc = bndry;
 
   // **********************************************************************
-  // SETUP FMM
-  // **********************************************************************
-  //Initialize FMM_Mat.
-  FMM_Mat_t* fmm_mat = NULL;
-  {
-    fmm_mat = new FMM_Mat_t;
-    fmm_mat->Initialize(mult_order,
-                        cheb_deg,
-                        comm,
-                        mykernel);
-  }
-
-  // **********************************************************************
-  // SETUP TREE AT PREVIOUS TIME STEP
-  // **********************************************************************
-  typename FMMNode_t::NodeData tree_data;
-  tree_data.dim       = COORD_DIM;
-  tree_data.max_depth = depth;
-  tree_data.cheb_deg  = cheb_deg;
-  tree_data.input_fn  = fn_input_;
-  tree_data.data_dof  = mykernel->ker_dim[0];
-  tree_data.tol       = tol;
-  //Set source coordinates.
-  std::vector<Real_t> pt_coord;
-  pt_coord = tbslas::point_distrib<Real_t>(tbslas::UnifGrid,N,comm);
-  tree_data.max_pts  = M; // Points per octant.
-  tree_data.pt_coord = pt_coord;
-  //Print various parameters.
-  if (!myrank) {
-    std::cout<<std::setprecision(2)<<std::scientific;
-    std::cout<<"Number of MPI processes: "<<np<<'\n';
-    std::cout<<"Number of OpenMP threads: "<<omp_p<<'\n';
-    std::cout<<"Order of multipole expansions: "<<mult_order<<'\n';
-    std::cout<<"Order of Chebyshev polynomials: "<<tree_data.cheb_deg<<'\n';
-    std::cout<<"FMM Kernel name: "<<mykernel->ker_name<<'\n';
-    std::cout<<"Number of point samples: "<<N<<'\n';
-    std::cout<<"Uniform distribution: "<<(unif?"true":"false")<<'\n';
-    std::cout<<"Adaptive: "<<(adap?"true":"false")<<'\n';
-    std::cout<<"Maximum points per octant: "<<tree_data.max_pts<<'\n';
-    std::cout<<"Chebyshev Tolerance: "<<tree_data.tol<<'\n';
-    std::cout<<"Maximum Tree Depth: "<<depth<<'\n';
-    std::cout<<"BoundaryType: "<<(bndry==pvfmm::Periodic?"Periodic":"FreeSpace")<<'\n';
-  }
-
-  // **********************************************************************
-  // SETUP PREVIOUS TIMESTEP TREE
+  // SETUP TREE FOR PREVIOUS TIME STEP
   // **********************************************************************
   FMM_Tree_t* treep = new FMM_Tree_t(comm);
-  treep->Initialize(&tree_data);
-  treep->InitFMM_Tree(adap,bndry);
-
+  tbslas::ConstructTree<FMM_Tree_t>(N,
+                                    M,
+                                    cheb_deg,
+                                    depth,
+                                    adap,
+                                    tol,
+                                    comm,
+                                    fn_input_,
+                                    1,
+                                    *treep);
   // **********************************************************************
-  // SETUP PREVIOUS TIMESTEP TREE
+  // SETUP TREE FOR CURRENT TIMESTEP
   // **********************************************************************
   tcurr += TBSLAS_DT;
   FMM_Tree_t* treec = new FMM_Tree_t(comm);
-  treec->Initialize(&tree_data);
-  treec->InitFMM_Tree(adap,bndry);
+  tbslas::ConstructTree<FMM_Tree_t>(N,
+                                    M,
+                                    cheb_deg,
+                                    depth,
+                                    adap,
+                                    tol,
+                                    comm,
+                                    fn_input_,
+                                    1,
+                                    *treec);
 
   if (sim_config->vtk_save_rate) {
-//     treep->Write2File(tbslas::GetVTKFileName(-1, sim_config->vtk_filename_variable).c_str(), sim_config->vtk_order);
+    //     treep->Write2File(tbslas::GetVTKFileName(-1, sim_config->vtk_filename_variable).c_str(), sim_config->vtk_order);
     treec->Write2File(tbslas::GetVTKFileName(0, sim_config->vtk_filename_variable).c_str(), sim_config->vtk_order);
   }
 
@@ -337,10 +374,23 @@ void RunAdvectDiff(int test, size_t N, size_t M, bool unif, int mult_order,
   int sdim     = treec->Dim();
 
   int timestep = 1;
-  std::vector<double> dprts_points_pos;//(treen_points_pos.size());
-  std::vector<double> treep_points_val;//(treen_num_points*data_dof);
-  std::vector<double> treec_points_val;//(treen_num_points*data_dof);
-  std::vector<double> treen_points_val;//(treen_num_points*data_dof);
+  std::vector<double> dprts_points_pos;
+  std::vector<double> treep_points_val;
+  std::vector<double> treec_points_val;
+  std::vector<double> treen_points_val;
+
+  // **********************************************************************
+  // SETUP FMM
+  // **********************************************************************
+  //Initialize FMM_Mat.
+  FMM_Mat_t* fmm_mat = NULL;
+  {
+    fmm_mat = new FMM_Mat_t;
+    fmm_mat->Initialize(mult_order,
+                        cheb_deg,
+                        comm,
+                        mykernel);
+  }
 
   for (; timestep < NUM_TIME_STEPS+1; timestep +=1) {
     // =====================================================================
@@ -393,93 +443,89 @@ void RunAdvectDiff(int test, size_t N, size_t M, bool unif, int mult_order,
       // SOLVE SEMILAG
       // =====================================================================
       // COLLECT THE MERGED TREE POINTS
-      // std::vector<double> treen_points_pos;
-      // tbslas::CollectChebTreeGridPoints(*treen, treen_points_pos);
       tbslas::CollectChebTreeGridPoints(*treen, dprts_points_pos);
       int treen_num_points = dprts_points_pos.size()/COORD_DIM;
-      // dprts_points_pos.resize(treen_points_pos.size());
       treep_points_val.resize(treen_num_points*data_dof);
       treec_points_val.resize(treen_num_points*data_dof);
       treen_points_val.resize(treen_num_points*data_dof);
 
       pvfmm::Profile::Tic("SLM", &sim_config->comm, false, 5);
       {
-	// ===================================
-	// FIRST STEP BACKWARD TRAJ COMPUTATION
-	// ===================================
-	ComputeTrajRK2(vel_evaluator,
-		       // treen_points_pos,
-		       dprts_points_pos,
-		       tcurr,
-		       tcurr - TBSLAS_DT,
-		       sim_config->num_rk_step,
-		       dprts_points_pos);
-	trc_evaluator(dprts_points_pos.data(), treen_num_points, treec_points_val.data());
-	// ===================================
-	// SECOND STEP BACKWARD TRAJ COMPUTATION
-	// ===================================
-	ComputeTrajRK2(vel_evaluator,
-		       dprts_points_pos,
-		       tcurr - TBSLAS_DT,
-		       tcurr - TBSLAS_DT*2,
-		       sim_config->num_rk_step,
-		       dprts_points_pos);
-	trp_evaluator(dprts_points_pos.data(), treen_num_points,  treep_points_val.data());
-	// ===================================
-	// COMBINE AND STORE THE SEMILAG VALUES
-	// ===================================
-	double ccoeff = 4.0/3;
-	double pcoeff = 1.0/3;
+        // ===================================
+        // FIRST STEP BACKWARD TRAJ COMPUTATION
+        // ===================================
+        ComputeTrajRK2(vel_evaluator,
+                       dprts_points_pos,
+                       tcurr,
+                       tcurr - TBSLAS_DT,
+                       sim_config->num_rk_step,
+                       dprts_points_pos);
+        trc_evaluator(dprts_points_pos.data(), treen_num_points, treec_points_val.data());
+        // ===================================
+        // SECOND STEP BACKWARD TRAJ COMPUTATION
+        // ===================================
+        ComputeTrajRK2(vel_evaluator,
+                       dprts_points_pos,
+                       tcurr - TBSLAS_DT,
+                       tcurr - TBSLAS_DT*2,
+                       sim_config->num_rk_step,
+                       dprts_points_pos);
+        trp_evaluator(dprts_points_pos.data(), treen_num_points,  treep_points_val.data());
+        // ===================================
+        // COMBINE AND STORE THE SEMILAG VALUES
+        // ===================================
+        double ccoeff = 4.0/3;
+        double pcoeff = 1.0/3;
 
 #pragma omp parallel for
-	for (int i = 0; i < treen_points_val.size(); i++) {
-	  treen_points_val[i] = ccoeff*treec_points_val[i] - pcoeff*treep_points_val[i] ;
-	}
+        for (int i = 0; i < treen_points_val.size(); i++) {
+          treen_points_val[i] = ccoeff*treec_points_val[i] - pcoeff*treep_points_val[i] ;
+        }
 
-	FMMNode_t* n_next = treen->PostorderFirst();
-	while (n_next != NULL) {
-	  if(!n_next->IsGhost() && n_next->IsLeaf()) break;
-	  n_next = treen->PostorderNxt(n_next);
-	}
-  std::vector<NodeType*> nodes;
-  while (n_next != NULL) {
-    if (n_next->IsLeaf() && !n_next->IsGhost()) nodes.push_back(n_next);
-    n_next = treen->PostorderNxt(n_next);
-  }
+        FMMNode_t* n_next = treen->PostorderFirst();
+        while (n_next != NULL) {
+          if(!n_next->IsGhost() && n_next->IsLeaf()) break;
+          n_next = treen->PostorderNxt(n_next);
+        }
+        std::vector<NodeType*> nodes;
+        while (n_next != NULL) {
+          if (n_next->IsLeaf() && !n_next->IsGhost()) nodes.push_back(n_next);
+          n_next = treen->PostorderNxt(n_next);
+        }
 
-	//int num_points_per_node = (cheb_deg+1)*(cheb_deg+1)*(cheb_deg+1);
-	//int tree_next_node_counter = 0;
-	//while (n_next != NULL) {
-	//  if (n_next->IsLeaf() && !n_next->IsGhost()) {
-	//    tbslas::NewPt2ChebPt<double>(&treen_points_val[tree_next_node_counter*num_points_per_node*data_dof],
-	//				 cheb_deg, data_dof);
-	//    pvfmm::cheb_approx<double, double>(&treen_points_val[tree_next_node_counter*num_points_per_node*data_dof],
-	//				       cheb_deg,
-	//				       data_dof,
-	//				       &(n_next->ChebData()[0]));
-	//    tree_next_node_counter++;
-	//  }
-	//  n_next = treen->PostorderNxt(n_next);
-	//}
-  int omp_p=omp_get_max_threads();
-  static pvfmm::Matrix<RealType> M;
-  tbslas::GetPt2CoeffMatrix<RealType>(cheb_deg, M);
-  int num_points_per_node=M.Dim(0);
-  pvfmm::Matrix<RealType> Mvalue(treen_points_val.size()/num_points_per_node,M.Dim(0),&treen_points_val[0],false);
-  pvfmm::Matrix<RealType> Mcoeff(treen_points_val.size()/num_points_per_node,M.Dim(1));
-  #pragma omp parallel for schedule(static)
-  for(int pid=0;pid<omp_p;pid++){
-    long a=(pid+0)*nodes.size()/omp_p;
-    long b=(pid+1)*nodes.size()/omp_p;
-    pvfmm::Matrix<RealType> Mi((b-a)*data_dof, Mvalue.Dim(1), &Mvalue[a*data_dof][0], false);
-    pvfmm::Matrix<RealType> Mo((b-a)*data_dof, Mcoeff.Dim(1), &Mcoeff[a*data_dof][0], false);
-    pvfmm::Matrix<RealType>::GEMM(Mo, Mi, M);
-    for(long j=0;j<b-a;j++){
-      memcpy(&(nodes[a+j]->ChebData()[0]), &Mo[j*data_dof][0], M.Dim(1)*data_dof*sizeof(RealType));
-    }
-  }
+        //int num_points_per_node = (cheb_deg+1)*(cheb_deg+1)*(cheb_deg+1);
+        //int tree_next_node_counter = 0;
+        //while (n_next != NULL) {
+        //  if (n_next->IsLeaf() && !n_next->IsGhost()) {
+        //    tbslas::NewPt2ChebPt<double>(&treen_points_val[tree_next_node_counter*num_points_per_node*data_dof],
+        //                               cheb_deg, data_dof);
+        //    pvfmm::cheb_approx<double, double>(&treen_points_val[tree_next_node_counter*num_points_per_node*data_dof],
+        //                                     cheb_deg,
+        //                                     data_dof,
+        //                                     &(n_next->ChebData()[0]));
+        //    tree_next_node_counter++;
+        //  }
+        //  n_next = treen->PostorderNxt(n_next);
+        //}
+        int omp_p=omp_get_max_threads();
+        static pvfmm::Matrix<RealType> M;
+        tbslas::GetPt2CoeffMatrix<RealType>(cheb_deg, M);
+        int num_points_per_node=M.Dim(0);
+        pvfmm::Matrix<RealType> Mvalue(treen_points_val.size()/num_points_per_node,M.Dim(0),&treen_points_val[0],false);
+        pvfmm::Matrix<RealType> Mcoeff(treen_points_val.size()/num_points_per_node,M.Dim(1));
+#pragma omp parallel for schedule(static)
+        for(int pid=0;pid<omp_p;pid++){
+          long a=(pid+0)*nodes.size()/omp_p;
+          long b=(pid+1)*nodes.size()/omp_p;
+          pvfmm::Matrix<RealType> Mi((b-a)*data_dof, Mvalue.Dim(1), &Mvalue[a*data_dof][0], false);
+          pvfmm::Matrix<RealType> Mo((b-a)*data_dof, Mcoeff.Dim(1), &Mcoeff[a*data_dof][0], false);
+          pvfmm::Matrix<RealType>::GEMM(Mo, Mi, M);
+          for(long j=0;j<b-a;j++){
+            memcpy(&(nodes[a+j]->ChebData()[0]), &Mo[j*data_dof][0], M.Dim(1)*data_dof*sizeof(RealType));
+          }
+        }
 
-	pvfmm::Profile::Add_FLOP(3*treen_points_val.size()); // for combining the two previous time steps values
+        pvfmm::Profile::Add_FLOP(3*treen_points_val.size()); // for combining the two previous time steps values
       }
       pvfmm::Profile::Toc();  // SL
 
@@ -503,9 +549,9 @@ void RunAdvectDiff(int test, size_t N, size_t M, bool unif, int mult_order,
     treen->RefineTree();
     pvfmm::Profile::Toc();
 
-    pvfmm::Profile::Tic("Balance21", &sim_config->comm, false, 5);
-    treen->Balance21(sim_config->bc);
-    pvfmm::Profile::Toc();
+    // pvfmm::Profile::Tic("Balance21", &sim_config->comm, false, 5);
+    // treen->Balance21(sim_config->bc);
+    // pvfmm::Profile::Toc();
 
     //TODO: ONLY FOR STEADY VELOCITY TREES
     tvel->RefineTree();
@@ -514,15 +560,15 @@ void RunAdvectDiff(int test, size_t N, size_t M, bool unif, int mult_order,
     // Write2File
     // ======================================================================
     if (sim_config->vtk_save_rate) {
-          if ( timestep % sim_config->vtk_save_rate == 0) {
-	    treen->Write2File(tbslas::GetVTKFileName(timestep, sim_config->vtk_filename_variable).c_str(), sim_config->vtk_order);
-	    double al2,rl2,ali,rli;
-	    CheckChebOutput<FMM_Tree_t>(treen,
-					fn_poten_,
-					mykernel->ker_dim[1],
-					al2,rl2,ali,rli,
-					std::string("Output_TN" + tbslas::ToString(static_cast<long long>(timestep))));
- 	  }
+      if ( timestep % sim_config->vtk_save_rate == 0) {
+        treen->Write2File(tbslas::GetVTKFileName(timestep, sim_config->vtk_filename_variable).c_str(), sim_config->vtk_order);
+        double al2,rl2,ali,rli;
+        CheckChebOutput<FMM_Tree_t>(treen,
+                                    fn_poten_,
+                                    mykernel->ker_dim[1],
+                                    al2,rl2,ali,rli,
+                                    std::string("Output_TN" + tbslas::ToString(static_cast<long long>(timestep))));
+      }
     }
     treep = treec;
     treec = treen;
@@ -581,12 +627,12 @@ void RunAdvectDiff(int test, size_t N, size_t M, bool unif, int mult_order,
 
     Rep::AddData("CMinNOCT", con_noct_min, tbslas::REP_INT);
     Rep::AddData("CAvgNOCT", con_noct_sum/(sim_config->total_num_timestep+1),
-		 tbslas::REP_INT); // NUMBER OF TIMESTEPS + INITIAL TREE
+                 tbslas::REP_INT); // NUMBER OF TIMESTEPS + INITIAL TREE
     Rep::AddData("CMaxNOCT", con_noct_max, tbslas::REP_INT);
 
     Rep::AddData("VMinNOCT", vel_noct_min, tbslas::REP_INT);
     Rep::AddData("VAvgNOCT", vel_noct_sum/(sim_config->total_num_timestep+1),
-		 tbslas::REP_INT); // NUMBER OF TIMESTEPS + INITIAL TREE
+                 tbslas::REP_INT); // NUMBER OF TIMESTEPS + INITIAL TREE
     Rep::AddData("VMaxNOCT", vel_noct_max, tbslas::REP_INT);
 
     Rep::Report();
@@ -618,7 +664,8 @@ int main (int argc, char **argv) {
   int   test=       strtoul(commandline_option(argc, argv, "-test",     "1", false,
                                                "-test <int> = (1)    : 1) Laplace, Smooth Gaussian, Periodic Boundary"),NULL,10);
   int   merge = strtoul(commandline_option(argc, argv, "-merge",     "1", false,
-                                          "-merge <int> = (1)    : 1) no merge 2) complete merge 3) Semi-Merge"),NULL,10);
+                                           "-merge <int> = (1)    : 1) no merge 2) complete merge 3) Semi-Merge"),NULL,10);
+  double exp_alpha = strtod(commandline_option(argc, argv,  "-ea",  "10", false, "-ea <real> = (10) : diffusivity" ), NULL);
 
   // =========================================================================
   // SIMULATION PARAMETERS
@@ -630,8 +677,9 @@ int main (int argc, char **argv) {
 
   NUM_TIME_STEPS    = sim_config->total_num_timestep;
   TBSLAS_DT         = sim_config->dt;
-  TBSLAS_DIFF_COEFF = 0.001;
+  TBSLAS_DIFF_COEFF = sim_config->diff;
   TBSLAS_ALPHA      = 3.0/2.0/TBSLAS_DT/TBSLAS_DIFF_COEFF;
+  EXP_ALPHA         = exp_alpha;
   // =========================================================================
   // PRINT METADATA
   // =========================================================================

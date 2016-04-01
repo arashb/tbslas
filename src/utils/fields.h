@@ -21,6 +21,33 @@ namespace tbslas {
 // VARIOUS FIELD GENERATOR FUNCTIONS
 //////////////////////////////////////////////////////////////////////
 ///////////////////////////////////
+// EXP ALPHA FIELD
+///////////////////////////////////
+// u = exp(-(r/R)^alpha)
+///////////////////////////////////
+template<typename real_t>
+void
+get_exp_alpha_field(const real_t* points_pos,
+                    int num_points,
+                    real_t* points_values,
+                    const real_t xc = 0.5,
+                    const real_t yc = 0.5,
+                    const real_t zc = 0.5,
+                    const real_t R = 0.1,
+                    const real_t alpha = 10
+                    ) {
+  real_t x,y,z;
+  for (int i = 0; i < num_points; i++) {
+    const real_t* c = &points_pos[i*COORD_DIM];
+    x = c[0] - xc;
+    y = c[1] - yc;
+    z = c[2] - zc;
+    real_t r = sqrt(x*x + y*y + z*z);
+    points_values[i] = exp(-std::pow(r/R, alpha));
+  }
+}
+
+///////////////////////////////////
 // TAYLOR-GREEN VORTEX
 ///////////////////////////////////
 // u = A*cos(a*x)sin(b*y)sin(c*z)
@@ -44,6 +71,35 @@ get_taylor_green_field(const real_t* points_pos,
     points_values[i*3+0] = A*cos(a*p[0])*sin(b*p[1])*sin(c*p[2]);
     points_values[i*3+1] = B*sin(a*p[0])*cos(b*p[1])*sin(c*p[2]);
     points_values[i*3+2] = C*sin(a*p[0])*sin(b*p[1])*cos(c*p[2]);
+  }
+}
+
+///////////////////////////////////
+// HOPF FIELD
+///////////////////////////////////
+//
+///////////////////////////////////
+template<typename real_t>
+void
+get_hopf_field(const real_t* points_pos,
+           int num_points,
+           real_t* points_values,
+           const real_t xc = 0.5,
+           const real_t yc = 0.5,
+           const real_t zc = 0.5,
+           const real_t A = 0.05,
+           const real_t r = 0.1) {
+  real_t x,y,z;
+  for (int i = 0; i < num_points; i++) {
+    const real_t* c = &points_pos[i*COORD_DIM];
+    x = c[0] - xc;
+    y = c[1] - yc;
+    z = c[2] - zc;
+    real_t r_2 = x*x+y*y+z*z;
+    real_t coeff = A/((r*r + r_2)*(r*r + r_2));
+    points_values[i*3+0] = coeff*(2*(-r*y+x*z));
+    points_values[i*3+1] = coeff*(2*(r*x+y*z));
+    points_values[i*3+2] = coeff*(r*r - x*x - y*y + z*z);
   }
 }
 
@@ -83,29 +139,6 @@ get_linear_field_y(const real_t* points_pos,
   }
 }
 
-template<typename real_t>
-void
-get_hopf_field(const real_t* points_pos,
-           int num_points,
-           real_t* points_values,
-           const real_t xc = 0.5,
-           const real_t yc = 0.5,
-           const real_t zc = 0.5,
-           const real_t A = 0.05,
-           const real_t r = 0.1) {
-  real_t x,y,z;
-  for (int i = 0; i < num_points; i++) {
-    const real_t* c = &points_pos[i*COORD_DIM];
-    x = c[0] - xc;
-    y = c[1] - yc;
-    z = c[2] - zc;
-    real_t r_2 = x*x+y*y+z*z;
-    real_t coeff = A/((r*r + r_2)*(r*r + r_2));
-    points_values[i*3+0] = coeff*(2*(-r*y+x*z));
-    points_values[i*3+1] = coeff*(2*(r*x+y*z));
-    points_values[i*3+2] = coeff*(r*r - x*x - y*y + z*z);
-  }
-}
 
 template<typename real_t, int sdim>
 void

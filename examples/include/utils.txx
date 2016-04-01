@@ -408,6 +408,11 @@ void parse_command_line_options(int argc, char** argv) {
           commandline_option(argc, argv,  "-dt",  "1e-2", false,
                              "-dt <real> = (0.1e-2) : Temporal resolution" ), NULL);
 
+  double diff =
+      strtod(
+          commandline_option(argc, argv,  "-diff",  "1e-4", false,
+                             "-diff <real> = (0.1e-4) : diffusivity" ), NULL);
+
   bool cubic =
       (commandline_option(argc, argv, "-cubic", NULL, false,
                           "-cubic               : Cubic Interpolation used to evaluate tree values")!=NULL);
@@ -436,6 +441,7 @@ void parse_command_line_options(int argc, char** argv) {
 
   sim_config->total_num_timestep      = tn;
   sim_config->dt                      = dt;
+  sim_config->diff                    = diff;
   sim_config->vtk_order               = q;
   sim_config->vtk_save_rate           = vtk_save_rate;
   sim_config->use_cubic               = cubic;

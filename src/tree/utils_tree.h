@@ -328,6 +328,7 @@ CountNumLeafNodes(TreeType& tree, std::vector<int>& leaves_cnt_list) {
   MPI_Comm_rank(*tree.Comm(), &myrank);
 
   int num_leaf_nodes = 0;
+  int total_num_leaf_nodes = 0;
   // compute total number of tree leaf nodes
   NodeType* n_next = tree.PostorderFirst();
   while (n_next != NULL) {
@@ -336,20 +337,21 @@ CountNumLeafNodes(TreeType& tree, std::vector<int>& leaves_cnt_list) {
     n_next = tree.PostorderNxt(n_next);
   }
 
-  leaves_cnt_list.resize(np);
-  MPI_Allgather(&num_leaf_nodes, 1, MPI_INT,
-                leaves_cnt_list.data(), 1, MPI_INT, *tree.Comm());
-  if (!myrank) {
-    std::cout << "# LEAVES_CNT: ";
-    for (int i = 0 ; i < np; i++) {
-      std::cout << " " << leaves_cnt_list[i];
-    }
-    std::cout << std::endl;
-  }
-  int total_num_leaf_nodes = 0;
-  for (int i = 0; i < np; i++) {
-    total_num_leaf_nodes += leaves_cnt_list[i];
-  }
+  /* leaves_cnt_list.resize(np); */
+  /* MPI_Allgather(&num_leaf_nodes, 1, MPI_INT, */
+  /*               leaves_cnt_list.data(), 1, MPI_INT, *tree.Comm()); */
+  MPI_Reduce(&num_leaf_nodes, &total_num_leaf_nodes, 1, MPI_INT, MPI_SUM, 0,  *tree.Comm());
+  /* if (!myrank) { */
+  /*   std::cout << "# LEAVES_CNT: "; */
+  /*   for (int i = 0 ; i < np; i++) { */
+  /*     std::cout << " " << leaves_cnt_list[i]; */
+  /*   } */
+  /*   std::cout << std::endl; */
+  /* } */
+  /* int total_num_leaf_nodes = 0; */
+  /* for (int i = 0; i < np; i++) { */
+  /*   total_num_leaf_nodes += leaves_cnt_list[i]; */
+  /* } */
   if (!myrank)
     std::cout << "# TOT_LEAVES_CNT: " << total_num_leaf_nodes << std::endl;
 
