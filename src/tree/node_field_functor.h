@@ -379,7 +379,7 @@ void EvalTree(Tree_t* tree,
   // LOCAL SORT
   //////////////////////////////////////////////////////////////
   typedef pvfmm::par::SortPair<pvfmm::MortonId,size_t> Pair_t;
-  pvfmm::Vector<Pair_t> iarray_trg_mid(N);
+  //pvfmm::Vector<Pair_t> iarray_trg_mid(N);
   pvfmm::Vector<Pair_t> iarray_trg_mid_sorted(N);
   size_t lcl_start, lcl_end, trg_cnt_inside, trg_cnt_outside;
 
@@ -390,11 +390,12 @@ void EvalTree(Tree_t* tree,
   pvfmm::Profile::Tic("LclHQSort", &sim_config->comm, false, 5);
 #pragma omp parallel for
   for(size_t i = 0; i < N; i++) {
-    iarray_trg_mid[i].key  = pvfmm::MortonId(&trg_coord_[i*COORD_DIM]);
-    iarray_trg_mid[i].data = i;
+    iarray_trg_mid_sorted[i].key  = pvfmm::MortonId(&trg_coord_[i*COORD_DIM]);
+    iarray_trg_mid_sorted[i].data = i;
   }
 
-  pvfmm::par::HyperQuickSort(iarray_trg_mid, iarray_trg_mid_sorted, MPI_COMM_SELF);
+  //pvfmm::par::HyperQuickSort(iarray_trg_mid, iarray_trg_mid_sorted, MPI_COMM_SELF);
+  pvfmm::omp_par::merge_sort(&iarray_trg_mid_sorted[0], &iarray_trg_mid_sorted[0]+iarray_trg_mid_sorted.Dim());
 
   Pair_t p1;
   p1.key = glb_min_mid[myrank];
