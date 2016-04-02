@@ -100,13 +100,14 @@ def submit_job(job_id, num_nodes, num_procs, num_threads, total_time=None, queue
     if 'stampede' in HOSTNAME:          # TACC Stampede cluster
         if not queue:
             queue = 'normal'
-        CMD_JOB =['sbatch', \
-                  '-N'+str(num_nodes),\
-                  '-n'+str(num_procs), \
-                  '-p', queue, \
-                  '-o'+ job_id + TIMESTR + '.out', \
-                  '--time='+str(total_time), \
-                  '-J', job_id, \
+        CMD_JOB =['sbatch',
+                  '-N'+str(num_nodes),
+                  '-n'+str(num_procs),
+                  '-p', queue,
+                  '-o'+ job_id + TIMESTR + '.out',
+                  '--time='+str(total_time),
+                  '-J', job_id,
+                  '-A PADAS',
                   './.run_python.sh', job_id, str(num_procs), str(num_threads)]
         cmd_list.extend([CMD_JOB])
     elif 'maverick' in HOSTNAME:        # TACC Maverick cluster
