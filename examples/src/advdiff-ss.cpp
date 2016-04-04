@@ -54,9 +54,9 @@ template <class Real_t>
 void get_exp_alpha_field_wrapper(const Real_t* coord,
                                   int n,
                                   Real_t* out) {
-  const Real_t xc = 0.6;
-  const Real_t yc = 0.6;
-  const Real_t zc = 0.6;
+  const Real_t xc = 0.5;
+  const Real_t yc = 0.5;
+  const Real_t zc = 0.55;
   const Real_t R = 0.1;
   const Real_t alpha = EXP_ALPHA;
   tbslas::get_exp_alpha_field(coord, n, out, xc, yc, zc, R, alpha);

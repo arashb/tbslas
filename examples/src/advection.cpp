@@ -114,9 +114,9 @@ template <class Real_t>
 void get_guassian_kernel_wraper(const Real_t* coord,
                      int n,
                      Real_t* out) {
-  const Real_t xc  = 0.7;
-  const Real_t yc  = 0.7;
-  const Real_t zc  = 0.7;
+  const Real_t xc  = 0.5;
+  const Real_t yc  = 0.5;
+  const Real_t zc  = 0.55;
   tbslas::gaussian_kernel(coord, n, out, xc, yc, zc);
 }
 
