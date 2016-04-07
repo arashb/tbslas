@@ -107,45 +107,47 @@ def sscal_advdiff():
         os.makedirs(tbslas_res_dir)
 
     nn_list = [
-    1,
-    2,
-    4,
-    8,
-    16,
-    32,
+    # 1,
+    # 2,
+    # 4,
+    # 8,
+    # 16,
+    # 32,
     # 64,
     # 128,
     # 256,
-    # 512,
-    # 1024
+    512,
+    1024
     ]
+    queue = 'large'
+    alpha=80
     for num_nodes in nn_list:
         total_time = '00:30:00'
-        num_threads = 10
-        num_procs   = 2*num_nodes
-        queue = None#'large'
+        num_threads = 16
+        num_procs   = num_nodes
 
         merge_type_list = [1, 3, 2]
         # merge_type_list = [3]
         for mg in merge_type_list:
             mg_list = [mg]
             prog  = 'advdiff-ss'
-            num_pnts = 8**3
+            num_pnts = 2**11
             num_steps = len(mg_list)
             np_list = [num_procs       for cnt in range(0,num_steps)]
             nt_list = [num_threads for cnt in range(0,num_steps)]
             pn_list = [num_pnts        for cnt in range(0,num_steps)]
             tl_list = [1e-5            for cnt in range(0,num_steps)]
             dp_list = [15              for cnt in range(0,num_steps)]
-            cq_list = [14              for cnt in range(0,num_steps)]
+            cq_list = [8              for cnt in range(0,num_steps)]
             ci_list = [False           for cnt in range(0,num_steps)]
             uf_list = [4               for cnt in range(0,num_steps)]
             dt_list = [0.00625         for cnt in range(0,num_steps)]
+            # dt_list = [0.0625         for cnt in range(0,num_steps)]
             tn_list = [1             for cnt in range(0,num_steps)]
             vs_list = [0               for cnt in range(0,num_steps)]
-            tt_list = [6               for cnt in range(0,num_steps)]
+            tt_list = [7               for cnt in range(0,num_steps)]
             di_list = [1e-3            for cnt in range(0,num_steps)]
-            ea_list = [80             for cnt in range(0,num_steps)]
+            ea_list = [alpha             for cnt in range(0,num_steps)]
             ID=prog+'-sscal-np-'+str(num_procs).zfill(5)+'-mt-'+str(mg).zfill(2)
 
             job_name= job.get_python_job('imb-sscal',
@@ -173,7 +175,7 @@ def sscal_advdiff():
 
 def wscal_advdiff():
     ############################################################################
-    # STRONG SCALING
+    # WEAK SCALING
     ############################################################################
     tbslas_dir = os.environ['TBSLAS_RESULT_DIR']
     import time
@@ -190,37 +192,37 @@ def wscal_advdiff():
     256,
     1024
     ]
-    alpha_list = [
-        10,
-        20,
-        40,
-        80,
-        160,
-        320
-        ]
     # alpha_list = [
-    #     15,
-    #     30,
-    #     60,
+    #     10,
+    #     20,
+    #     40,
     #     80,
-    #     120,
-    #     240
+    #     160,
+    #     320
     #     ]
+    alpha_list = [
+        5,
+        15,
+        30,
+        60,
+        120,
+        240
+        ]
 
     for i in range(len(nn_list)):
         num_nodes = nn_list[i]
         alpha     = alpha_list[i]
         total_time = '00:30:00'
-        num_threads = 10
-        num_procs   = 2*num_nodes
-        queue = None#'large'
+        num_threads = 16
+        num_procs   = num_nodes
+        queue = 'large'
 
         merge_type_list = [1, 3, 2]
         # merge_type_list = [3]
         for mg in merge_type_list:
             mg_list = [mg]
             prog  = 'advdiff-ss'
-            num_pnts = 8**3
+            num_pnts = 2**11
             num_steps = len(mg_list)
             np_list = [num_procs       for cnt in range(0,num_steps)]
             nt_list = [num_threads for cnt in range(0,num_steps)]
@@ -233,7 +235,7 @@ def wscal_advdiff():
             dt_list = [0.00625         for cnt in range(0,num_steps)]
             tn_list = [1             for cnt in range(0,num_steps)]
             vs_list = [0               for cnt in range(0,num_steps)]
-            tt_list = [6               for cnt in range(0,num_steps)]
+            tt_list = [7               for cnt in range(0,num_steps)]
             di_list = [1e-3            for cnt in range(0,num_steps)]
             ea_list = [alpha             for cnt in range(0,num_steps)]
             ID=prog+'-wscal-np-'+str(num_procs).zfill(5)+'-mt-'+str(mg).zfill(2)
@@ -266,5 +268,5 @@ def wscal_advdiff():
 ################################################################################
 if __name__ == '__main__':
     # sscal_adv()
-    # sscal_advdiff()
-    wscal_advdiff()
+    sscal_advdiff()
+    # wscal_advdiff()

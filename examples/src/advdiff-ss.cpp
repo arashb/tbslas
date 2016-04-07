@@ -97,6 +97,16 @@ void get_multiple_guassian_kernel_wraper(const Real_t* coord,
 }
 
 template <class Real_t>
+void get_guassian_kernel_wraper(const Real_t* coord,
+                     int n,
+                     Real_t* out) {
+  const Real_t xc  = 0.7;
+  const Real_t yc  = 0.7;
+  const Real_t zc  = 0.7;
+  tbslas::gaussian_kernel(coord, n, out, xc, yc, zc);
+}
+
+template <class Real_t>
 void get_hopf_field_wrapper(const Real_t* coord,
                             int n,
                             Real_t* out) {
@@ -270,6 +280,13 @@ void RunAdvectDiff(int test, size_t N, size_t M, bool unif, int mult_order,
       fn_input_ = get_diffusion_kernel_hopf<Real_t>;
       fn_poten_ = get_diffusion_kernel_hopf<Real_t>;
       fn_veloc_ = get_taylor_green_field_wrapper<Real_t>;
+      mykernel  = &modified_laplace_kernel_d;
+      bndry = pvfmm::Periodic;
+      break;
+  case 9:
+      fn_input_ = get_guassian_kernel_wraper<Real_t>;
+      fn_poten_ = get_guassian_kernel_wraper<Real_t>;
+      fn_veloc_ = get_hopf_field_wrapper<double>;
       mykernel  = &modified_laplace_kernel_d;
       bndry = pvfmm::Periodic;
       break;
