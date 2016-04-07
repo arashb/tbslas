@@ -172,7 +172,7 @@ void EvalNodesLocal(std::vector<typename Tree_t::Node_t*>& nodes,
                                   nodes[j]->GetMortonId()) - &trg_mid[0];
   }
 
-#pragma omp parallel for
+#pragma omp parallel for schedule(static)
   for (size_t pid=0;pid<omp_p;pid++) {
     std::vector<Real_t> coord;
     pvfmm::Vector<Real_t> tmp_out;    // buffer used in chebyshev evaluation
@@ -198,114 +198,126 @@ void EvalNodesLocal(std::vector<typename Tree_t::Node_t*>& nodes,
     node_start=std::max<long>(0,std::min<long>(node_start, nodes.size()));
     node_end=std::max<long>(0,std::min<long>(node_end, nodes.size()));
     for (size_t j=node_start;j<node_end;j++) {
-      size_t pt_start=std::max<long>(pt_start0, part_indx[j]);
-      size_t pt_end=std::min<long>(pt_end0, part_indx[j+1]);
-      if(pt_start>pt_end) continue;
-      const size_t n_pts=pt_end-pt_start;
+      size_t pt_start_=std::max<long>(pt_start0, part_indx[j]);
+      size_t pt_end_=std::min<long>(pt_end0, part_indx[j+1]);
+      if(pt_start_>=pt_end_) continue;
 
-      Real_t* c = nodes[j]->Coord();
-      size_t  d = nodes[j]->Depth();
-      Real_t  s = (Real_t)(1ULL<<d);
+      { // set coeff_
+        pvfmm::Vector<Real_t>& coeff=nodes[j]->ChebData();
+        int cheb_deg=nodes[j]->ChebDeg();
+        int d=cheb_deg+1;
+        int d0;
+        for(d0=d;d0%4;d0++);
 
-      Real_t* coord_ptr = &trg_coord[0]+pt_start*COORD_DIM;
-      {
-        //////////////////////////////////////////////////////////////
-        // CHEBYSHEV INTERPOLATION
-        //////////////////////////////////////////////////////////////
-        coord.resize((n_pts+16)*COORD_DIM);
-        for (size_t i=0;i<n_pts;i++) {
-          // scale to [-1,1] -> used in cheb_eval
-          coord[i*COORD_DIM+0]=(coord_ptr[i*COORD_DIM+0]-c[0])*2.0*s-1.0;
-          coord[i*COORD_DIM+1]=(coord_ptr[i*COORD_DIM+1]-c[1])*2.0*s-1.0;
-          coord[i*COORD_DIM+2]=(coord_ptr[i*COORD_DIM+2]-c[2])*2.0*s-1.0;
-        }
-        for (size_t i=n_pts;i<n_pts+16;i++) {
-          // scale to [-1,1] -> used in cheb_eval
-          coord[i*COORD_DIM+0]=0.0;
-          coord[i*COORD_DIM+1]=0.0;
-          coord[i*COORD_DIM+2]=0.0;
-        }
-
-        if(coord.size()){
-          pvfmm::Vector<Real_t>& coeff=nodes[j]->ChebData();
-          int cheb_deg=nodes[j]->ChebDeg();
-          int d=cheb_deg+1;
-          int d0;
-          for(d0=d;d0%4;d0++);
-          int n=n_pts;
-          for(;n%16;n++);
-          assert(coeff.Dim()==(size_t)(d*(d+1)*(d+2)*data_dof)/6);
-          { // set coeff_
-            long indx=0;
-            for(int l0=0;l0<data_dof;l0++){
-              for(int i=0;i<d;i++){
-                for(int j=0;i+j<d;j++){
-                  for(int k=0;i+j+k<d;k++){
-                    coeff_[k+d0*(j+d0*(i+d0*l0))]=coeff[indx];
-                    indx++;
-                  }
-                }
+        assert(coeff.Dim()==(size_t)(d*(d+1)*(d+2)*data_dof)/6);
+        long indx=0;
+        for(int l0=0;l0<data_dof;l0++){
+          for(int i=0;i<d;i++){
+            for(int j=0;i+j<d;j++){
+              for(int k=0;i+j+k<d;k++){
+                coeff_[k+d0*(j+d0*(i+d0*l0))]=coeff[indx];
+                indx++;
               }
             }
           }
+        }
+      }
 
-          cx.resize(n);
-          cy.resize(n);
-          cz.resize(n);
-          for(long i=0;i<n;i++){
-            cx[i]=coord[i*COORD_DIM+0];
-            cy[i]=coord[i*COORD_DIM+1];
-            cz[i]=coord[i*COORD_DIM+2];
+      const size_t blk_size=288;
+      for(size_t pt_start=pt_start_;pt_start<pt_end_;pt_start+=blk_size){
+        size_t pt_end=std::min(pt_end_, pt_start+blk_size);
+        const size_t n_pts=pt_end-pt_start;
+
+        Real_t* coord_ptr = &trg_coord[0]+pt_start*COORD_DIM;
+        {
+          //////////////////////////////////////////////////////////////
+          // CHEBYSHEV INTERPOLATION
+          //////////////////////////////////////////////////////////////
+          coord.resize((n_pts+16)*COORD_DIM);
+          { // Set coord
+            Real_t* c = nodes[j]->Coord();
+            size_t  d = nodes[j]->Depth();
+            Real_t  s = (Real_t)(1ULL<<d);
+            for (size_t i=0;i<n_pts;i++) {
+              // scale to [-1,1] -> used in cheb_eval
+              coord[i*COORD_DIM+0]=(coord_ptr[i*COORD_DIM+0]-c[0])*2.0*s-1.0;
+              coord[i*COORD_DIM+1]=(coord_ptr[i*COORD_DIM+1]-c[1])*2.0*s-1.0;
+              coord[i*COORD_DIM+2]=(coord_ptr[i*COORD_DIM+2]-c[2])*2.0*s-1.0;
+            }
+          }
+          for (size_t i=n_pts;i<n_pts+16;i++) {
+            // scale to [-1,1] -> used in cheb_eval
+            coord[i*COORD_DIM+0]=0.0;
+            coord[i*COORD_DIM+1]=0.0;
+            coord[i*COORD_DIM+2]=0.0;
           }
 
-          px.Resize(d0,n); px.SetZero();
-          py.Resize(d0,n); py.SetZero();
-          pz.Resize(d0,n); pz.SetZero();
-          pvfmm::cheb_poly(cheb_deg,&(cx[0]),n,&(px[0][0]));
-          pvfmm::cheb_poly(cheb_deg,&(cy[0]),n,&(py[0][0]));
-          pvfmm::cheb_poly(cheb_deg,&(cz[0]),n,&(pz[0][0]));
+          if(coord.size()){
+            int cheb_deg=nodes[j]->ChebDeg();
+            int d=cheb_deg+1;
+            int d0;
+            for(d0=d;d0%4;d0++);
+            int n=n_pts;
+            for(;n%16;n++);
 
-          if (tmp_out.Dim()<n*data_dof) {
-            tmp_out.Resize(n*data_dof);
-          }
-          if(pvfmm::mem::TypeTraits<Real_t>::ID()==pvfmm::mem::TypeTraits<float>::ID()){
-            typedef float Real;
-            #if defined __MIC__
-              #define Vec_t Real_t
-            #elif defined __AVX__
-              #define Vec_t __m256
-            #elif defined __SSE3__
-              #define Vec_t __m128
-            #else
+            cx.resize(n);
+            cy.resize(n);
+            cz.resize(n);
+            for(long i=0;i<n;i++){
+              cx[i]=coord[i*COORD_DIM+0];
+              cy[i]=coord[i*COORD_DIM+1];
+              cz[i]=coord[i*COORD_DIM+2];
+            }
+
+            px.Resize(d0,n); px.SetZero();
+            py.Resize(d0,n); py.SetZero();
+            pz.Resize(d0,n); pz.SetZero();
+            pvfmm::cheb_poly(cheb_deg,&(cx[0]),n,&(px[0][0]));
+            pvfmm::cheb_poly(cheb_deg,&(cy[0]),n,&(py[0][0]));
+            pvfmm::cheb_poly(cheb_deg,&(cz[0]),n,&(pz[0][0]));
+
+            if (tmp_out.Dim()<n*data_dof) {
+              tmp_out.Resize(n*data_dof);
+            }
+            if(pvfmm::mem::TypeTraits<Real_t>::ID()==pvfmm::mem::TypeTraits<float>::ID()){
+              typedef float Real;
+              #if defined __MIC__
+                #define Vec_t Real_t
+              #elif defined __AVX__
+                #define Vec_t __m256
+              #elif defined __SSE3__
+                #define Vec_t __m128
+              #else
+                #define Vec_t Real
+              #endif
+              ::pvfmm::vec_eval<Real, Vec_t>(n,d0,d,data_dof, (Real*)&px[0][0], (Real*)&py[0][0], (Real*)&pz[0][0], (Real*)&coeff_[0], (Real*)&tmp_out[0]);
+              #undef Vec_t
+            }else if(pvfmm::mem::TypeTraits<Real_t>::ID()==pvfmm::mem::TypeTraits<double>::ID()){
+              typedef double Real;
+              #if defined __MIC__
+                #define Vec_t Real_t
+              #elif defined __AVX__
+                #define Vec_t __m256d
+              #elif defined __SSE3__
+                #define Vec_t __m128d
+              #else
+                #define Vec_t Real
+              #endif
+              ::pvfmm::vec_eval<Real, Vec_t>(n,d0,d,data_dof, (Real*)&px[0][0], (Real*)&py[0][0], (Real*)&pz[0][0], (Real*)&coeff_[0], (Real*)&tmp_out[0]);
+              #undef Vec_t
+            }else{
+              typedef Real_t Real;
               #define Vec_t Real
-            #endif
-            ::pvfmm::vec_eval<Real, Vec_t>(n,d0,d,data_dof, (Real*)&px[0][0], (Real*)&py[0][0], (Real*)&pz[0][0], (Real*)&coeff_[0], (Real*)&tmp_out[0]);
-            #undef Vec_t
-          }else if(pvfmm::mem::TypeTraits<Real_t>::ID()==pvfmm::mem::TypeTraits<double>::ID()){
-            typedef double Real;
-            #if defined __MIC__
-              #define Vec_t Real_t
-            #elif defined __AVX__
-              #define Vec_t __m256d
-            #elif defined __SSE3__
-              #define Vec_t __m128d
-            #else
-              #define Vec_t Real
-            #endif
-            ::pvfmm::vec_eval<Real, Vec_t>(n,d0,d,data_dof, (Real*)&px[0][0], (Real*)&py[0][0], (Real*)&pz[0][0], (Real*)&coeff_[0], (Real*)&tmp_out[0]);
-            #undef Vec_t
-          }else{
-            typedef Real_t Real;
-            #define Vec_t Real
-            ::pvfmm::vec_eval<Real, Vec_t>(n,d0,d,data_dof, (Real*)&px[0][0], (Real*)&py[0][0], (Real*)&pz[0][0], (Real*)&coeff_[0], (Real*)&tmp_out[0]);
-            #undef Vec_t
-          }
+              ::pvfmm::vec_eval<Real, Vec_t>(n,d0,d,data_dof, (Real*)&px[0][0], (Real*)&py[0][0], (Real*)&pz[0][0], (Real*)&coeff_[0], (Real*)&tmp_out[0]);
+              #undef Vec_t
+            }
 
-          { // Copy to trg_value
-            Real_t *trg_value_ = &trg_value[0] + pt_start * data_dof;
-            for (long i = 0; i < n_pts; i++) {
-              for (int j = 0; j < data_dof; j++) {
-                trg_value_[i * data_dof + j] = tmp_out[j * n + i];
+            { // Copy to trg_value
+              Real_t *trg_value_ = &trg_value[0] + pt_start * data_dof;
+              for (long i = 0; i < n_pts; i++) {
+                for (int j = 0; j < data_dof; j++) {
+                  trg_value_[i * data_dof + j] = tmp_out[j * n + i];
+                }
               }
             }
           }
