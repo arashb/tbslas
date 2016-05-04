@@ -703,7 +703,7 @@ int main (int argc, char **argv) {
                                                "-test <int> = (1)    : 1) Laplace, Smooth Gaussian, Periodic Boundary"),NULL,10);
   int   merge = strtoul(commandline_option(argc, argv, "-merge",     "1", false,
                                            "-merge <int> = (1)    : 1) no merge 2) complete merge 3) Semi-Merge"),NULL,10);
-  double exp_alpha = strtod(commandline_option(argc, argv,  "-ea",  "10", false, "-ea <real> = (10) : diffusivity" ), NULL);
+  double exp_alpha = strtod(commandline_option(argc, argv,  "-ea",  "10", false, "-ea <real> = (10) : alpha" ), NULL);
 
   // =========================================================================
   // SIMULATION PARAMETERS

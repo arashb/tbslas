@@ -42,10 +42,22 @@ typedef tbslas::MetaData<std::string,
                          std::string,
                          std::string> MetaData_t;
 double tcurr = 0;
+double EXP_ALPHA;
 
 void (*fn_vel)(const double* , int , double*)=NULL;
 void (*fn_con)(const double* , int , double*)=NULL;
 
+template <class Real_t>
+void get_exp_alpha_field_wrapper(const Real_t* coord,
+                                  int n,
+                                  Real_t* out) {
+  const Real_t xc = 0.5;
+  const Real_t yc = 0.5;
+  const Real_t zc = 0.55;
+  const Real_t R = 0.1;
+  const Real_t alpha = EXP_ALPHA;
+  tbslas::get_exp_alpha_field(coord, n, out, xc, yc, zc, R, alpha);
+}
 
 template<typename real_t, int sdim>
 void
@@ -179,6 +191,9 @@ int main (int argc, char **argv) {
   int   merge = strtoul(commandline_option(argc, argv, "-merge",     "1", false,
                                           "-merge <int> = (1)    : 1) no merge 2) complete merge 3) Semi-Merge"),NULL,10);
 
+  double exp_alpha = strtod(commandline_option(argc, argv,  "-ea",  "10", false, "-ea <real> = (10) : alpha" ), NULL);
+  EXP_ALPHA         = exp_alpha;
+
   {
     tbslas::SimConfig* sim_config       = tbslas::SimConfigSingleton::Instance();
     pvfmm::Profile::Enable(sim_config->profile);
@@ -235,8 +250,8 @@ int main (int argc, char **argv) {
         bc = pvfmm::Periodic;
         break;
       case 7:  // scaling test case -> uniform fields
-        fn_vel = tbslas::get_vel_field_hom_x<double,3>;
-        fn_con = tbslas::get_linear_field_y<double,3>;
+        fn_vel = get_taylor_green_field_wrapper<double>;
+        fn_con = get_exp_alpha_field_wrapper<double>;
         bc = pvfmm::Periodic;
         break;
       case 8:
