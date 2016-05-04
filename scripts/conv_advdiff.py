@@ -60,7 +60,7 @@ def conv_temporal():
 
     # TIME RESOLUTION
     dt_factor = 0.5
-    dt_init   = 0.5**1
+    dt_init   = 0.1/16#0.5**5
     dt_list   = [dt_init*math.pow(dt_factor,float(cnt)) for cnt in range(0,num_steps)]
 
     # NUM TIME STEPS
@@ -221,9 +221,9 @@ if __name__ == '__main__':
         os.makedirs(os.environ['TBSLAS_RESULT_DIR'])
 
     conv_temporal()
-    conv_spatial()
-    conv_temporal_spatial()
-    conv_temporal_spatial_long_time()
+    # conv_spatial()
+    # conv_temporal_spatial()
+    # conv_temporal_spatial_long_time()
 
     os.environ['TBSLAS_RESULT_DIR'] = tbslas_dir
 

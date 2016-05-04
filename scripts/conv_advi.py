@@ -161,30 +161,42 @@ def conv_temporal_spatial_long_time():
     prog     = 'advection-inverse'
     tfinal   = 1.0
     dt       = tfinal/100
-    vsr      = 10
+    vsr      = 0
     mrg_type = 3
     np       = mpi_num_procs
     num_pnts = 8**(math.floor(math.log(np,8)+1))
     nt       = omp_num_threads
 
     # UNIFORM
-    dp_list = [6    , 7    , 8    , 6     , 7     , 8    ]
-    cq_list = [4    , 4    , 4    , 4     , 4     , 4    ]
-    ci_list = [True , True , True , False , False , False]
-    uf_list = [2    , 2    , 2    , 2     , 2     , 2    ]
-    dt_list = [dt   , dt/2 , dt/4 , dt    , dt/2  , dt/4 ]
-    tn_list = [100  , 200  , 400  , 100   , 200   , 400  ]
+    dp_list = [4    , 5    , 6    ]#, 6     , 7     , 8    ]
+    cq_list = [14    , 14    , 14    ]#, 4     , 4     , 4    ]
+    ci_list = [True , True , True ]#, False , False , False]
+    uf_list = [2    , 2    , 2    ]#, 2     , 2     , 2    ]
+    dt_list = [dt   , dt/2 , dt/4 ]#, dt    , dt/2  , dt/4 ]
+    tn_list = [100  , 200  , 400  ]#, 100   , 200   , 400  ]
+    num_steps = len(dp_list)
+    tl_list = [1e-30    for cnt in range(0,num_steps)]
 
-    # dp_list = [6      , 7      ]
-    # cq_list = [3      , 3      ]
-    # ci_list = [True   , True   ]
-    # uf_list = [2      , 2      ]
-    # dt_list = [dt     , dt/2   ]
-    # tn_list = [100    , 200    ]
+    # ADAPTIVE
+    # tl_list = [1e-03, 1e-05, 1e-07]#, 1e-9]# , 1e-03 , 1e-04]
+    # dp_list = [15   , 15   , 15   ]#, 15   ]# , 15    , 15   ]
+    # cq_list = [8    , 8    , 8 ]#   , 14    ]# , 3     , 3    ]
+    # ci_list = [True , True , True ]#, True ]#, False , False]
+    # uf_list = [2    , 2    , 2    ]#, 2    ]# , 2     , 2    ]
+    # dt_list = [dt   , dt/2 , dt/4 ]#, dt/8 ]#   , dt/2  , dt/4 ]
+    # tn_list = [100  , 200  , 400  ]#, 800  ]# , 200   , 400  ]
+
+    # tl_list = [1e-04]#, 1e-9]# , 1e-03 , 1e-04]
+    # dp_list = [15   ]#, 15   ]# , 15    , 15   ]
+    # cq_list = [8 ]#   , 14    ]# , 3     , 3    ]
+    # ci_list = [True ]#, True ]#, False , False]
+    # uf_list = [2    ]#, 2    ]# , 2     , 2    ]
+    # dt_list = [dt/2 ]#, dt/8 ]#   , dt/2  , dt/4 ]
+    # tn_list = [200  ]#, 800  ]# , 200   , 400  ]
 
     num_steps = len(dp_list)
+
     pn_list = [num_pnts for cnt in range(0,num_steps)]
-    tl_list = [1e-30    for cnt in range(0,num_steps)]
     np_list = [np       for cnt in range(0,num_steps)]
     nt_list = [nt       for cnt in range(0,num_steps)]
     mg_list = [mrg_type for cnt in range(0,num_steps)]
@@ -218,9 +230,9 @@ if __name__ == '__main__':
     if not os.path.exists(os.environ['TBSLAS_RESULT_DIR']):
         os.makedirs(os.environ['TBSLAS_RESULT_DIR'])
 
-    conv_temporal()
-    conv_spatial()
-    conv_temporal_spatial()
+    # conv_temporal()
+    # conv_spatial()
+    # conv_temporal_spatial()
     conv_temporal_spatial_long_time()
 
     os.environ['TBSLAS_RESULT_DIR'] = tbslas_dir

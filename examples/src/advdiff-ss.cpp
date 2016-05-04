@@ -57,7 +57,7 @@ void get_exp_alpha_field_wrapper(const Real_t* coord,
   const Real_t xc = 0.5;
   const Real_t yc = 0.5;
   const Real_t zc = 0.55;
-  const Real_t R = 0.1;
+  const Real_t R = 0.3;
   const Real_t alpha = EXP_ALPHA;
   tbslas::get_exp_alpha_field(coord, n, out, xc, yc, zc, R, alpha);
 }
@@ -153,6 +153,16 @@ void get_diffusion_kernel_hopf(const Real_t* coord,
                            xc,
                            yc,
                            zc);
+}
+
+template <class Real_t>
+void get_gaussian_kernel_wrapper(const Real_t* coord,
+                     int n,
+                     Real_t* out) {
+  const Real_t xc  = 0.5;
+  const Real_t yc  = 0.5;
+  const Real_t zc  = 0.55;
+  tbslas::gaussian_kernel(coord, n, out, xc, yc, zc);
 }
 
 template <class Real_t>
@@ -283,10 +293,17 @@ void RunAdvectDiff(int test, size_t N, size_t M, bool unif, int mult_order,
       mykernel  = &modified_laplace_kernel_d;
       bndry = pvfmm::Periodic;
       break;
-  case 9:
+    case 9:
       fn_input_ = get_guassian_kernel_wraper<Real_t>;
       fn_poten_ = get_guassian_kernel_wraper<Real_t>;
       fn_veloc_ = get_hopf_field_wrapper<double>;
+      mykernel  = &modified_laplace_kernel_d;
+      bndry = pvfmm::Periodic;
+      break;
+    case 10:
+      fn_input_ = get_gaussian_kernel_wrapper<Real_t>;
+      fn_poten_ = get_gaussian_kernel_wrapper<Real_t>;
+      fn_veloc_ = get_taylor_green_field_wrapper<Real_t>;
       mykernel  = &modified_laplace_kernel_d;
       bndry = pvfmm::Periodic;
       break;
