@@ -33,8 +33,8 @@
 #include <utils/reporter.h>
 #include <utils/fields.h>
 
-#include <tree/semilag_tree.h>
-#include <tree/utils_tree.h>
+#include <tree/tree_semilag.h>
+#include <tree/tree_utils.h>
 
 typedef pvfmm::Cheb_Node<double> Node_t;
 typedef pvfmm::MPI_Tree<Node_t> Tree_t;
@@ -121,9 +121,9 @@ int main (int argc, char **argv) {
 
     std::vector<double> grid_points;
     std::vector<double> node_pos = pvfmm::cheb_nodes<double>(sim_config->tree_chebyshev_order, 3);
-    tbslas::CollectTreeGridPoints(tree,
-                                  node_pos,
-                                  grid_points);
+    // tbslas::CollectTreeGridPoints(tree,
+    //                               node_pos,
+    //                               grid_points);
 
     // tbslas::ComputeTreeError(tree,
     //                          get_gaussian_field_cylinder_atT<double,3>,

@@ -19,8 +19,8 @@
 #include <profile.hpp>
 
 #include "semilag/semilag.h"
-#include "tree/node_field_functor.h"
-#include "tree/utils_tree.h"
+#include "tree/tree_functor.h"
+#include "tree/tree_utils.h"
 #include "utils/common.h"
 #include "utils/reporter.h"
 #include "utils/cheb.h"
@@ -144,34 +144,39 @@ void SolveSemilagInSitu(TreeType& tvel_curr,
   ////////////////////////////////////////////////////////////////////////
   // (3) set the computed values
   ////////////////////////////////////////////////////////////////////////
-  NodeType* n_next = tree_curr.PostorderFirst();
-  while (n_next != NULL) {
-    if(!n_next->IsGhost() && n_next->IsLeaf()) break;
-    n_next = tree_curr.PostorderNxt(n_next);
-  }
-  std::vector<NodeType*> nodes;
-  while (n_next != NULL) {
-    if (n_next->IsLeaf() && !n_next->IsGhost()) nodes.push_back(n_next);
-    n_next = tree_curr.PostorderNxt(n_next);
-  }
+  tbslas::SetTreeGridValues(tree_curr,
+                            cheb_deg,
+                            data_dof,
+                            points_val_local_nodes);
 
-  int omp_p=omp_get_max_threads();
-  static pvfmm::Matrix<RealType> M;
-  GetPt2CoeffMatrix<RealType>(cheb_deg, M);
-  int num_points_per_node=M.Dim(0);
-  pvfmm::Matrix<RealType> Mvalue(points_val_local_nodes.size()/num_points_per_node,M.Dim(0),&points_val_local_nodes[0],false);
-  pvfmm::Matrix<RealType> Mcoeff(points_val_local_nodes.size()/num_points_per_node,M.Dim(1));
-  #pragma omp parallel for schedule(static)
-  for(int pid=0;pid<omp_p;pid++){
-    long a=(pid+0)*nodes.size()/omp_p;
-    long b=(pid+1)*nodes.size()/omp_p;
-    pvfmm::Matrix<RealType> Mi((b-a)*data_dof, Mvalue.Dim(1), &Mvalue[a*data_dof][0], false);
-    pvfmm::Matrix<RealType> Mo((b-a)*data_dof, Mcoeff.Dim(1), &Mcoeff[a*data_dof][0], false);
-    pvfmm::Matrix<RealType>::GEMM(Mo, Mi, M);
-    for(long j=0;j<b-a;j++){
-      memcpy(&(nodes[a+j]->ChebData()[0]), &Mo[j*data_dof][0], M.Dim(1)*data_dof*sizeof(RealType));
-    }
-  }
+  // NodeType* n_next = tree_curr.PostorderFirst();
+  // while (n_next != NULL) {
+  //   if(!n_next->IsGhost() && n_next->IsLeaf()) break;
+  //   n_next = tree_curr.PostorderNxt(n_next);
+  // }
+  // std::vector<NodeType*> nodes;
+  // while (n_next != NULL) {
+  //   if (n_next->IsLeaf() && !n_next->IsGhost()) nodes.push_back(n_next);
+  //   n_next = tree_curr.PostorderNxt(n_next);
+  // }
+
+  // int omp_p=omp_get_max_threads();
+  // static pvfmm::Matrix<RealType> M;
+  // GetPt2CoeffMatrix<RealType>(cheb_deg, M);
+  // int num_points_per_node=M.Dim(0);
+  // pvfmm::Matrix<RealType> Mvalue(points_val_local_nodes.size()/num_points_per_node,M.Dim(0),&points_val_local_nodes[0],false);
+  // pvfmm::Matrix<RealType> Mcoeff(points_val_local_nodes.size()/num_points_per_node,M.Dim(1));
+  // #pragma omp parallel for schedule(static)
+  // for(int pid=0;pid<omp_p;pid++){
+  //   long a=(pid+0)*nodes.size()/omp_p;
+  //   long b=(pid+1)*nodes.size()/omp_p;
+  //   pvfmm::Matrix<RealType> Mi((b-a)*data_dof, Mvalue.Dim(1), &Mvalue[a*data_dof][0], false);
+  //   pvfmm::Matrix<RealType> Mo((b-a)*data_dof, Mcoeff.Dim(1), &Mcoeff[a*data_dof][0], false);
+  //   pvfmm::Matrix<RealType>::GEMM(Mo, Mi, M);
+  //   for(long j=0;j<b-a;j++){
+  //     memcpy(&(nodes[a+j]->ChebData()[0]), &Mo[j*data_dof][0], M.Dim(1)*data_dof*sizeof(RealType));
+  //   }
+  // }
   // pvfmm::Profile::Toc();
 }
 

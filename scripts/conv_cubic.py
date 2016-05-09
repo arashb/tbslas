@@ -23,7 +23,7 @@ def generate_command_args(tl_list,\
                           nt_list,\
                           num_steps):
 
-    EXEC = os.path.join(utils.TBSLAS_EXAMPLES_BIN_DIR, "cubic")
+    EXEC = os.path.join(utils.TBSLAS_EXAMPLES_BIN_DIR, "field-set")
 
     # generate a dictionary data type of commands
     cmd_args = OrderedDict()

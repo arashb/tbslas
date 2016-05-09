@@ -123,6 +123,27 @@ get_vorticity_field(const real_t* points_pos,
   }
 }
 
+///////////////////////////////////
+// TIME DEPENDENT VORTICITY FIELD
+///////////////////////////////////
+template<typename real_t, int sdim>
+void
+get_vorticity_field_tv(const real_t* points_pos,
+                       int num_points,
+                       real_t time,
+                       real_t* points_values) {
+  real_t omega       = 1;
+  real_t time_factor = 1+sin(2*PI*time);
+  for (int i = 0; i < num_points; i++) {
+    points_values[i*3+0] = //1;
+        omega*(0.5 - points_pos[i*sdim+1])*time_factor;
+    points_values[i*3+1] = //2;
+        omega*(points_pos[i*sdim+0] - 0.5)*time_factor;
+    points_values[i*3+2] = //3;
+        0;
+  }
+}
+
 template<typename real_t, int sdim>
 void
 get_linear_field_y(const real_t* points_pos,
@@ -133,9 +154,6 @@ get_linear_field_y(const real_t* points_pos,
   for (int i = 0; i < num_points; i++) {
     points_values[i] =
         omega*(0.5 - points_pos[i*sdim+1])*time_factor;
-    // points_values[i*3+1] =
-    //     omega*(points_pos[i*sdim+0] - 0.5)*time_factor;
-    // points_values[i*3+2] = 0;
   }
 }
 

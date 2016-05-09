@@ -22,18 +22,20 @@
 #include <pvfmm_common.hpp>
 #include <mpi_tree.hpp>
 #include <cheb_node.hpp>
-#include <utils.hpp>
 #include <vector.hpp>
 #include <cheb_utils.hpp>
 #include <profile.hpp>
+
+#include <utils.hpp>
+#include <field_wrappers.h>
 
 #include <utils/common.h>
 #include <utils/metadata.h>
 #include <utils/reporter.h>
 #include <utils/fields.h>
 
-#include <tree/semilag_tree.h>
-#include <tree/utils_tree.h>
+#include <tree/tree_semilag.h>
+#include <tree/tree_utils.h>
 
 typedef pvfmm::Cheb_Node<double> Node_t;
 typedef pvfmm::MPI_Tree<Node_t> Tree_t;
@@ -45,124 +47,6 @@ double tcurr = 0;
 
 void (*fn_vel)(const double* , int , double*)=NULL;
 void (*fn_con)(const double* , int , double*)=NULL;
-
-
-template<typename real_t, int sdim>
-void
-get_gaussian_field_cylinder_atT(const real_t* points_pos,
-                                int num_points,
-                                real_t* out) {
-  real_t xc      = 0.6;
-  real_t yc      = 0.5;
-  real_t zc      = 0.5;
-
-  real_t theta0 = atan((yc-0.5)/(xc-0.5));
-  real_t r = sqrt((xc-0.5)*(xc-0.5) + (yc-0.5)*(yc-0.5));
-  xc = 0.5+r*cos(theta0 + tcurr);
-  yc = 0.5+r*sin(theta0 + tcurr);
-  const real_t theta   = 0.0;
-  const real_t sigma_x = 0.06;
-  const real_t sigma_y = 0.06;
-  const real_t sigma_z = 0.06;
-  const real_t A       = 1.0;
-
-  // tbslas::get_gaussian_field_cylinder<real_t, sdim>(points_pos,
-  //                                                   num_points,
-  //                                                   out,
-  //                                                   xc,
-  //                                                   yc,
-  //                                                   theta,
-  //                                                   sigma_x,
-  //                                                   sigma_y,
-  //                                                   A);
-  tbslas::get_gaussian_field_3d<real_t, sdim>(points_pos,
-                                              num_points,
-                                              out,
-                                              xc,
-                                              yc,
-                                              zc,
-                                              A,
-                                              sigma_x,
-                                              sigma_y,
-                                              sigma_z );
-
-}
-
-template<typename real_t, int sdim>
-void
-get_slotted_cylinder_atT(const real_t* points_pos,
-                         int num_points,
-                         real_t* out) {
-  real_t xc = 0.5;
-  real_t yc = 0.5;
-  real_t zc = 0.5;
-  real_t R  = 0.3;
-  real_t w  = 0.1;
-  real_t a  = tcurr;
-  tbslas::get_slotted_cylinder<real_t, sdim>(points_pos,
-                                             num_points,
-                                             out,
-                                             xc,
-                                             yc,
-                                             zc,
-                                             R,
-                                             w,
-                                             a);
-}
-
-template <class Real_t>
-void get_guassian_kernel_wraper(const Real_t* coord,
-                     int n,
-                     Real_t* out) {
-  const Real_t xc  = 0.7;
-  const Real_t yc  = 0.7;
-  const Real_t zc  = 0.7;
-  tbslas::gaussian_kernel(coord, n, out, xc, yc, zc);
-}
-
-template <class Real_t>
-void get_multiple_guassian_kernel_wraper(const Real_t* coord,
-                     int n,
-                     Real_t* out) {
-  // FIRST GAUSSIAN
-  const Real_t xc1  = 0.7;
-  const Real_t yc1  = 0.7;
-  const Real_t zc1  = 0.7;
-  std::vector<Real_t> out1(n);
-  tbslas::gaussian_kernel(coord, n, out1.data(), xc1, yc1, zc1);
-  // FIRST GAUSSIAN
-  const Real_t xc2  = 0.3;
-  const Real_t yc2  = 0.3;
-  const Real_t zc2  = 0.3;
-  std::vector<Real_t> out2(n);
-  tbslas::gaussian_kernel(coord, n, out2.data(), xc2, yc2, zc2);
-  // FIRST GAUSSIAN
-  const Real_t xc3  = 0.3;
-  const Real_t yc3  = 0.3;
-  const Real_t zc3  = 0.7;
-  std::vector<Real_t> out3(n);
-  tbslas::gaussian_kernel(coord, n, out3.data(), xc3, yc3, zc3);
-  for (int i = 0; i < n; i++) {
-    out[i] = out1[i] + out2[i] + out3[i];
-  }
-}
-
-template <class Real_t>
-void get_hopf_field_wrapper(const Real_t* coord,
-                    int n,
-                    Real_t* out) {
-  const Real_t xc = 0.5;
-  const Real_t yc = 0.5;
-  const Real_t zc = 0.5;
-  tbslas::get_hopf_field(coord, n, out, xc, yc, zc);
-}
-
-template <class Real_t>
-void get_taylor_green_field_wrapper(const Real_t* coord,
-                            int n,
-                            Real_t* out) {
-  tbslas::get_taylor_green_field(coord, n, out);
-}
 
 int main (int argc, char **argv) {
   MPI_Init(&argc, &argv);
@@ -199,19 +83,20 @@ int main (int argc, char **argv) {
     switch(test) {
       case 1:
         fn_vel = tbslas::get_vorticity_field<double,3>;
-        fn_con = get_gaussian_field_cylinder_atT<double,3>;
-        // bc = pvfmm::FreeSpace;
-        bc = pvfmm::Periodic;
+        fn_con = get_gaussian_field_atT<double,3>;
+        // fn_con = get_gaussian_field_cylinder_atT<double,3>;
+        bc = pvfmm::FreeSpace;
+        // bc = pvfmm::Periodic;
         break;
       case 2:
         fn_vel = tbslas::get_vorticity_field<double,3>;
         fn_con = get_slotted_cylinder_atT<double,3>;
-        // bc = pvfmm::FreeSpace;
-        bc = pvfmm::Periodic;
+        bc = pvfmm::FreeSpace;
+        // bc = pvfmm::Periodic;
         break;
       case 3:
         fn_vel = tbslas::get_vel_field_hom_y<double,3>;
-        fn_con = get_gaussian_field_cylinder_atT<double,3>;
+        fn_con = get_gaussian_field_atT<double,3>;
         bc = pvfmm::Periodic;
         break;
       case 4:                     // regular V, regular C
@@ -256,7 +141,6 @@ int main (int argc, char **argv) {
     // =========================================================================
     sim_config->vtk_filename_variable   = "conc";
     sim_config->bc = bc;
-
 
     tbslas::new_nodes<Tree_t::Real_t>(sim_config->tree_chebyshev_order, 3);
 
@@ -339,35 +223,43 @@ int main (int argc, char **argv) {
     }
 
     // int num_points = 1;
-    // std::vector<double> xtmp(num_points*3);
-    // xtmp[0] = 1.0;
-    // xtmp[1] = 1.0;
-    // xtmp[2] = 0.4;
+    // std::vector<double> xtmp1(num_points*3);
+    // xtmp1[0] = 1.0;
+    // xtmp1[1] = 1.0;
+    // xtmp1[2] = 1.0;
+
+    // std::vector<double> xtmp2(num_points*3);
+    // xtmp2[0] = 0.8;
+    // xtmp2[1] = 1.0;
+    // xtmp2[2] = 0.3;
+
+    // int i = pvfmm::MortonId(xtmp1.data(),1) < pvfmm::MortonId(xtmp2.data(),1);
+    // std::cout << "MID: " <<  i  << std::endl;
+
     // std::vector<double> vtmp(num_points*3);
     // tbslas::NodeFieldFunctor<double,Tree_t> cfun = tbslas::NodeFieldFunctor<double,Tree_t>(&tvel);
-    // cfun(xtmp.data(), num_points, vtmp.data());
+    // cfun(xtmp1.data(), num_points, vtmp.data());
+    // std::cout << "vals: " << vtmp[0] << " " << vtmp[1] << " " << vtmp[2] << std::endl;
+
+    // cfun(xtmp2.data(), num_points, vtmp.data());
     // std::cout << "vals: " << vtmp[0] << " " << vtmp[1] << " " << vtmp[2] << std::endl;
 
     int timestep = 1;
     for (; timestep < sim_config->total_num_timestep+1; timestep++) {
 
-
-
-        // =====================================================================
-        // (SEMI) MERGE TO FIX IMBALANCE
-        // =====================================================================
-        switch(merge) {
-          case 2:
-            pvfmm::Profile::Tic("Merge", &sim_config->comm, false, 5);
-            tbslas::MergeTree(tvel, tcon);
-            pvfmm::Profile::Toc();
-            break;
-          case 3:
-            pvfmm::Profile::Tic("Merge", &sim_config->comm, false, 5);
-            tbslas::SemiMergeTree(tvel, tcon);
-            pvfmm::Profile::Toc();
-            break;
-        }
+      // =====================================================================
+      // (SEMI) MERGE TO FIX IMBALANCE
+      // =====================================================================
+      pvfmm::Profile::Tic("Merge", &sim_config->comm, false, 5);
+      switch(merge) {
+        case 2:
+          tbslas::MergeTree(tvel, tcon);
+          break;
+        case 3:
+          tbslas::SemiMergeTree(tvel, tcon);
+          break;
+      }
+      pvfmm::Profile::Toc();
 
         // =====================================================================
         // ESTIMATE THE PROBLEM SIZE -> NUMBER OF TREES' OCTANTS
@@ -412,8 +304,6 @@ int main (int argc, char **argv) {
         pvfmm::Profile::Tic("Balance21", &sim_config->comm, false, 5);
         tcon.Balance21(sim_config->bc);
         pvfmm::Profile::Toc();
-
-
 
         //TODO: ONLY FOR STEADY VELOCITY TREES
         tvel.RefineTree();
@@ -467,8 +357,8 @@ int main (int argc, char **argv) {
       Rep::AddData("CMaxD", tcon_max_depth, tbslas::REP_INT);
       Rep::AddData("VMaxD", tvel_max_depth, tbslas::REP_INT);
 
-      Rep::AddData("CBC", sim_config->use_cubic?1:0, tbslas::REP_INT);
-      Rep::AddData("CUF", sim_config->cubic_upsampling_factor, tbslas::REP_INT);
+      // Rep::AddData("CBC", sim_config->use_cubic?1:0, tbslas::REP_INT);
+      // Rep::AddData("CUF", sim_config->cubic_upsampling_factor, tbslas::REP_INT);
 
       Rep::AddData("DT", sim_config->dt);
       Rep::AddData("TN", sim_config->total_num_timestep, tbslas::REP_INT);

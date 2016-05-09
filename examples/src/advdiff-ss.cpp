@@ -27,20 +27,24 @@
 #include <cheb_node.hpp>
 // LOCAL
 #include <utils.hpp>
+#include <field_wrappers.h>
 // TBSLAS
 #include <utils/common.h>
 #include <utils/reporter.h>
 #include <utils/fields.h>
-#include <tree/semilag_tree.h>
-#include <tree/utils_tree.h>
+
+#include <tree/tree_semilag.h>
+#include <tree/tree_utils.h>
 
 #include <diffusion/kernel.h>
 
 int NUM_TIME_STEPS = 1;
+
 double TBSLAS_DT;
 double TBSLAS_DIFF_COEFF;
 double TBSLAS_ALPHA;
 double EXP_ALPHA;
+
 // current simulation time
 // double tcurr = 0.25;
 double tcurr_init = 25;
@@ -50,158 +54,158 @@ typedef tbslas::MetaData<std::string,
                          std::string,
                          std::string> MetaData_t;
 
-template <class Real_t>
-void get_exp_alpha_field_wrapper(const Real_t* coord,
-                                  int n,
-                                  Real_t* out) {
-  const Real_t xc = 0.5;
-  const Real_t yc = 0.5;
-  const Real_t zc = 0.55;
-  const Real_t R = 0.3;
-  const Real_t alpha = EXP_ALPHA;
-  tbslas::get_exp_alpha_field(coord, n, out, xc, yc, zc, R, alpha);
-}
+// template <class Real_t>
+// void get_exp_alpha_field_wrapper(const Real_t* coord,
+//                                   int n,
+//                                   Real_t* out) {
+//   const Real_t xc = 0.5;
+//   const Real_t yc = 0.5;
+//   const Real_t zc = 0.55;
+//   const Real_t R = 0.3;
+//   const Real_t alpha = EXP_ALPHA;
+//   tbslas::get_exp_alpha_field(coord, n, out, xc, yc, zc, R, alpha);
+// }
 
-template <class Real_t>
-void get_taylor_green_field_wrapper(const Real_t* coord,
-                            int n,
-                            Real_t* out) {
-  tbslas::get_taylor_green_field(coord, n, out);
-}
+// template <class Real_t>
+// void get_taylor_green_field_wrapper(const Real_t* coord,
+//                             int n,
+//                             Real_t* out) {
+//   tbslas::get_taylor_green_field(coord, n, out);
+// }
 
-template <class Real_t>
-void get_multiple_guassian_kernel_wraper(const Real_t* coord,
-                                         int n,
-                                         Real_t* out) {
-  // FIRST GAUSSIAN
-  const Real_t xc1  = 0.6;
-  const Real_t yc1  = 0.6;
-  const Real_t zc1  = 0.6;
-  std::vector<Real_t> out1(n);
-  tbslas::gaussian_kernel(coord, n, out1.data(), xc1, yc1, zc1);
-  // FIRST GAUSSIAN
-  const Real_t xc2  = 0.4;
-  const Real_t yc2  = 0.4;
-  const Real_t zc2  = 0.4;
-  std::vector<Real_t> out2(n);
-  tbslas::gaussian_kernel(coord, n, out2.data(), xc2, yc2, zc2);
-  // FIRST GAUSSIAN
-  const Real_t xc3  = 0.3;
-  const Real_t yc3  = 0.3;
-  const Real_t zc3  = 0.7;
-  std::vector<Real_t> out3(n);
-  tbslas::gaussian_kernel(coord, n, out3.data(), xc3, yc3, zc3);
-  for (int i = 0; i < n; i++) {
-    out[i] = out1[i] + out2[i] + out3[i];
-  }
-}
+// template <class Real_t>
+// void get_multiple_guassian_kernel_wraper(const Real_t* coord,
+//                                          int n,
+//                                          Real_t* out) {
+//   // FIRST GAUSSIAN
+//   const Real_t xc1  = 0.6;
+//   const Real_t yc1  = 0.6;
+//   const Real_t zc1  = 0.6;
+//   std::vector<Real_t> out1(n);
+//   tbslas::gaussian_kernel(coord, n, out1.data(), xc1, yc1, zc1);
+//   // FIRST GAUSSIAN
+//   const Real_t xc2  = 0.4;
+//   const Real_t yc2  = 0.4;
+//   const Real_t zc2  = 0.4;
+//   std::vector<Real_t> out2(n);
+//   tbslas::gaussian_kernel(coord, n, out2.data(), xc2, yc2, zc2);
+//   // FIRST GAUSSIAN
+//   const Real_t xc3  = 0.3;
+//   const Real_t yc3  = 0.3;
+//   const Real_t zc3  = 0.7;
+//   std::vector<Real_t> out3(n);
+//   tbslas::gaussian_kernel(coord, n, out3.data(), xc3, yc3, zc3);
+//   for (int i = 0; i < n; i++) {
+//     out[i] = out1[i] + out2[i] + out3[i];
+//   }
+// }
 
-template <class Real_t>
-void get_guassian_kernel_wraper(const Real_t* coord,
-                     int n,
-                     Real_t* out) {
-  const Real_t xc  = 0.7;
-  const Real_t yc  = 0.7;
-  const Real_t zc  = 0.7;
-  tbslas::gaussian_kernel(coord, n, out, xc, yc, zc);
-}
+// template <class Real_t>
+// void get_guassian_kernel_wraper(const Real_t* coord,
+//                      int n,
+//                      Real_t* out) {
+//   const Real_t xc  = 0.7;
+//   const Real_t yc  = 0.7;
+//   const Real_t zc  = 0.7;
+//   tbslas::gaussian_kernel(coord, n, out, xc, yc, zc);
+// }
 
-template <class Real_t>
-void get_hopf_field_wrapper(const Real_t* coord,
-                            int n,
-                            Real_t* out) {
-  const Real_t xc = 0.5;
-  const Real_t yc = 0.5;
-  const Real_t zc = 0.5;
-  tbslas::get_hopf_field(coord, n, out, xc, yc, zc);
-}
+// template <class Real_t>
+// void get_hopf_field_wrapper(const Real_t* coord,
+//                             int n,
+//                             Real_t* out) {
+//   const Real_t xc = 0.5;
+//   const Real_t yc = 0.5;
+//   const Real_t zc = 0.5;
+//   tbslas::get_hopf_field(coord, n, out, xc, yc, zc);
+// }
 
-template <class Real_t>
-void get_diffusion_kernel_atT(const Real_t* coord,
-                              int n,
-                              Real_t* out) {
-  const Real_t amp = 1e-2;
-  const Real_t xc = 0.5;
-  const Real_t yc = 0.5;
-  const Real_t zc = 0.5;
-  tbslas::diffusion_kernel(coord,
-                           n,
-                           out,
-                           TBSLAS_DIFF_COEFF,
-                           tcurr,
-                           amp,
-                           xc,
-                           yc,
-                           zc);
-}
+// template <class Real_t>
+// void get_diffusion_kernel_atT(const Real_t* coord,
+//                               int n,
+//                               Real_t* out) {
+//   const Real_t amp = 1e-2;
+//   const Real_t xc = 0.5;
+//   const Real_t yc = 0.5;
+//   const Real_t zc = 0.5;
+//   tbslas::diffusion_kernel(coord,
+//                            n,
+//                            out,
+//                            TBSLAS_DIFF_COEFF,
+//                            tcurr,
+//                            amp,
+//                            xc,
+//                            yc,
+//                            zc);
+// }
 
-template <class Real_t>
-void get_diffusion_kernel_hopf(const Real_t* coord,
-                               int n,
-                               Real_t* out) {
-  const Real_t amp = 1e-2;
-  const Real_t xc = 0.6;
-  const Real_t yc = 0.6;
-  const Real_t zc = 0.6;
-  double time_curr = 2.5;
-  tbslas::diffusion_kernel(coord,
-                           n,
-                           out,
-                           TBSLAS_DIFF_COEFF,
-                           time_curr,
-                           amp,
-                           xc,
-                           yc,
-                           zc);
-}
+// template <class Real_t>
+// void get_diffusion_kernel_hopf(const Real_t* coord,
+//                                int n,
+//                                Real_t* out) {
+//   const Real_t amp = 1e-2;
+//   const Real_t xc = 0.6;
+//   const Real_t yc = 0.6;
+//   const Real_t zc = 0.6;
+//   double time_curr = 2.5;
+//   tbslas::diffusion_kernel(coord,
+//                            n,
+//                            out,
+//                            TBSLAS_DIFF_COEFF,
+//                            time_curr,
+//                            amp,
+//                            xc,
+//                            yc,
+//                            zc);
+// }
 
-template <class Real_t>
-void get_gaussian_kernel_wrapper(const Real_t* coord,
-                     int n,
-                     Real_t* out) {
-  const Real_t xc  = 0.5;
-  const Real_t yc  = 0.5;
-  const Real_t zc  = 0.55;
-  tbslas::gaussian_kernel(coord, n, out, xc, yc, zc);
-}
+// template <class Real_t>
+// void get_gaussian_kernel_wrapper(const Real_t* coord,
+//                      int n,
+//                      Real_t* out) {
+//   const Real_t xc  = 0.5;
+//   const Real_t yc  = 0.5;
+//   const Real_t zc  = 0.55;
+//   tbslas::gaussian_kernel(coord, n, out, xc, yc, zc);
+// }
 
-template <class Real_t>
-void get_diffusion_kernel_atT_hom(const Real_t* coord,
-                                  int n,
-                                  Real_t* out) {
-  const Real_t amp = 1e-2;
-  const Real_t xc = 0.5+(tcurr-tcurr_init)*-0.5;
-  const Real_t yc = 0.5;
-  const Real_t zc = 0.5;
-  tbslas::diffusion_kernel(coord,
-                           n,
-                           out,
-                           TBSLAS_DIFF_COEFF,
-                           tcurr,
-                           amp,
-                           xc,
-                           yc,
-                           zc);
-}
+// template <class Real_t>
+// void get_diffusion_kernel_atT_hom(const Real_t* coord,
+//                                   int n,
+//                                   Real_t* out) {
+//   const Real_t amp = 1e-2;
+//   const Real_t xc = 0.5+(tcurr-tcurr_init)*-0.5;
+//   const Real_t yc = 0.5;
+//   const Real_t zc = 0.5;
+//   tbslas::diffusion_kernel(coord,
+//                            n,
+//                            out,
+//                            TBSLAS_DIFF_COEFF,
+//                            tcurr,
+//                            amp,
+//                            xc,
+//                            yc,
+//                            zc);
+// }
 
-template <class Real_t>
-void fn_input_t2(const Real_t* coord,
-                 int n,
-                 Real_t* out) {
-  tbslas::gaussian_kernel_diffusion_input(coord,
-                                          n,
-                                          out,
-                                          TBSLAS_ALPHA);
-}
+// template <class Real_t>
+// void fn_input_t2(const Real_t* coord,
+//                  int n,
+//                  Real_t* out) {
+//   tbslas::gaussian_kernel_diffusion_input(coord,
+//                                           n,
+//                                           out,
+//                                           TBSLAS_ALPHA);
+// }
 
-template <class Real_t>
-void fn_poten_t2(const Real_t* coord,
-                 int n,
-                 Real_t* out) {
-  tbslas::gaussian_kernel(coord,
-                          n,
-                          out);
-}
+// template <class Real_t>
+// void fn_poten_t2(const Real_t* coord,
+//                  int n,
+//                  Real_t* out) {
+//   tbslas::gaussian_kernel(coord,
+//                           n,
+//                           out);
+// }
 
 template <class Real_t>
 void RunAdvectDiff(int test, size_t N, size_t M, bool unif, int mult_order,
@@ -537,16 +541,21 @@ void RunAdvectDiff(int test, size_t N, size_t M, bool unif, int mult_order,
           treen_points_val[i] = ccoeff*treec_points_val[i] - pcoeff*treep_points_val[i] ;
         }
 
-        FMMNode_t* n_next = treen->PostorderFirst();
-        while (n_next != NULL) {
-          if(!n_next->IsGhost() && n_next->IsLeaf()) break;
-          n_next = treen->PostorderNxt(n_next);
-        }
-        std::vector<NodeType*> nodes;
-        while (n_next != NULL) {
-          if (n_next->IsLeaf() && !n_next->IsGhost()) nodes.push_back(n_next);
-          n_next = treen->PostorderNxt(n_next);
-        }
+        tbslas::SetTreeGridValues(*treen,
+                                  cheb_deg,
+                                  data_dof,
+                                  treen_points_val);
+
+        // FMMNode_t* n_next = treen->PostorderFirst();
+        // while (n_next != NULL) {
+        //   if(!n_next->IsGhost() && n_next->IsLeaf()) break;
+        //   n_next = treen->PostorderNxt(n_next);
+        // }
+        // std::vector<NodeType*> nodes;
+        // while (n_next != NULL) {
+        //   if (n_next->IsLeaf() && !n_next->IsGhost()) nodes.push_back(n_next);
+        //   n_next = treen->PostorderNxt(n_next);
+        // }
 
         //int num_points_per_node = (cheb_deg+1)*(cheb_deg+1)*(cheb_deg+1);
         //int tree_next_node_counter = 0;
@@ -562,23 +571,24 @@ void RunAdvectDiff(int test, size_t N, size_t M, bool unif, int mult_order,
         //  }
         //  n_next = treen->PostorderNxt(n_next);
         //}
-        int omp_p=omp_get_max_threads();
-        static pvfmm::Matrix<RealType> M;
-        tbslas::GetPt2CoeffMatrix<RealType>(cheb_deg, M);
-        int num_points_per_node=M.Dim(0);
-        pvfmm::Matrix<RealType> Mvalue(treen_points_val.size()/num_points_per_node,M.Dim(0),&treen_points_val[0],false);
-        pvfmm::Matrix<RealType> Mcoeff(treen_points_val.size()/num_points_per_node,M.Dim(1));
-#pragma omp parallel for schedule(static)
-        for(int pid=0;pid<omp_p;pid++){
-          long a=(pid+0)*nodes.size()/omp_p;
-          long b=(pid+1)*nodes.size()/omp_p;
-          pvfmm::Matrix<RealType> Mi((b-a)*data_dof, Mvalue.Dim(1), &Mvalue[a*data_dof][0], false);
-          pvfmm::Matrix<RealType> Mo((b-a)*data_dof, Mcoeff.Dim(1), &Mcoeff[a*data_dof][0], false);
-          pvfmm::Matrix<RealType>::GEMM(Mo, Mi, M);
-          for(long j=0;j<b-a;j++){
-            memcpy(&(nodes[a+j]->ChebData()[0]), &Mo[j*data_dof][0], M.Dim(1)*data_dof*sizeof(RealType));
-          }
-        }
+
+//         int omp_p=omp_get_max_threads();
+//         static pvfmm::Matrix<RealType> M;
+//         tbslas::GetPt2CoeffMatrix<RealType>(cheb_deg, M);
+//         int num_points_per_node=M.Dim(0);
+//         pvfmm::Matrix<RealType> Mvalue(treen_points_val.size()/num_points_per_node,M.Dim(0),&treen_points_val[0],false);
+//         pvfmm::Matrix<RealType> Mcoeff(treen_points_val.size()/num_points_per_node,M.Dim(1));
+// #pragma omp parallel for schedule(static)
+//         for(int pid=0;pid<omp_p;pid++){
+//           long a=(pid+0)*nodes.size()/omp_p;
+//           long b=(pid+1)*nodes.size()/omp_p;
+//           pvfmm::Matrix<RealType> Mi((b-a)*data_dof, Mvalue.Dim(1), &Mvalue[a*data_dof][0], false);
+//           pvfmm::Matrix<RealType> Mo((b-a)*data_dof, Mcoeff.Dim(1), &Mcoeff[a*data_dof][0], false);
+//           pvfmm::Matrix<RealType>::GEMM(Mo, Mi, M);
+//           for(long j=0;j<b-a;j++){
+//             memcpy(&(nodes[a+j]->ChebData()[0]), &Mo[j*data_dof][0], M.Dim(1)*data_dof*sizeof(RealType));
+//           }
+//         }
 
         pvfmm::Profile::Add_FLOP(3*treen_points_val.size()); // for combining the two previous time steps values
       }

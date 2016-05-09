@@ -32,8 +32,8 @@
 #include <utils/reporter.h>
 #include <utils/fields.h>
 
-#include <tree/semilag_tree.h>
-#include <tree/utils_tree.h>
+#include <tree/tree_semilag.h>
+#include <tree/tree_utils.h>
 
 typedef pvfmm::Cheb_Node<double> Node_t;
 typedef pvfmm::MPI_Tree<Node_t> Tree_t;
@@ -332,18 +332,18 @@ int main (int argc, char **argv) {
 
         pvfmm::Profile::Tic(std::string("Solve_TN" + tbslas::ToString(static_cast<long long>(timestep))).c_str(), &comm, true);
         {
-	  // =====================================================================
-	  // SOLVE SEMILAG
-	  // =====================================================================
-	  pvfmm::Profile::Tic("SLM", &sim_config->comm, false, 5);
-	  tbslas::SolveSemilagInSitu(tvel,
-				     tcon,
-				     timestep,
-				     sim_config->dt,
-				     sim_config->num_rk_step);
-	  pvfmm::Profile::Toc();
-	}
-	pvfmm::Profile::Toc();        // solve
+          // =====================================================================
+          // SOLVE SEMILAG
+          // =====================================================================
+          pvfmm::Profile::Tic("SLM", &sim_config->comm, false, 5);
+          tbslas::SolveSemilagInSitu(tvel,
+                                     tcon,
+                                     timestep,
+                                     sim_config->dt,
+                                     sim_config->num_rk_step);
+          pvfmm::Profile::Toc();
+        }
+        pvfmm::Profile::Toc();        // solve
 
         // =====================================================================
         // REFINE TREE
@@ -356,8 +356,8 @@ int main (int argc, char **argv) {
         tcon.Balance21(sim_config->bc);
         pvfmm::Profile::Toc();
 
-	//TODO: ONLY FOR STEADY VELOCITY TREES
-	tvel.RefineTree();
+        //TODO: ONLY FOR STEADY VELOCITY TREES
+        tvel.RefineTree();
 
       // ======================================================================
       // Write2File

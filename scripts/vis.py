@@ -71,13 +71,16 @@ VTK_DIR   = args.input_dir
 IMAGE_DIR = VTK_DIR+"/images-"+TIMESTR
 os.makedirs(IMAGE_DIR)
 
-CON_VTK_FILES    = VTK_DIR+"/"+"conc01_T*_P.pvtu database"
+CON_VTK_FILES    = VTK_DIR+"/"+"conc_T*_P.pvtu database"
+
 CON_VTK_FILES1_0 = VTK_DIR+"/"+"conc01_T0000_P.pvtu"
 CON_VTK_FILES2_0 = VTK_DIR+"/"+"conc02_T0000_P.pvtu"
 CON_VTK_FILES3_0 = VTK_DIR+"/"+"conc03_T0000_P.pvtu"
+
 CON_VTK_FILES1   = VTK_DIR+"/"+"conc01_T*_P.pvtu database"
 CON_VTK_FILES2   = VTK_DIR+"/"+"conc02_T*_P.pvtu database"
 CON_VTK_FILES3   = VTK_DIR+"/"+"conc03_T*_P.pvtu database"
+
 RHO_VTK_FILES    = VTK_DIR+"/"+"stokes_rho_0_.pvtu"
 VEL_VTK_FILES    = VTK_DIR+"/"+"stokes_vel_0_.pvtu"
 

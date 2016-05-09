@@ -35,8 +35,8 @@
 
 #include <diffusion/kernel.h>
 
-#include <tree/semilag_tree.h>
-#include <tree/utils_tree.h>
+#include <tree/tree_semilag.h>
+#include <tree/tree_utils.h>
 
 int NUM_TIME_STEPS = 1;
 double TBSLAS_DT;
