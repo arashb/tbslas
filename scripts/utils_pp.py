@@ -20,7 +20,7 @@ import time
 import parser
 import copy
 from collections import OrderedDict
-
+import json
 
 def pp_profile_data(mydoc, file_pp, PRINT_HEADER = True):
     """
@@ -137,27 +137,276 @@ def pp_scal_s(mydoc, file_pp, PRINT_HEADER = True):
     - `output`:
     - `file_pp`:
     """
-    SCALE_TAG_LIST = ['+-Solve',\
-                      '+-SLM',  \
-                      '+-FMM', \
+    SCALE_TAG_LIST = [#'+-Solve',
+                      '+-SLM',
+                      '+-FMM',
+                      'Merge',
+                      '+-RefineTree',
+                      '+-Balance21'
                       ]
     ppnode_title  = mydoc.np
+    solve_tavg_sum = 0.0
+    solve_favg_sum = 0.0
+    tn_counter = 0
+
     ppnode_values = OrderedDict()
+    ppnode_values['NP'] = mydoc.np
     for scale_tag in SCALE_TAG_LIST:
+        ppnode_values['T'+scale_tag.replace('+-','')] = ''
+        ppnode_values['F'+scale_tag.replace('+-','')] = ''
         for node in mydoc.node_list:
             if scale_tag in node.title:
                 print node.title
                 ppnode_values['T'+scale_tag.replace('+-','')] = node.values['t_avg']
                 ppnode_values['F'+scale_tag.replace('+-','')] = node.values['f/s_total']
+                solve_tavg_sum = solve_tavg_sum + float(node.values['t_avg'])
+                solve_favg_sum = solve_favg_sum + float(node.values['f_avg'])
+                tn_counter = tn_counter + 1
                 break
-    ppnode = parser.pnode(ppnode_title, ppnode_values)
-    if PRINT_HEADER:
-        header_string_format = "{:<50}".format('NP')
-        for key, val in ppnode_values.iteritems():
-            header_string_format += "{:>10}".format(key)
-        header_string_format += "\n"
-        file_pp.write(header_string_format)
-    ppnode.print_me(file_pp)
+    header_format = ''
+    values_format = ''
+
+    # ppnode_values['TSUM'] = "{:.4f}".format(solve_tavg_sum if tn_counter else 0)
+    # ppnode_values['FSUM'] = "{:.4f}".format(solve_favg_sum if tn_counter else 0)
+    # ppnode_values['FLOPS'] = "{:.4f}".format(solve_favg_sum/solve_tavg_sum  if tn_counter else 0)
+
+    for key, val in ppnode_values.iteritems():
+        header_format += "{:>12}".format(key)
+        values_format += "{:>12}".format(val)
+    header_format += "\n"
+    values_format += "\n"
+    file_pp.write(header_format)
+    file_pp.write(values_format)
+
+
+def pp_scal_s_mod(mydoc, file_pp, PRINT_HEADER = True):
+    """
+    post processing of data
+    Arguments:
+    - `output`:
+    - `file_pp`:
+    """
+    # SCALE_TAG_LIST = [#'+-Solve',
+    #                   '+-SLM',
+    #                   '+-FMM',
+    #                   'Merge',
+    #                   '+-RefineTree',
+    #                   '+-Balance21'
+                      # ]
+
+    # ppnode_title  = mydoc.np
+    # solve_tavg_sum = 0.0
+    # solve_favg_sum = 0.0
+    # tn_counter = 0
+    teval_sum = 0.0
+    feval_sum = 0.0
+    tsort_sum = 0.0
+    tref_sum = 0.0
+    tsolve_sum = 0.0
+    fsolve_sum = 0.0
+    tfmm = 0.0
+    ffmm = 0.0
+
+    ppnode_values = OrderedDict()
+    ppnode_values['NP'] = mydoc.np
+    for node in mydoc.node_list:
+        scale_tag = '+-RefineTree'
+        if  scale_tag in node.title:
+            # ppnode_values['T'+scale_tag.replace('+-','')] = node.values['t_avg']
+            tref_sum =  float(node.values['t_max'])
+
+        scale_tag = 'Merge'
+        if  scale_tag in node.title:
+            # ppnode_values['T'+scale_tag.replace('+-','')] = node.values['t_max']
+            tref_sum = tref_sum + float(node.values['t_max'])
+            # tsolve_sum = tsolve_sum + float(node.values['t_max'])
+            # fsolve_sum = fsolve_sum + float(node.values['f_avg'])
+
+        scale_tag = 'Solve'
+        if  scale_tag in node.title:
+            # ppnode_values['T'+scale_tag.replace('+-','')] = node.values['t_max']
+            tsolve_sum = tsolve_sum + float(node.values['t_max'])
+            fsolve_sum = fsolve_sum + float(node.values['f/s_total'])
+
+        # FMM
+        scale_tag = '+-FMM'
+        if  scale_tag in node.title:
+            tfmm = float(node.values['t_max'])
+            ffmm = float(node.values['f/s_total'])
+
+        scale_tag = '+-InEvaluation'
+        if  scale_tag in node.title:
+            teval_sum = teval_sum + float(node.values['t_max'])
+            feval_sum = feval_sum + float(node.values['f_avg'])
+
+        scale_tag = '+-OutEvaluation'
+        if  scale_tag in node.title:
+            teval_sum = teval_sum + float(node.values['t_max'])
+            feval_sum = feval_sum + float(node.values['f_avg'])
+
+        scale_tag = '+-LclHQSort'
+        if  scale_tag in node.title:
+            tsort_sum = tsort_sum + float(node.values['t_max'])
+
+        scale_tag = '+-OutScatterIndex'
+        if  scale_tag in node.title:
+            tsort_sum = tsort_sum + float(node.values['t_max'])
+
+        scale_tag = '+-OutScatterForward'
+        if  scale_tag in node.title:
+            tsort_sum = tsort_sum + float(node.values['t_max'])
+
+        scale_tag = '+-OutScatterReverse'
+        if  scale_tag in node.title:
+            tsort_sum = tsort_sum + float(node.values['t_max'])
+
+    nn =    float( ppnode_values['NP'])
+    ppnode_values['TSOLVE'] = "{:.4f}".format(tsolve_sum)
+    ppnode_values['FSOLVE'] = "{:.4f}".format(fsolve_sum)
+    ppnode_values['FSOLVEN'] = "{:.4f}".format(fsolve_sum/nn if nn else 0)
+    ppnode_values['TREF']   = "{:.4f}".format(tref_sum)
+    ppnode_values['TSORT']  = "{:.4f}".format(tsort_sum)
+    ppnode_values['TEVAl']  = "{:.4f}".format(teval_sum)
+    feval = feval_sum/teval_sum if teval_sum else 0
+    ppnode_values['FEVAl']  = "{:.4f}".format(feval_sum/teval_sum if teval_sum else 0)
+    ppnode_values['FEVAlN']  = "{:.4f}".format(feval/nn if nn else 0)
+    ppnode_values['TFMM']   = "{:.4f}".format(tfmm)
+    ppnode_values['FFMM']   = "{:.4f}".format(ffmm)
+    ppnode_values['FFMMN']  = "{:.4f}".format(ffmm/nn if nn else 0)
+
+
+    header_format = ''
+    values_format = ''
+
+    for key, val in ppnode_values.iteritems():
+        header_format += "{:>12}".format(key)
+        values_format += "{:>12}".format(val)
+    header_format += "\n"
+    values_format += "\n"
+    file_pp.write(header_format)
+    file_pp.write(values_format)
+
+def pp_scal_s_mod_2(mydoc, file_pp, PRINT_HEADER = True):
+    """
+    post processing of data
+    Arguments:
+    - `output`:
+    - `file_pp`:
+    """
+    # SCALE_TAG_LIST = [#'+-Solve',
+    #                   '+-SLM',
+    #                   '+-FMM',
+    #                   'Merge',
+    #                   '+-RefineTree',
+    #                   '+-Balance21'
+                      # ]
+
+    # ppnode_title  = mydoc.np
+    # solve_tavg_sum = 0.0
+    # solve_favg_sum = 0.0
+    # tn_counter = 0
+    teval_sum = 0.0
+    tmerge_sum = 0.0
+    feval_sum = 0.0
+    tsort_sum = 0.0
+    tcomm_sum = 0.0
+    tref_sum = 0.0
+    tsolve_sum = 0.0
+    fsolve_sum = 0.0
+    tfmm = 0.0
+    ffmm = 0.0
+    tslm = 0.0
+    fslm = 0.0
+
+    ppnode_values = OrderedDict()
+    ppnode_values['NP'] = mydoc.np
+    for node in mydoc.node_list:
+        scale_tag = '+-RefineTree'
+        if  scale_tag in node.title:
+            # ppnode_values['T'+scale_tag.replace('+-','')] = node.values['t_avg']
+            tref_sum =  float(node.values['t_max'])
+
+        scale_tag = 'Merge'
+        if  scale_tag in node.title:
+            # ppnode_values['T'+scale_tag.replace('+-','')] = node.values['t_max']
+            tmerge_sum = tref_sum + float(node.values['t_max'])
+
+        scale_tag = 'Solve'
+        if  scale_tag in node.title:
+            # ppnode_values['T'+scale_tag.replace('+-','')] = node.values['t_max']
+            tsolve_sum = tsolve_sum + float(node.values['t_max'])
+            fsolve_sum = fsolve_sum + float(node.values['f/s_total'])
+
+        # FMM
+        scale_tag = '+-FMM'
+        if  scale_tag in node.title:
+            tfmm = float(node.values['t_max'])
+            ffmm = float(node.values['f/s_total'])
+
+        # SLM
+        scale_tag = '+-SLM'
+        if  scale_tag in node.title:
+            tslm = float(node.values['t_max'])
+            fslm = float(node.values['f/s_total'])
+
+        scale_tag = '+-InEvaluation'
+        if  scale_tag in node.title:
+            teval_sum = teval_sum + float(node.values['t_max'])
+            feval_sum = feval_sum + float(node.values['f_avg'])
+        scale_tag = '+-OutEvaluation'
+        if  scale_tag in node.title:
+            teval_sum = teval_sum + float(node.values['t_max'])
+            feval_sum = feval_sum + float(node.values['f_avg'])
+
+        scale_tag = '+-LclHQSort'
+        if  scale_tag in node.title:
+            tsort_sum = tsort_sum + float(node.values['t_max'])
+
+        scale_tag = '+-OutScatterIndex'
+        if  scale_tag in node.title:
+            tcomm_sum = tcomm_sum + float(node.values['t_max'])
+        scale_tag = '+-OutScatterForward'
+        if  scale_tag in node.title:
+            tcomm_sum = tcomm_sum + float(node.values['t_max'])
+        scale_tag = '+-OutScatterReverse'
+        if  scale_tag in node.title:
+            tcomm_sum = tcomm_sum + float(node.values['t_max'])
+
+    nn =    float( ppnode_values['NP'])
+    ppnode_values['TSOLVE'] = "{:.4f}".format(tsolve_sum)
+    ppnode_values['FSOLVE'] = "{:.4f}".format(fsolve_sum)
+    ppnode_values['FSOLVEN'] = "{:.4f}".format(fsolve_sum/nn if nn else 0)
+
+    ppnode_values['TREF']   = "{:.4f}".format(tref_sum)
+    ppnode_values['TSORT']  = "{:.4f}".format(tsort_sum)
+
+    ppnode_values['TEVAl']  = "{:.4f}".format(teval_sum)
+    feval = feval_sum/teval_sum if teval_sum else 0
+    ppnode_values['FEVAl']  = "{:.4f}".format(feval)
+    # ppnode_values['FEVAlN']  = "{:.4f}".format(feval/nn if nn else 0)
+
+    ppnode_values['TMRG']   = "{:.4f}".format(tmerge_sum)
+    ppnode_values['TCOMM']  = "{:.4f}".format(tcomm_sum)
+
+    ppnode_values['TFMM']   = "{:.4f}".format(tfmm)
+    ppnode_values['FFMM']   = "{:.4f}".format(ffmm)
+    ppnode_values['FFMMN']  = "{:.4f}".format(ffmm/nn if nn else 0)
+
+    ppnode_values['TSLM']   = "{:.4f}".format(tslm)
+    ppnode_values['FSLM']   = "{:.4f}".format(fslm)
+    ppnode_values['FSLMN']  = "{:.4f}".format(fslm/nn if nn else 0)
+
+    header_format = ''
+    values_format = ''
+
+    for key, val in ppnode_values.iteritems():
+        header_format += "{:>12}".format(key)
+        values_format += "{:>12}".format(val)
+    header_format += "\n"
+    values_format += "\n"
+    file_pp.write(header_format)
+    file_pp.write(values_format)
+
 
 def get_time(mydoc):
     ppnode_values = OrderedDict()
@@ -270,7 +519,7 @@ def post_process(raw_files_dir, pp_func):
     PRINT_HEADER = True
     for raw_file in raw_files_list:
         pp_func(parser.pdoc(open(raw_file, 'r')), fpp, PRINT_HEADER)
-        PRINT_HEADER = False
+        # PRINT_HEADER = False
     # [pp_func(parser.pdoc(open(raw_file, 'r')), fpp, PRINT_HEADER) for raw_file in raw_files_list]
 
 if __name__ == '__main__':
@@ -279,7 +528,8 @@ if __name__ == '__main__':
     else:
         sys.exit()
 
-    pp_func = pp_scal_s
+    # pp_func = pp_scal_s
+    pp_func = pp_scal_s_mod_2
     # pp_func = pp_tree_eval_data
     # pp_func = pp_profile_data
     # pp_func = pp_perf_cubic
