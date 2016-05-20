@@ -466,7 +466,7 @@ SyncTreeRefinement(TreeType& tree_in,
 }
 
 template<typename TreeType>
-void CollectChebTreeGridPoints(TreeType& tree,
+int CollectChebTreeGridPoints(TreeType& tree,
                            std::vector<typename TreeType::Real_t>& grid_points) {
   typedef typename TreeType::Node_t NodeType;
   typedef typename TreeType::Real_t RealType;
@@ -518,111 +518,98 @@ void CollectChebTreeGridPoints(TreeType& tree,
     n_next = tree.PostorderNxt(n_next);
   }
   // pvfmm::Profile::Toc();
+  return num_leaf_nodes;
 }
 
-template<typename TreeType>
-void CollectTreeGridPoints(TreeType& tree,
-                           std::vector<typename TreeType::Real_t> node_pos,
-                           std::vector<typename TreeType::Real_t>& grid_points) {
+template <class RealType, typename TreeType>
+void SetTreeGridValues(TreeType& treen,
+                       const int cheb_deg,
+                       const int data_dof,
+                       std::vector<RealType>& treen_points_val) {
   typedef typename TreeType::Node_t NodeType;
-  typedef typename TreeType::Real_t RealType;
-  tbslas::SimConfig* sim_config = tbslas::SimConfigSingleton::Instance();
 
-  pvfmm::Profile::Tic("CollectGridPoints", &sim_config->comm, false,5);
-  int cheb_deg = tree.RootNode()->ChebDeg();
-  int sdim     = tree.Dim();
-
-  // compute chebychev points positions on the fly
-  // std::vector<RealType> node_pos = pvfmm::cheb_nodes<RealType>(cheb_deg, sdim);
-  int num_points_per_node        = node_pos.size()/sdim;
-
-  // compute total number of tree leaf nodes
-  NodeType* n_next = tree.PostorderFirst();
-  int num_leaf_nodes = 0;
+  NodeType* n_next = treen.PostorderFirst();
   while (n_next != NULL) {
-    if(!n_next->IsGhost() && n_next->IsLeaf())
-      num_leaf_nodes++;
-    n_next = tree.PostorderNxt(n_next);
+    if(!n_next->IsGhost() && n_next->IsLeaf()) break;
+    n_next = treen.PostorderNxt(n_next);
   }
 
-  // std::vector<RealType> grid_points;
-  grid_points.resize(node_pos.size()*num_leaf_nodes);
-
-  n_next = tree.PostorderFirst();
+  std::vector<NodeType*> nodes;
   while (n_next != NULL) {
-    if(!n_next->IsGhost() && n_next->IsLeaf())
-      break;
-    n_next = tree.PostorderNxt(n_next);
+    if (n_next->IsLeaf() && !n_next->IsGhost())
+      nodes.push_back(n_next);
+    n_next = treen.PostorderNxt(n_next);
   }
 
-  int tree_node_counter = 0;
-  while (n_next != NULL) {
-    if (n_next->IsLeaf() && !n_next->IsGhost()) {
-      RealType length      = static_cast<RealType>(std::pow(0.5, n_next->Depth()));
-      RealType* node_coord = n_next->Coord();
-      // scale the cheb points
-      size_t shift = tree_node_counter*node_pos.size();
-      for (int i = 0; i < num_points_per_node; i++) {
-        grid_points[shift + i*sdim+0] = node_coord[0] + length * node_pos[i*sdim+0];
-        grid_points[shift + i*sdim+1] = node_coord[1] + length * node_pos[i*sdim+1];
-        grid_points[shift + i*sdim+2] = node_coord[2] + length * node_pos[i*sdim+2];
-      }
-      tree_node_counter++;
+  int omp_p=omp_get_max_threads();
+  static pvfmm::Matrix<RealType> M;
+  tbslas::GetPt2CoeffMatrix<RealType>(cheb_deg, M);
+  int num_points_per_node=M.Dim(0);
+  pvfmm::Matrix<RealType> Mvalue(treen_points_val.size()/num_points_per_node,M.Dim(0),&treen_points_val[0],false);
+  pvfmm::Matrix<RealType> Mcoeff(treen_points_val.size()/num_points_per_node,M.Dim(1));
+#pragma omp parallel for schedule(static)
+  for(int pid=0;pid<omp_p;pid++){
+    long a=(pid+0)*nodes.size()/omp_p;
+    long b=(pid+1)*nodes.size()/omp_p;
+    pvfmm::Matrix<RealType> Mi((b-a)*data_dof, Mvalue.Dim(1), &Mvalue[a*data_dof][0], false);
+    pvfmm::Matrix<RealType> Mo((b-a)*data_dof, Mcoeff.Dim(1), &Mcoeff[a*data_dof][0], false);
+    pvfmm::Matrix<RealType>::GEMM(Mo, Mi, M);
+    for(long j=0;j<b-a;j++){
+      memcpy(&(nodes[a+j]->ChebData()[0]), &Mo[j*data_dof][0], M.Dim(1)*data_dof*sizeof(RealType));
     }
-    n_next = tree.PostorderNxt(n_next);
   }
-  pvfmm::Profile::Toc();
 }
 
-// template<typename TreeType,
-//          typename AnalyticalFunctor>
-// void
-// ComputeTreeError(TreeType& tree,
-//                  AnalyticalFunctor anal_func,
-//                  std::vector<typename TreeType::Real_t> grid_points,
-//                  typename TreeType::Real_t& l_inf_error,
-//                  typename TreeType::Real_t& l_two_error) {
+// template<typename TreeType>
+// void CollectTreeGridPoints(TreeType& tree,
+//                            std::vector<typename TreeType::Real_t> node_pos,
+//                            std::vector<typename TreeType::Real_t>& grid_points) {
 //   typedef typename TreeType::Node_t NodeType;
 //   typedef typename TreeType::Real_t RealType;
 //   tbslas::SimConfig* sim_config = tbslas::SimConfigSingleton::Instance();
 
-//   pvfmm::Profile::Tic("ComputeTreeError",&sim_config->comm, false,5);
-//   int data_dof = 1;
+//   pvfmm::Profile::Tic("CollectGridPoints", &sim_config->comm, false,5);
+//   int cheb_deg = tree.RootNode()->ChebDeg();
 //   int sdim     = tree.Dim();
-//   int num_points = grid_points.size()/sdim;
 
-//   // analytical values
-//   std::vector<RealType> points_val_analytical(num_points*data_dof);
-//   anal_func(grid_points.data(), num_points, points_val_analytical.data());
+//   // compute chebychev points positions on the fly
+//   // std::vector<RealType> node_pos = pvfmm::cheb_nodes<RealType>(cheb_deg, sdim);
+//   int num_points_per_node        = node_pos.size()/sdim;
 
-//   // tree values
-//   std::vector<RealType> points_val(num_points*data_dof);
-//   tbslas::NodeFieldFunctor<RealType, TreeType> tree_func = tbslas::NodeFieldFunctor<RealType, TreeType>(&tree);
-//   tree_func(grid_points.data(), num_points, points_val.data());
-
-//   // local absolute error vector
-//   RealType local_max = 0;
-//   RealType local_sum_2 = 0;
-//   std::vector<RealType> abs_error(points_val.size());
-//   for (int i = 0; i < points_val.size(); i++) {
-//     abs_error[i] = std::abs(points_val[i] - points_val_analytical[i]);
-//     local_sum_2 += abs_error[i]*abs_error[i];
-//     if (abs_error[i] > local_max)
-//       local_max = abs_error[i];
+//   // compute total number of tree leaf nodes
+//   NodeType* n_next = tree.PostorderFirst();
+//   int num_leaf_nodes = 0;
+//   while (n_next != NULL) {
+//     if(!n_next->IsGhost() && n_next->IsLeaf())
+//       num_leaf_nodes++;
+//     n_next = tree.PostorderNxt(n_next);
 //   }
-//   size_t lcl_num_points = grid_points.size()/sdim;
-//   size_t glb_num_points = 0;
-//   MPI_Allreduce(&lcl_num_points, &glb_num_points, 1,
-//                 MPI_INT, MPI_SUM, *(tree.Comm()));
-//   // compute the error vector's norm
-//   RealType global_max;
-//   MPI_Allreduce(&local_max, &global_max, 1,
-//                 MPI_DOUBLE, MPI_MAX, *(tree.Comm()));
-//   RealType global_sum_2;
-//   MPI_Allreduce(&local_sum_2, &global_sum_2, 1,
-//                 MPI_DOUBLE, MPI_SUM, *(tree.Comm()));
-//   l_inf_error = global_max;
-//   l_two_error = sqrt(global_sum_2/glb_num_points);
+
+//   grid_points.resize(node_pos.size()*num_leaf_nodes);
+
+//   n_next = tree.PostorderFirst();
+//   while (n_next != NULL) {
+//     if(!n_next->IsGhost() && n_next->IsLeaf())
+//       break;
+//     n_next = tree.PostorderNxt(n_next);
+//   }
+
+//   int tree_node_counter = 0;
+//   while (n_next != NULL) {
+//     if (n_next->IsLeaf() && !n_next->IsGhost()) {
+//       RealType length      = static_cast<RealType>(std::pow(0.5, n_next->Depth()));
+//       RealType* node_coord = n_next->Coord();
+//       // scale the cheb points
+//       size_t shift = tree_node_counter*node_pos.size();
+//       for (int i = 0; i < num_points_per_node; i++) {
+//         grid_points[shift + i*sdim+0] = node_coord[0] + length * node_pos[i*sdim+0];
+//         grid_points[shift + i*sdim+1] = node_coord[1] + length * node_pos[i*sdim+1];
+//         grid_points[shift + i*sdim+2] = node_coord[2] + length * node_pos[i*sdim+2];
+//       }
+//       tree_node_counter++;
+//     }
+//     n_next = tree.PostorderNxt(n_next);
+//   }
 //   pvfmm::Profile::Toc();
 // }
 
@@ -761,6 +748,7 @@ MergeTree(TreeType& tree1,
     n2 = tree2.PreorderNxt(n2);
   }
 }
+
 
 }  // namespace tbslas
 #endif  // SRC_TREE_UTILS_TREE_H_

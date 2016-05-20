@@ -32,8 +32,8 @@
 #include <utils/reporter.h>
 #include <utils/fields.h>
 
-#include <tree/semilag_tree.h>
-#include <tree/utils_tree.h>
+#include <tree/tree_semilag.h>
+#include <tree/tree_utils.h>
 
 typedef pvfmm::Cheb_Node<double> Node_t;
 typedef pvfmm::MPI_Tree<Node_t> Tree_t;

@@ -15,7 +15,7 @@
 #include <fmm_tree.hpp>
 
 #include <utils/common.h>
-#include <tree/utils_tree.h>
+#include <tree/tree_utils.h>
 
 template <class FMM_Mat_t>
 void CheckFMMOutput(pvfmm::FMM_Tree<FMM_Mat_t>* mytree, const pvfmm::Kernel<typename FMM_Mat_t::Real_t>* mykernel);

@@ -156,21 +156,46 @@ void EvalNodesLocal(std::vector<typename Tree_t::Node_t*>& nodes,
   tbslas::SimConfig* sim_config = tbslas::SimConfigSingleton::Instance();
   size_t data_dof=nodes[0]->DataDOF();
 
+  //////////////////////////////////////////////////////////////
+  // COMPUTE MORTON IDs OF TARGET POINTS
+  //////////////////////////////////////////////////////////////
   static pvfmm::Vector<pvfmm::MortonId> trg_mid;
   trg_mid.Resize(trg_coord.Dim()/COORD_DIM);
+
 #pragma omp parallel for
-  for(size_t i=0;i<trg_mid.Dim();i++){
-    trg_mid[i] = pvfmm::MortonId(&trg_coord[i*COORD_DIM]);
+  for(size_t i=0; i < trg_mid.Dim(); i++) {
+    // trg_mid[i] = pvfmm::MortonId(&trg_coord[i*COORD_DIM]);
+    Real_t shift = 1.0/(1UL<<MAX_DEPTH);
+    trg_mid[i] = pvfmm::MortonId(( (trg_coord[i*COORD_DIM+0] == 1.0) && (sim_config->bc != pvfmm::Periodic) )?trg_coord[i*COORD_DIM+0]-shift:trg_coord[i*COORD_DIM+0],
+                                 ( (trg_coord[i*COORD_DIM+1] == 1.0) && (sim_config->bc != pvfmm::Periodic) )?trg_coord[i*COORD_DIM+1]-shift:trg_coord[i*COORD_DIM+1],
+                                 ( (trg_coord[i*COORD_DIM+2] == 1.0) && (sim_config->bc != pvfmm::Periodic) )?trg_coord[i*COORD_DIM+2]-shift:trg_coord[i*COORD_DIM+2]);
+
   }
 
+  //////////////////////////////////////////////////////////////
+  // DETERMINE THE CORRESPONDING NODE FOR EACH TARGET POINT
+  //////////////////////////////////////////////////////////////
   std::vector<size_t> part_indx(nodes.size()+1);
   part_indx[nodes.size()] = trg_mid.Dim();
+
 #pragma omp parallel for
   for (size_t j=0;j<nodes.size();j++) {
     part_indx[j]=std::lower_bound(&trg_mid[0],
                                   &trg_mid[0]+trg_mid.Dim(),
                                   nodes[j]->GetMortonId()) - &trg_mid[0];
   }
+
+  std::cout << "PART_INDX: " ;
+  for (int i = 0; i < part_indx.size(); i++) {
+    std::cout << " " << part_indx[i];
+  }
+  std::cout << std::endl;
+
+  std::cout << "PART_INDX_LB: " ;
+  for (int i = 0; i < part_indx.size()-1; i++) {
+    std::cout << " " << part_indx[i+1] - part_indx[i];
+  }
+  std::cout << std::endl;
 
 #pragma omp parallel for schedule(static)
   for (size_t pid=0;pid<omp_p;pid++) {
@@ -400,9 +425,13 @@ void EvalTree(Tree_t* tree,
   // LOCAL SORT WITH TRACKING THE INDICES
   //////////////////////////////////////////////////
   pvfmm::Profile::Tic("LclHQSort", &sim_config->comm, false, 5);
+  Real_t shift = 1.0/(1UL<<MAX_DEPTH);
 #pragma omp parallel for
   for(size_t i = 0; i < N; i++) {
-    iarray_trg_mid_sorted[i].key  = pvfmm::MortonId(&trg_coord_[i*COORD_DIM]);
+    iarray_trg_mid_sorted[i].key  = pvfmm::MortonId(( (trg_coord_[i*COORD_DIM+0] == 1.0) && (sim_config->bc != pvfmm::Periodic) )?trg_coord_[i*COORD_DIM+0]-shift:trg_coord_[i*COORD_DIM+0],
+                                                    ( (trg_coord_[i*COORD_DIM+1] == 1.0) && (sim_config->bc != pvfmm::Periodic) )?trg_coord_[i*COORD_DIM+1]-shift:trg_coord_[i*COORD_DIM+1],
+                                                    ( (trg_coord_[i*COORD_DIM+2] == 1.0) && (sim_config->bc != pvfmm::Periodic) )?trg_coord_[i*COORD_DIM+2]-shift:trg_coord_[i*COORD_DIM+2]);
+    // iarray_trg_mid_sorted[i].key  = pvfmm::MortonId(&trg_coord_[i*COORD_DIM]);
     iarray_trg_mid_sorted[i].data = i;
   }
 
@@ -463,7 +492,11 @@ void EvalTree(Tree_t* tree,
   trg_mid_outside.Resize(trg_cnt_outside);
 #pragma omp parallel for
   for (size_t i = 0; i < trg_cnt_outside; i++) {
-    trg_mid_outside[i] = pvfmm::MortonId(&trg_coord_outside[i*COORD_DIM]);
+    trg_mid_outside[i] = pvfmm::MortonId(( (trg_coord_outside[i*COORD_DIM+0] == 1.0) && (sim_config->bc != pvfmm::Periodic) )?trg_coord_outside[i*COORD_DIM+0]-shift:trg_coord_outside[i*COORD_DIM+0],
+                                         ( (trg_coord_outside[i*COORD_DIM+1] == 1.0) && (sim_config->bc != pvfmm::Periodic) )?trg_coord_outside[i*COORD_DIM+1]-shift:trg_coord_outside[i*COORD_DIM+1],
+                                         ( (trg_coord_outside[i*COORD_DIM+2] == 1.0) && (sim_config->bc != pvfmm::Periodic) )?trg_coord_outside[i*COORD_DIM+2]-shift:trg_coord_outside[i*COORD_DIM+2]);
+
+    // trg_mid_outside[i] = pvfmm::MortonId(&trg_coord_outside[i*COORD_DIM]);
   }
   // pvfmm::Profile::Toc();
 
@@ -588,6 +621,37 @@ void EvalTree(Tree_t* tree,
 
   // pvfmm::Profile::Toc();  // LOCAL SORT
 
+  //////////////////////////////////////////////////
+  // PRINT TARGET COUNTS INFO
+  //////////////////////////////////////////////////
+  // if (sim_config->profile) {
+  //   size_t sbuff[4] = {trg_cnt_inside,
+  //                      trg_cnt_outside,
+  //                      trg_value_outsider.Dim()/data_dof,
+  //                      trg_cnt_others};
+  //   size_t* rbuff = (size_t *)malloc(np*4*sizeof(size_t));
+  //   MPI_Gather(sbuff, 4, pvfmm::par::Mpi_datatype<size_t>::value(),
+  //              rbuff, 4, pvfmm::par::Mpi_datatype<size_t>::value(),
+  //              0, *tree->Comm());
+  //   if (myrank == 0) {
+  //     std::ostringstream os;
+  //     os << "TRG_CNT_IN_TOT: ";
+  //     for (int i = 0 ; i < np; i++) {
+  //       size_t* data = &rbuff[i*4];
+  //       std::cout
+  //           << " PROC: " << i
+  //           << " TRG_CNT_IN: "     << data[0]
+  //           << " TRG_CNT_OUT: "    << data[1]
+  //           << " TRG_CNT_OTHRS_RCV: "  << data[2]
+  //           << " TRG_CNT_OTHRS_SND: "  << data[3]
+  //           << std::endl;
+  //       os << data[0] + data[3] << " ";
+  //     }
+  //     std::cout << os.str() << std::endl;
+  //   }
+  //   delete rbuff;
+  // }
+
   //////////////////////////////////////////////////////////////
   // GLOBAL SORT
   //////////////////////////////////////////////////////////////
@@ -674,6 +738,12 @@ class NodeFieldFunctor {
     pvfmm::Profile::Toc();
   }
 
+  void operator () (const real_t* points_pos,
+                    int num_points,
+                    real_t time,
+                    real_t* out) {
+    (*this)(points_pos, num_points, out);
+  }
  private:
   NodeType* node_;
 };
