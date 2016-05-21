@@ -185,17 +185,17 @@ void EvalNodesLocal(std::vector<typename Tree_t::Node_t*>& nodes,
                                   nodes[j]->GetMortonId()) - &trg_mid[0];
   }
 
-  std::cout << "PART_INDX: " ;
-  for (int i = 0; i < part_indx.size(); i++) {
-    std::cout << " " << part_indx[i];
-  }
-  std::cout << std::endl;
+  // std::cout << "PART_INDX: " ;
+  // for (int i = 0; i < part_indx.size(); i++) {
+  //   std::cout << " " << part_indx[i];
+  // }
+  // std::cout << std::endl;
 
-  std::cout << "PART_INDX_LB: " ;
-  for (int i = 0; i < part_indx.size()-1; i++) {
-    std::cout << " " << part_indx[i+1] - part_indx[i];
-  }
-  std::cout << std::endl;
+  // std::cout << "PART_INDX_LB: " ;
+  // for (int i = 0; i < part_indx.size()-1; i++) {
+  //   std::cout << " " << part_indx[i+1] - part_indx[i];
+  // }
+  // std::cout << std::endl;
 
 #pragma omp parallel for schedule(static)
   for (size_t pid=0;pid<omp_p;pid++) {

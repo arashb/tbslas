@@ -244,6 +244,7 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
   if (sim_config->vtk_save_rate) {
     tvel_curr.Write2File(tbslas::GetVTKFileName(0, "velocity").c_str(), cheb_deg);
   }
+  tbslas::NodeFieldFunctor<double, FMM_Tree_t> tvel_func = tbslas::NodeFieldFunctor<double,FMM_Tree_t>(&tvel_curr);
 
   // =========================================================================
   // RUN
@@ -293,14 +294,15 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
 
     // Write2File
     if (sim_config->vtk_save_rate) {
-      tree->Write2File(tbslas::GetVTKFileName(timestep, sim_config->vtk_filename_variable).c_str(), sim_config->vtk_order);
+      tree->Write2File(tbslas::GetVTKFileName(timestep, sim_config->vtk_filename_variable).c_str(),
+                       sim_config->vtk_order);
     }
 
     // **********************************************************************
     // SOLVE ADVECTION: SEMI-LAGRANGIAN
     // **********************************************************************
     pvfmm::Profile::Tic("SLM", &sim_config->comm, false, 5);
-    tbslas::SolveSemilagInSitu(tvel_curr,
+    tbslas::SolveSemilagInSitu(tvel_func,
                                *tree,
                                1,
                                TBSLAS_DT,
@@ -314,7 +316,8 @@ void RunAdvectDiff(int test_case, size_t N, size_t M, bool unif, int mult_order,
 
     //Write2File
     if (sim_config->vtk_save_rate) {
-      tree->Write2File(tbslas::GetVTKFileName(timestep+1, sim_config->vtk_filename_variable).c_str(), sim_config->vtk_order);
+      tree->Write2File(tbslas::GetVTKFileName(timestep+1, sim_config->vtk_filename_variable).c_str(),
+                       sim_config->vtk_order);
     }
     tcurr += TBSLAS_DT;
 

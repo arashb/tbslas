@@ -34,7 +34,6 @@ class FieldSetFunctor {
       field_set_elems_(field_set_elems),
       field_set_times_(field_set_times) {
     typedef typename Tree_t::Node_t Node_t;
-
     tbslas::SimConfig* sim_config = tbslas::SimConfigSingleton::Instance();
 
     //////////////////////////////////////////////////////////////////////
@@ -56,9 +55,9 @@ class FieldSetFunctor {
                     int num_points,
                     Real_t query_time,
                     Real_t* out) {
-    //////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////
     // INTERPOLATE IN SPACE FOR ALL QUERY POINTS IN CORRESPONDING TIME STEPS
-    //////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////
     std::vector<std::vector<Real_t>*> field_set_points_val;
     for (int i = 0 ; i < field_set_elems_.size(); i++) {
       std::vector<Real_t>* pPoints_val = new std::vector<Real_t>(num_points*data_dof_);
@@ -85,6 +84,18 @@ class FieldSetFunctor {
     for (int i = 0 ; i < field_set_elems_.size(); i++)
       delete field_set_points_val[i];
   }
+
+  void update(Tree_t* new_tree, Real_t time) {
+    // POP FRONT (DEALLOCATE AND REMOVE) THE FIRST TREE IN THE QUEUE
+    delete field_set_elems_[0];
+    field_set_elems_.erase(field_set_elems_.begin());
+    field_set_times_.erase(field_set_times_.begin());
+
+    // PUSH BACK THE NEW TREE
+    field_set_times_.push_back(time);
+    field_set_elems_.push_back(new_tree);
+  }
+
 
  private:
   std::vector<Real_t>  field_set_times_;

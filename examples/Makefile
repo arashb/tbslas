@@ -28,6 +28,7 @@ INCDIR = ./include
 TARGET_BIN = \
        $(BINDIR)/advection  \
        $(BINDIR)/advection-inverse  \
+       $(BINDIR)/advtv  \
        $(BINDIR)/diffusion \
        $(BINDIR)/advdiff \
        $(BINDIR)/advdiff-ss \
