@@ -50,9 +50,9 @@ get_exp_alpha_field(const real_t* points_pos,
 ///////////////////////////////////
 // TAYLOR-GREEN VORTEX
 ///////////////////////////////////
-// u = A*cos(a*x)sin(b*y)sin(c*z)
-// v = B*sin(a*x)cos(b*y)sin(c*z)
-// w = C*sin(a*x)sin(b*y)cos(c*z)
+// v_x = A*cos(a*x)sin(b*y)sin(c*z)
+// v_y = B*sin(a*x)cos(b*y)sin(c*z)
+// v_z = C*sin(a*x)sin(b*y)cos(c*z)
 ///////////////////////////////////
 template<typename real_t>
 void
@@ -77,7 +77,6 @@ get_taylor_green_field(const real_t* points_pos,
 ///////////////////////////////////
 // HOPF FIELD
 ///////////////////////////////////
-//
 ///////////////////////////////////
 template<typename real_t>
 void
@@ -113,12 +112,11 @@ get_vorticity_field(const real_t* points_pos,
                     int num_points,
                     real_t* points_values) {
   real_t omega       = 1;
-  real_t time_factor = 1;//+sin(2*3.14159*time);
   for (int i = 0; i < num_points; i++) {
     points_values[i*3+0] =
-        omega*(0.5 - points_pos[i*sdim+1])*time_factor;
+        omega*(0.5 - points_pos[i*sdim+1]);
     points_values[i*3+1] =
-        omega*(points_pos[i*sdim+0] - 0.5)*time_factor;
+        omega*(points_pos[i*sdim+0] - 0.5);
     points_values[i*3+2] = 0;
   }
 }
@@ -126,19 +124,26 @@ get_vorticity_field(const real_t* points_pos,
 ///////////////////////////////////
 // TIME DEPENDENT VORTICITY FIELD
 ///////////////////////////////////
+// v_x = omega*(0.5 - y)*(1+sin(freq*t))
+// v_y = omega*(x - o.5)*(1+sin(freq*t))
+// v_z = 0
+///////////////////////////////////
 template<typename real_t, int sdim>
 void
 get_vorticity_field_tv(const real_t* points_pos,
                        int num_points,
-                       real_t time,
-                       real_t* points_values) {
-  real_t omega       = 1;
-  real_t time_factor = 1+sin(2*PI*time);
+                       real_t t,
+                       real_t* points_values,
+                       real_t omega = 1,
+                       real_t freq = 2*PI
+                       ) {
+
+  real_t t_factor = 1+sin(freq*t);
   for (int i = 0; i < num_points; i++) {
     points_values[i*3+0] = //1;
-        omega*(0.5 - points_pos[i*sdim+1])*time_factor;
+        omega*(0.5 - points_pos[i*sdim+1])*t_factor;
     points_values[i*3+1] = //2;
-        omega*(points_pos[i*sdim+0] - 0.5)*time_factor;
+        omega*(points_pos[i*sdim+0] - 0.5)*t_factor;
     points_values[i*3+2] = //3;
         0;
   }

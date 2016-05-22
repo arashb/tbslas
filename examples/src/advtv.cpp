@@ -44,7 +44,7 @@ typedef pvfmm::MPI_Tree<Node_t> Tree_t;
 typedef tbslas::MetaData<std::string,
                          std::string,
                          std::string> MetaData_t;
-double tcurr = 0;
+double tcurr = 0.0;
 
 void (*fn_vel)(const double* , int , double*)=NULL;
 void (*fn_con)(const double* , int , double*)=NULL;
@@ -83,7 +83,7 @@ int main (int argc, char **argv) {
     pvfmm::BoundaryType bc;
     switch(test) {
       case 1:
-        fn_vel = tbslas::get_vorticity_field<double,3>;
+        fn_vel = get_vorticity_field_wrapper<double>;
         fn_con = get_gaussian_field_atT<double,3>;
         // fn_con = get_gaussian_field_cylinder_atT<double,3>;
         bc = pvfmm::FreeSpace;
@@ -137,7 +137,7 @@ int main (int argc, char **argv) {
         break;
       case 10:
         fn_vel = get_vorticity_field_tv_wrapper<double>;
-        fn_con = get_gaussian_field_atT<double,3>;
+        fn_con = get_gaussian_field_tv_wrapper<double>;
         // fn_con = get_gaussian_field_cylinder_atT<double,3>;
         bc = pvfmm::FreeSpace;
         // bc = pvfmm::Periodic;
@@ -193,7 +193,7 @@ int main (int argc, char **argv) {
     // =========================================================================
     // INIT THE CONCENTRATION TREE
     // =========================================================================
-    tcurr = 0;
+    tcurr = 0.0;
     Tree_t tcon(comm);
     tbslas::ConstructTree<Tree_t>(sim_config->tree_num_point_sources,
                                   sim_config->tree_num_points_per_octanct,
@@ -425,7 +425,7 @@ int main (int argc, char **argv) {
     // TODO: deallocate the
 
     //Output Profiling results.
-    pvfmm::Profile::print(&comm);
+    // pvfmm::Profile::print(&comm);
   }
 
   // Shut down MPI
