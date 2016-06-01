@@ -24,7 +24,7 @@ def conv_temporal():
     mpi_num_procs, omp_num_threads = utils.parse_args()
     # prog = 'field-set'
     prog = 'advtv'
-    num_steps = 8
+    num_steps = 10
 
     ##############################
     # TREE TOLERANCE
@@ -227,23 +227,23 @@ def conv_temporal_spatial_long_time():
     nt            = omp_num_threads
 
     # UNIFORM
-    dp_list = [5    , 6    , 7    ]#, 5     , 6     , 7    ]
-    cq_list = [3    , 3    , 3    ]#, 3     , 3     , 3    ]
-    ci_list = [False , False , False ]#, False , False , False]
-    uf_list = [2    , 2    , 2    ]#, 2     , 2     , 2    ]
-    dt_list = [dt   , dt/2 , dt/4 ]#, dt    , dt/2  , dt/4 ]
-    tn_list = [100  , 200  , 400  ]#, 100   , 200   , 400  ]
-    num_steps = len(dp_list)
-    tl_list = [1e-30         for cnt in range(0,num_steps)]
+    # dp_list = [5    , 6    , 7    ]#, 5     , 6     , 7    ]
+    # cq_list = [3    , 3    , 3    ]#, 3     , 3     , 3    ]
+    # ci_list = [False , False , False ]#, False , False , False]
+    # uf_list = [2    , 2    , 2    ]#, 2     , 2     , 2    ]
+    # dt_list = [dt   , dt/2 , dt/4 ]#, dt    , dt/2  , dt/4 ]
+    # tn_list = [100  , 200  , 400  ]#, 100   , 200   , 400  ]
+    # num_steps = len(dp_list)
+    # tl_list = [1e-30         for cnt in range(0,num_steps)]
 
     # ADAPTIVE
-    # tl_list = [1e-02, 1e-03, 1e-04, 1e-02 , 1e-03 , 1e-04]
-    # dp_list = [15   , 15   , 15   , 15    , 15    , 15   ]
-    # cq_list = [3    , 3    , 3    , 3     , 3     , 3    ]
-    # ci_list = [True , True , True , False , False , False]
-    # uf_list = [2    , 2    , 2    , 2     , 2     , 2    ]
-    # dt_list = [dt   , dt/2 , dt/4 , dt    , dt/2  , dt/4 ]
-    # tn_list = [100  , 200  , 400  , 100   , 200   , 400  ]
+    tl_list = [1e-05, 1e-06, 1e-07, 1e-8]#, 1e-02 , 1e-03 , 1e-04]
+    dp_list = [15   , 15   , 15   , 15  ]#, 15    , 15    , 15   ]
+    cq_list = [14   , 14   , 14   , 14  ]#, 3     , 3     , 3    ]
+    ci_list = [True , True , True , True]#, False , False , False]
+    uf_list = [2    , 2    , 2    , 2   ]#, 2     , 2     , 2    ]
+    dt_list = [dt/4 , dt/8 , dt/16 , dt/32]#, dt    , dt/2  , dt/4 ]
+    tn_list = [400  , 800  , 1600  , 3200]#, 100   , 200   , 400  ]
 
     num_steps = len(dp_list)
     pn_list = [num_pnts      for cnt in range(0,num_steps)]

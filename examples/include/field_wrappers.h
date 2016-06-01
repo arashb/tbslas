@@ -99,18 +99,18 @@ get_gaussian_field_tv_wrapper(const real_t* points_pos,
   real_t freq = 2*PI;
 
   // initial positions
-  real_t xc_i      = 0.6;
-  real_t yc_i      = 0.5;
-  real_t zc_i      = 0.5;
+  real_t xci      = 0.6;
+  real_t yci      = 0.5;
+  real_t zci      = 0.5;
 
   // compute the time integral
-  real_t theta0 = atan((yc_i-0.5)/(xc_i-0.5));
-  real_t r      = sqrt((xc_i-0.5)*(xc_i-0.5) + (yc_i-0.5)*(yc_i-0.5));
-  real_t theta  = theta0 + omega*(tcurr - (cos(freq*tcurr) - 1)/freq);
+  real_t theta0 = atan((yci-0.5)/(xci-0.5));
+  real_t r      = sqrt((xci-0.5)*(xci-0.5) + (yci-0.5)*(yci-0.5));
+  real_t theta  = theta0 + omega*(tcurr - tcurr_init - (cos(freq*tcurr) - cos(freq*tcurr_init))/freq);
 
   real_t xc = 0.5+r*cos(theta);
   real_t yc = 0.5+r*sin(theta);
-  real_t zc = zc_i;
+  real_t zc = zci;
 
   const real_t sigma_x = 0.06;
   const real_t sigma_y = 0.06;
@@ -128,6 +128,40 @@ get_gaussian_field_tv_wrapper(const real_t* points_pos,
                                           sigma_y,
                                           sigma_z );
 
+}
+
+template <class real_t>
+void get_diffusion_kernel_tv_wrapper(const real_t* coord,
+                                     int n,
+                                     real_t* out) {
+  const real_t amp = 1e-2;
+
+  real_t omega = 1;
+  real_t freq = 2*PI;
+
+  // initial positions
+  real_t xci      = 0.6;
+  real_t yci      = 0.5;
+  real_t zci      = 0.5;
+
+  // compute the time integral
+  real_t theta0 = atan((yci-0.5)/(xci-0.5));
+  real_t r      = sqrt((xci-0.5)*(xci-0.5) + (yci-0.5)*(yci-0.5));
+  real_t theta  = theta0 + omega*(tcurr - tcurr_init - (cos(freq*tcurr) - cos(freq*tcurr_init))/freq);
+
+  real_t xc = 0.5+r*cos(theta);
+  real_t yc = 0.5+r*sin(theta);
+  real_t zc = zci;
+
+  tbslas::diffusion_kernel(coord,
+                           n,
+                           out,
+                           TBSLAS_DIFF_COEFF,
+                           tcurr,
+                           amp,
+                           xc,
+                           yc,
+                           zc);
 }
 
 template<typename real_t, int sdim>

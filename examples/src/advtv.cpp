@@ -44,6 +44,8 @@ typedef pvfmm::MPI_Tree<Node_t> Tree_t;
 typedef tbslas::MetaData<std::string,
                          std::string,
                          std::string> MetaData_t;
+
+double tcurr_init = 0.0;
 double tcurr = 0.0;
 
 void (*fn_vel)(const double* , int , double*)=NULL;
@@ -86,8 +88,8 @@ int main (int argc, char **argv) {
         fn_vel = get_vorticity_field_wrapper<double>;
         fn_con = get_gaussian_field_atT<double,3>;
         // fn_con = get_gaussian_field_cylinder_atT<double,3>;
-        bc = pvfmm::FreeSpace;
-        // bc = pvfmm::Periodic;
+        // bc = pvfmm::FreeSpace;
+        bc = pvfmm::Periodic;
         break;
       case 2:
         fn_vel = tbslas::get_vorticity_field<double,3>;
@@ -139,8 +141,8 @@ int main (int argc, char **argv) {
         fn_vel = get_vorticity_field_tv_wrapper<double>;
         fn_con = get_gaussian_field_tv_wrapper<double>;
         // fn_con = get_gaussian_field_cylinder_atT<double,3>;
-        bc = pvfmm::FreeSpace;
-        // bc = pvfmm::Periodic;
+        // bc = pvfmm::FreeSpace;
+        bc = pvfmm::Periodic;
         break;
 
     }
@@ -250,10 +252,9 @@ int main (int argc, char **argv) {
       // vel_noct_min = vel_noct;
     }
 
-    int timestep = 1;
     Tree_t* tvel_new;
 
-    for (; timestep < sim_config->total_num_timestep+1; timestep++) {
+    for (int timestep = 1; timestep < sim_config->total_num_timestep+1; timestep++) {
 
       // =====================================================================
       // (SEMI) MERGE TO FIX IMBALANCE
@@ -316,8 +317,6 @@ int main (int argc, char **argv) {
       // =====================================================================
       // Update velocity functor
       // =====================================================================
-      //TODO: ONLY FOR STEADY VELOCITY TREES
-      // tvel.RefineTree();
       pvfmm::Profile::Tic("UpdateVel", &sim_config->comm, false, 5);
       tcurr = (timestep+2)*sim_config->dt;
       tvel_new  = new Tree_t(comm);
@@ -331,7 +330,7 @@ int main (int argc, char **argv) {
                                     fn_vel,
                                     3,
                                     *tvel_new);
-      if (sim_config->vtk_save_rate) {
+      if (sim_config->vtk_save_rate && ((timestep+2) % sim_config->vtk_save_rate == 0)) {
         tvel_new->Write2File(tbslas::GetVTKFileName((timestep+2), "vel").c_str(),
                          sim_config->vtk_order);
       }
@@ -425,7 +424,7 @@ int main (int argc, char **argv) {
     // TODO: deallocate the
 
     //Output Profiling results.
-    // pvfmm::Profile::print(&comm);
+    pvfmm::Profile::print(&comm);
   }
 
   // Shut down MPI

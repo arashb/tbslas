@@ -32,6 +32,7 @@ TARGET_BIN = \
        $(BINDIR)/diffusion \
        $(BINDIR)/advdiff \
        $(BINDIR)/advdiff-ss \
+       $(BINDIR)/advdiff-ss-tv \
        $(BINDIR)/merge \
        $(BINDIR)/cubic \
        $(BINDIR)/traj \

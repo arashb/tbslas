@@ -27,6 +27,7 @@ def generate_command_args(tl_list,\
                           num_steps):
 
     EXEC = os.path.join(utils.TBSLAS_EXAMPLES_BIN_DIR, "advdiff-ss")
+    # EXEC = os.path.join(utils.TBSLAS_EXAMPLES_BIN_DIR, "advdiff-ss-tv")
 
     # generate a dictionary data type of commands
     cmd_args = OrderedDict()
@@ -60,7 +61,8 @@ def conv_temporal():
 
     # TIME RESOLUTION
     dt_factor = 0.5
-    dt_init   = 0.1/16#0.5**5
+    # dt_init   = 0.1/16#0.5**5
+    dt_init   = 0.5**0
     dt_list   = [dt_init*math.pow(dt_factor,float(cnt)) for cnt in range(0,num_steps)]
 
     # NUM TIME STEPS
@@ -169,24 +171,46 @@ def conv_temporal_spatial_long_time():
     ############################################################################
     mpi_num_procs, omp_num_threads = utils.parse_args()
     prog          = 'advdiff-ss'
+    # prog          = 'advdiff-ss-tv'
     dt            = 0.0628
-    vtk_save_rate = 10
+    vtk_save_rate = 0
     mrg_type      = 3
     np            = mpi_num_procs
     num_pnts      = 8**(math.floor(math.log(np,8)+1))
     nt            = omp_num_threads
 
     # UNIFORM
-    dp_list = [5    , 6    , 7    , 5     , 6      , 7    ]
-    cq_list = [3    , 3    , 3    , 3     , 3      , 3    ]
-    ci_list = [True , True , True , False , False  , False]
-    uf_list = [2    , 2    , 2    , 2     , 2      , 2    ]
-    dt_list = [dt   , dt/2 , dt/4 , dt    , dt/2   , dt/4 ]
-    tn_list = [100  , 200  , 400  , 100   , 200    , 400  ]
+    # dp_list = [5    , 6    , 7    ]
+    # cq_list = [3    , 3    , 3    ]
+    # ci_list = [True , True , True ]
+    # uf_list = [2    , 2    , 2    ]
+    # dt_list = [dt   , dt/2 , dt/4 ]
+    # tn_list = [100  , 200  , 400  ]
+    # num_steps = len(dp_list)
+    # tl_list = [1e-30         for cnt in range(0,num_steps)]
+
+    # ADAPTIVE
+    # LOW ORDER
+    # tl_list = [1e-02, 1e-03, 1e-04 ]
+    # dp_list = [15   , 15   , 15    ]
+    # cq_list = [3    , 3    , 3     ]
+    # ci_list = [True , True , True  ]
+    # uf_list = [2    , 2    , 2     ]
+    # dt_list = [dt   , dt/2 , dt/4  ]
+    # tn_list = [100  , 200  , 400   ]
+
+    # HIGH ORDER
+    tl_list = [1e-05, 1e-06, 1e-07, 1e-8   ]
+    dp_list = [15   , 15   , 15   , 15     ]
+    cq_list = [14   , 14   , 14   , 14     ]
+    ci_list = [True , True , True , True   ]
+    uf_list = [2    , 2    , 2    , 2      ]
+    dt_list = [dt/4 , dt/8 , dt/16, dt/32 ]
+    tn_list = [400  , 800  , 1600 , 3200  ]
+
 
     num_steps = len(dp_list)
     pn_list = [num_pnts      for cnt in range(0,num_steps)]
-    tl_list = [1e-30         for cnt in range(0,num_steps)]
     np_list = [np            for cnt in range(0,num_steps)]
     nt_list = [nt            for cnt in range(0,num_steps)]
     mg_list = [mrg_type      for cnt in range(0,num_steps)]
@@ -220,10 +244,9 @@ if __name__ == '__main__':
     if not os.path.exists(os.environ['TBSLAS_RESULT_DIR']):
         os.makedirs(os.environ['TBSLAS_RESULT_DIR'])
 
-    conv_temporal()
+    # conv_temporal()
     # conv_spatial()
     # conv_temporal_spatial()
-    # conv_temporal_spatial_long_time()
+    conv_temporal_spatial_long_time()
 
     os.environ['TBSLAS_RESULT_DIR'] = tbslas_dir
-
