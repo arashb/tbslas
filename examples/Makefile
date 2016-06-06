@@ -29,6 +29,7 @@ TARGET_BIN = \
        $(BINDIR)/advection  \
        $(BINDIR)/advection-inverse  \
        $(BINDIR)/advtv  \
+       $(BINDIR)/advtvextrap  \
        $(BINDIR)/diffusion \
        $(BINDIR)/advdiff \
        $(BINDIR)/advdiff-ss \

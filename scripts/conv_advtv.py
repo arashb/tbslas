@@ -23,7 +23,7 @@ def conv_temporal():
     ############################################################################
     mpi_num_procs, omp_num_threads = utils.parse_args()
     # prog = 'field-set'
-    prog = 'advtv'
+    prog = 'advtvextrap'
     num_steps = 10
 
     ##############################
@@ -219,6 +219,7 @@ def conv_temporal_spatial_long_time():
     ############################################################################
     mpi_num_procs, omp_num_threads = utils.parse_args()
     prog          = 'advtv'
+    prog          = 'advtvextrap'
     dt            = 0.0628
     vsr           = 0
     mrg_type      = 3
@@ -237,13 +238,23 @@ def conv_temporal_spatial_long_time():
     # tl_list = [1e-30         for cnt in range(0,num_steps)]
 
     # ADAPTIVE
-    tl_list = [1e-05, 1e-06, 1e-07, 1e-8]#, 1e-02 , 1e-03 , 1e-04]
-    dp_list = [15   , 15   , 15   , 15  ]#, 15    , 15    , 15   ]
-    cq_list = [14   , 14   , 14   , 14  ]#, 3     , 3     , 3    ]
-    ci_list = [True , True , True , True]#, False , False , False]
-    uf_list = [2    , 2    , 2    , 2   ]#, 2     , 2     , 2    ]
-    dt_list = [dt/4 , dt/8 , dt/16 , dt/32]#, dt    , dt/2  , dt/4 ]
-    tn_list = [400  , 800  , 1600  , 3200]#, 100   , 200   , 400  ]
+    # LOW ORDER
+    tl_list = [1e-02, 1e-03, 1e-04 ]
+    dp_list = [15   , 15   , 15    ]
+    cq_list = [3    , 3    , 3     ]
+    ci_list = [True , True , True  ]
+    uf_list = [2    , 2    , 2     ]
+    dt_list = [dt   , dt/2 , dt/4  ]
+    tn_list = [100  , 200  , 400   ]
+
+    # HIGH ORDER
+    # tl_list = [1e-05, 1e-06, 1e-07, 1e-8]#, 1e-02 , 1e-03 , 1e-04]
+    # dp_list = [15   , 15   , 15   , 15  ]#, 15    , 15    , 15   ]
+    # cq_list = [14   , 14   , 14   , 14  ]#, 3     , 3     , 3    ]
+    # ci_list = [True , True , True , True]#, False , False , False]
+    # uf_list = [2    , 2    , 2    , 2   ]#, 2     , 2     , 2    ]
+    # dt_list = [dt/4 , dt/8 , dt/16 , dt/32]#, dt    , dt/2  , dt/4 ]
+    # tn_list = [400  , 800  , 1600  , 3200]#, 100   , 200   , 400  ]
 
     num_steps = len(dp_list)
     pn_list = [num_pnts      for cnt in range(0,num_steps)]
@@ -282,9 +293,9 @@ if __name__ == '__main__':
     if not os.path.exists(os.environ['TBSLAS_RESULT_DIR']):
         os.makedirs(os.environ['TBSLAS_RESULT_DIR'])
 
-    conv_temporal()
+    # conv_temporal()
     # conv_spatial()
     # conv_temporal_spatial()
-    # conv_temporal_spatial_long_time()
+    conv_temporal_spatial_long_time()
 
-    os.environ['TBSLAS_RESULT_DIR'] = tbslas_dir
+    os.environ['TBSLAS_RESULT_DIR'] = tbslas_dirl

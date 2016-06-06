@@ -19,25 +19,44 @@
 
 namespace tbslas {
 
-//**********************************************************************
-// INTEFACE FUNCTIONS USING FUNCTORS
-//**********************************************************************
-template<typename real_t, typename FieldFunctor>
-void
-IntegrateRK2(FieldFunctor field_fn,
-             const std::vector<real_t>& xinit,
-             const real_t tinit,
-             const real_t dt,
-             std::vector<real_t>& xsol);
+  //**********************************************************************
+  // INTEFACE FUNCTIONS USING FUNCTORS
+  //**********************************************************************
+  template<typename real_t, typename FieldFunctor>
+    void
+    IntegrateRK2(FieldFunctor field_fn,
+		 const std::vector<real_t>& xinit,
+		 const real_t tinit,
+		 const real_t dt,
+		 std::vector<real_t>& xsol);
 
-template<typename real_t, typename Functor>
-void
-ComputeTrajRK2(Functor field_fn,
-               const std::vector<real_t>& xinit,
-               const real_t tinit,
-               const real_t tfinal,
-               const int num_rk_step,
-               std::vector<real_t>& xsol);
+  template<typename real_t, typename Functor>
+    void
+    ComputeTrajRK2(Functor field_fn,
+		   const std::vector<real_t>& xinit,
+		   const real_t tinit,
+		   const real_t tfinal,
+		   const int num_rk_step,
+		   std::vector<real_t>& xsol);
+
+  template<typename real_t, typename FieldFunctor, typename ExtrapFunctor>
+    void
+    IntegrateRK2(FieldFunctor field_fn,
+		 ExtrapFunctor extrap_fn,
+		 const std::vector<real_t>& xinit,
+		 const real_t tinit,
+		 const real_t dt,
+		 std::vector<real_t>& xsol);
+
+  template<typename real_t, typename FieldFunctor, typename ExtrapFunctor>
+    void
+    ComputeTrajRK2(FieldFunctor field_fn,
+		   ExtrapFunctor extrap_fn,
+		   const std::vector<real_t>& xinit,
+		   const real_t tinit,
+		   const real_t tfinal,
+		   const int num_rk_step,
+		   std::vector<real_t>& xsol);
 
 }  // namespace tbslas
 
