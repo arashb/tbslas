@@ -34,6 +34,7 @@ TARGET_BIN = \
        $(BINDIR)/advdiff \
        $(BINDIR)/advdiff-ss \
        $(BINDIR)/advdiff-ss-tv \
+       $(BINDIR)/advdiff-ss-tv-extrap \
        $(BINDIR)/merge \
        $(BINDIR)/cubic \
        $(BINDIR)/traj \
