@@ -18,18 +18,33 @@
 
 namespace tbslas {
 
-template<typename real_t,
-         typename VFieldFunctor,
-         typename CFieldFunctor>
-void
-SolveSemilagRK2(VFieldFunctor vel_evaluator,
-                CFieldFunctor con_evaluator,
-                const std::vector<real_t>& points_pos,
-                const int sdim,
-                const int timestep,
-                const real_t dt,
-                const int num_rk_step,
-                std::vector<real_t>& points_vals);
+  template<typename real_t,
+    typename VFieldFunctor,
+    typename CFieldFunctor>
+    void
+    SolveSemilagRK2(VFieldFunctor vel_evaluator,
+		    CFieldFunctor con_evaluator,
+		    const std::vector<real_t>& points_pos,
+		    const int sdim,
+		    const int timestep,
+		    const real_t dt,
+		    const int num_rk_step,
+		    std::vector<real_t>& points_vals);
+
+  template<typename real_t,
+    typename VFieldFunctor,
+    typename VExtrapFunctor,
+    typename CFieldFunctor>
+    void
+    SolveSemilagRK2(VFieldFunctor vel_evaluator,
+		    VExtrapFunctor extrap_evaluator,
+		    CFieldFunctor con_evaluator,
+		    const std::vector<real_t>& points_pos,
+		    const int sdim,
+		    const int timestep,
+		    const real_t dt,
+		    const int num_rk_step,
+		    std::vector<real_t>& points_vals);
 
 }  // namespace tbslas
 

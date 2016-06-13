@@ -178,8 +178,8 @@ int main (int argc, char **argv) {
     // =========================================================================
     // TEST CASE
     // =========================================================================
-    int max_depth_vel=0;
-    int max_depth_con=0;
+    int max_depth_vel = 0;
+    int max_depth_con = 0;
     pvfmm::BoundaryType bc;
     switch(test) {
       // case 1:
@@ -252,6 +252,7 @@ int main (int argc, char **argv) {
                                   fn_vel,
                                   3,
                                   tvel);
+    tbslas::NodeFieldFunctor<double,Tree_t> tvel_func = tbslas::NodeFieldFunctor<double,Tree_t>(&tvel);
 
     // =========================================================================
     // INIT THE CONCENTRATION TREE
@@ -336,7 +337,7 @@ int main (int argc, char **argv) {
           // SOLVE SEMILAG
           // =====================================================================
           pvfmm::Profile::Tic("SLM", &sim_config->comm, false, 5);
-          tbslas::SolveSemilagInSitu(tvel,
+          tbslas::SolveSemilagInSitu(tvel_func,
                                      tcon,
                                      timestep,
                                      sim_config->dt,
@@ -408,7 +409,7 @@ int main (int argc, char **argv) {
         // SOLVE SEMILAG
         // =====================================================================
         pvfmm::Profile::Tic(std::string("SL_TN" + tbslas::ToString(static_cast<long long>(timestep))).c_str(), &sim_config->comm, false, 5);
-        tbslas::SolveSemilagInSitu(tvel,
+        tbslas::SolveSemilagInSitu(tvel_func,
                                    tcon,
                                    timestep,
                                    sim_config->dt,
