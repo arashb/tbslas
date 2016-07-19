@@ -23,7 +23,7 @@ def conv_temporal():
     ############################################################################
     mpi_num_procs, omp_num_threads = utils.parse_args()
     prog = 'advection'
-    # prog = 'field-set'
+    prog = 'field-set'
     num_steps = 8
 
     ##############################

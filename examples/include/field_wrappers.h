@@ -36,7 +36,6 @@ get_vorticity_field_wrapper(const real_t* points_pos,
                                            freq);
 
 }
-
 template<typename real_t, int sdim>
 void
 get_gaussian_field_atT(const real_t* points_pos,
@@ -90,6 +89,20 @@ get_vorticity_field_tv_wrapper(const real_t* points_pos,
                                            freq);
 }
 
+template <class real_t>
+void get_taylor_green_field_tv_wrapper(const real_t* coord,
+                            int n,
+                            real_t* out) {
+  real_t freq = 2*PI;
+  tbslas::get_taylor_green_field_tv(coord,
+				    n,
+				    tcurr,
+				    out,
+				    freq);
+
+}
+
+
 template<typename real_t>
 void
 get_gaussian_field_tv_wrapper(const real_t* points_pos,
@@ -104,12 +117,16 @@ get_gaussian_field_tv_wrapper(const real_t* points_pos,
   real_t zci      = 0.5;
 
   // compute the time integral
-  real_t theta0 = atan((yci-0.5)/(xci-0.5));
-  real_t r      = sqrt((xci-0.5)*(xci-0.5) + (yci-0.5)*(yci-0.5));
-  real_t theta  = theta0 + omega*(tcurr - tcurr_init - (cos(freq*tcurr) - cos(freq*tcurr_init))/freq);
+  /* real_t theta0 = atan((yci-0.5)/(xci-0.5)); */
+  /* real_t r      = sqrt((xci-0.5)*(xci-0.5) + (yci-0.5)*(yci-0.5)); */
+  /* real_t theta  = theta0 + omega*(tcurr - tcurr_init - (cos(freq*tcurr) - cos(freq*tcurr_init))/freq); */
 
-  real_t xc = 0.5+r*cos(theta);
-  real_t yc = 0.5+r*sin(theta);
+  /* real_t xc = 0.5+r*cos(theta); */
+  /* real_t yc = 0.5+r*sin(theta); */
+  /* real_t zc = zci; */
+
+  real_t xc = xci;
+  real_t yc = yci;
   real_t zc = zci;
 
   const real_t sigma_x = 0.06;
@@ -261,6 +278,7 @@ void get_taylor_green_field_wrapper(const real_t* coord,
                             real_t* out) {
   tbslas::get_taylor_green_field(coord, n, out);
 }
+
 
 template <class real_t>
 void get_exp_alpha_field_wrapper(const real_t* coord,

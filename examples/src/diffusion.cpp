@@ -22,7 +22,7 @@
 #include <utils/common.h>
 #include <utils/reporter.h>
 #include <utils/fields.h>
-#include <diffusion/kernel.h>
+#include <kernels/mod_laplace.h>
 
 int NUM_TIME_STEPS = 1;
 double TBSLAS_DT;

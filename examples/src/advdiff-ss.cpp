@@ -36,7 +36,7 @@
 #include <tree/tree_semilag.h>
 #include <tree/tree_utils.h>
 
-#include <diffusion/kernel.h>
+#include <kernels/mod_laplace.h>
 
 int NUM_TIME_STEPS = 1;
 

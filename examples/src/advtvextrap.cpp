@@ -145,6 +145,11 @@ int main (int argc, char **argv) {
       // bc = pvfmm::FreeSpace;
       bc = pvfmm::Periodic;
       break;
+    case 11:
+      fn_vel = get_taylor_green_field_tv_wrapper<double>;
+      fn_con = get_gaussian_field_tv_wrapper<double>;
+      bc = pvfmm::Periodic;
+      break;
 
     }
 
@@ -360,7 +365,8 @@ int main (int argc, char **argv) {
     // =========================================================================
     // COMPUTE ERROR
     // =========================================================================
-    tcurr = sim_config->total_num_timestep*sim_config->dt;
+    // tcurr = sim_config->total_num_timestep*sim_config->dt;
+    tcurr = tcurr_init;
     double al2,rl2,ali,rli;
     CheckChebOutput<Tree_t>(&tcon,
                             fn_con,

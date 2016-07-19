@@ -541,6 +541,18 @@ void SetTreeGridValues(TreeType& treen,
     n_next = treen.PostorderNxt(n_next);
   }
 
+  /* int d = cheb_deg+1; */
+  /* int num_pnts_per_node = d*d*d; */
+  /* std::vector<double> mt_pnts_val_ml(merged_tree_num_points*data_dof); */
+  /* for (int nindx = 0; nindx < num_leaf; nindx++) { */
+  /*   int input_shift = nindx*num_pnts_per_node*data_dof; */
+  /*   for (int j = 0; j < num_pnts_per_node; j++) { */
+  /*     for (int i = 0 ; i < data_dof; i++) { */
+  /* 	mt_pnts_val_ml[input_shift+j+i*num_pnts_per_node] = merged_tree_points_val[input_shift+j*data_dof+i]; */
+  /*     } */
+  /*   } */
+  /* } */
+
   int omp_p=omp_get_max_threads();
   static pvfmm::Matrix<RealType> M;
   tbslas::GetPt2CoeffMatrix<RealType>(cheb_deg, M);
