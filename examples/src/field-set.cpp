@@ -89,8 +89,11 @@ int main (int argc, char **argv) {
         // fn_2 = get_gaussian_field_atT<double,3>;
         // data_dof = 1;
 
-        fn_2 = get_vorticity_field_tv_wrapper<double>;
-        data_dof = 3;
+        // fn_2 = get_vorticity_field_tv_wrapper<double>;
+        // data_dof = 3;
+
+	fn_2 = get_taylor_green_field_tv_ns_wrapper<double>;
+	data_dof = 3;
 
         // fn_2 = tbslas::get_vorticity_field<double,3>;
         // data_dof = 3;
@@ -98,11 +101,11 @@ int main (int argc, char **argv) {
         // fn_2 = get_hopf_field_wrapper<double>;
         // data_dof = 3;
 
-        // fn_2 = get_taylor_green_field_wrapper<double>;
+        // fn_2 = get_taylor_green_field_tv_wrapper<double>;
         // data_dof = 3;
 
-        // bc = pvfmm::Periodic;
-        bc = pvfmm::FreeSpace;
+        bc = pvfmm::Periodic;
+        // bc = pvfmm::FreeSpace;
 
         break;
     }

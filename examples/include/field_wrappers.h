@@ -387,6 +387,41 @@ void fn_poten_t2(const real_t* coord,
   tbslas::gaussian_kernel(coord,
                           n,
                           out);
+
+}
+
+template <class real_t>
+void get_taylor_green_field_tv_ns_wrapper(const real_t* points_pos,
+				  int num_points,
+				  real_t* points_values) {
+
+  real_t freq = 1;
+  real_t A = 1;
+  real_t B = 1;
+  real_t C = 1;
+  real_t a = 2*PI;
+  real_t b = 2*PI;
+  real_t c = 2*PI;
+  real_t t = tcurr;
+  const real_t* p;
+  real_t x,y,z;
+  real_t t_factor = cos(freq*t);
+  /* const real_t shiftx = 0.3; */
+  /* const real_t shifty = 0.3; */
+  /* const real_t shiftz = 0.3; */
+
+  for (int i = 0; i < num_points; i++) {
+    p = &points_pos[i*COORD_DIM];
+    x = -0.5*PI + p[0]*PI;
+    y = -0.5*PI + p[1]*PI;
+    z = -0.5*PI + p[2]*PI;
+    /* x = p[0]-shiftx; */
+    /* y = p[1]-shifty; */
+    /* z = p[2]-shiftz; */
+    points_values[i*3+0] = A*cos(a*x)*sin(b*y)*sin(c*z)*t_factor;
+    points_values[i*3+1] = B*sin(a*x)*cos(b*y)*sin(c*z)*t_factor;
+    points_values[i*3+2] = C*sin(a*x)*sin(b*y)*cos(c*z)*t_factor;
+  }
 }
 
 
