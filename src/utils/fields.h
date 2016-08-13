@@ -331,7 +331,7 @@ get_gaussian_field_3d(const real_t* points_pos,
                     );
   }
 }
-
+// out = - amp * (2aR^2+3)*2*a*exp(a*R^2)/alhpa _ exp(a*R^2)
 template <class Real_t>
 void gaussian_kernel_diffusion_input(const Real_t* coord,
                                      int n,

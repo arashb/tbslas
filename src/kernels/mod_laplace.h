@@ -21,7 +21,7 @@
 
 extern double TBSLAS_ALPHA;
 
-char kernel_name[256];
+char mod_laplace_kernel_name[256];
 
 namespace tbslas {
 
@@ -62,9 +62,9 @@ void modified_laplace_poten(Real_t* r_src,
 //////////////////////////////////////////////////////////////////////
 template<typename Real_t>
 const char* GetModfiedLaplaceKernelName(Real_t alpha) {
-  snprintf(kernel_name, sizeof(kernel_name),
+  snprintf(mod_laplace_kernel_name, sizeof(mod_laplace_kernel_name),
            "modified_laplace_alpha_%5.2f",alpha);
-  return kernel_name;
+  return mod_laplace_kernel_name;
 }
 
 //////////////////////////////////////////////////////////////////////

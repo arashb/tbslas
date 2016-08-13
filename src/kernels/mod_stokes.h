@@ -19,10 +19,10 @@
 
 #include <math_utils.hpp>
 
-extern double TBSLAS_ALPHA;
-extern double TBSLAS_DIFF_COEFF;
+extern double TBSLAS_MOD_STOKES_ALPHA;
+extern double TBSLAS_MOD_STOKES_DIFF_COEFF;
 
-char kernel_name[256];
+char mod_stokes_kernel_name[256];
 
 namespace tbslas {
 
@@ -32,14 +32,14 @@ namespace tbslas {
    */
   template <class T>
     void modified_stokes_vel(T* r_src, int src_cnt, T* v_src_, int dof, T* r_trg, int trg_cnt, T* v_trg, pvfmm::mem::MemoryManager* mem_mgr){
-#ifndef __MIC__
-    pvfmm::Profile::Add_FLOP((long long)trg_cnt*(long long)src_cnt*(28*dof));
-#endif
+/* #ifndef __MIC__ */
+/*     pvfmm::Profile::Add_FLOP((long long)trg_cnt*(long long)src_cnt*(28*dof)); */
+/* #endif */
 
-    const T mu=TBSLAS_DIFF_COEFF;
+    const T mu=TBSLAS_MOD_STOKES_DIFF_COEFF;
     const T invMu = 1.0/mu;
-    const T lambda2=TBSLAS_ALPHA/TBSLAS_DIFF_COEFF;
-    const T lambda =sqrt(TBSLAS_ALPHA/TBSLAS_DIFF_COEFF);
+    const T lambda2=TBSLAS_MOD_STOKES_ALPHA/TBSLAS_MOD_STOKES_DIFF_COEFF;
+    const T lambda =sqrt(TBSLAS_MOD_STOKES_ALPHA/TBSLAS_MOD_STOKES_DIFF_COEFF);
     const T COEEF = 1.0/(4.0*pvfmm::const_pi<T>()*lambda2);
     /* const T OOEPMU = 1.0/(8.0*pvfmm::const_pi<T>()*mu); */
 
@@ -83,13 +83,13 @@ namespace tbslas {
 
   template<typename Real_t>
     const char* GetModfiedStokesKernelName(Real_t alpha, Real_t diff) {
-    snprintf(kernel_name, sizeof(kernel_name),
+    snprintf(mod_stokes_kernel_name, sizeof(mod_stokes_kernel_name),
 	     "modified_stokes_vel_alpha_%05.2f_%05.2f",alpha, diff);
-    return kernel_name;
+    return mod_stokes_kernel_name;
   }
 
   const pvfmm::Kernel<double> modified_stokes_vel_d =
-    pvfmm::BuildKernel<double, modified_stokes_vel>(GetModfiedStokesKernelName(TBSLAS_ALPHA, TBSLAS_DIFF_COEFF), 3, std::pair<int,int>(3,3)); /* TODO: change the dimension */
+    pvfmm::BuildKernel<double, modified_stokes_vel>(GetModfiedStokesKernelName(TBSLAS_MOD_STOKES_ALPHA, TBSLAS_MOD_STOKES_DIFF_COEFF), 3, std::pair<int,int>(3,3)); /* TODO: change the dimension */
 
   template<class Real_t>
     struct ModifiedStokesKernel{

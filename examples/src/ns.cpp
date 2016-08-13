@@ -40,8 +40,8 @@
 
 #include <kernels/mod_stokes.h>
 
-double TBSLAS_DIFF_COEFF;
-double TBSLAS_ALPHA;
+double TBSLAS_MOD_STOKES_DIFF_COEFF;
+double TBSLAS_MOD_STOKES_ALPHA;
 double EXP_ALPHA;
 
 // current simulation time
@@ -105,7 +105,7 @@ void RunNS(int test, size_t N, size_t M, bool unif, int mult_order,
   pvfmm::BoundaryType bndry;
   const pvfmm::Kernel<double> modified_stokes_kernel_d =
     pvfmm::BuildKernel<double, tbslas::modified_stokes_vel>
-    (tbslas::GetModfiedStokesKernelName<double>(TBSLAS_ALPHA, TBSLAS_DIFF_COEFF), 3, std::pair<int,int>(3,3));
+    (tbslas::GetModfiedStokesKernelName<double>(TBSLAS_MOD_STOKES_ALPHA, TBSLAS_MOD_STOKES_DIFF_COEFF), 3, std::pair<int,int>(3,3));
 
   // ======================================================================
   // SETUP TEST CASE
@@ -521,7 +521,7 @@ void RunNS(int test, size_t N, size_t M, bool unif, int mult_order,
     Rep::AddData("MERGE", merge, tbslas::REP_INT);
 
     Rep::AddData("DIFF", sim_config->diff);
-    Rep::AddData("ALPHA", TBSLAS_ALPHA);
+    Rep::AddData("ALPHA", TBSLAS_MOD_STOKES_ALPHA);
 
     Rep::AddData("InAL2", in_al2);
     Rep::AddData("OutAL2", al2);
@@ -585,8 +585,8 @@ int main (int argc, char **argv) {
   pvfmm::Profile::Enable(sim_config->profile);
   sim_config->vtk_filename_variable = "vel";
 
-  TBSLAS_DIFF_COEFF = sim_config->diff;
-  TBSLAS_ALPHA      = 3.0/2.0/sim_config->dt;
+  TBSLAS_MOD_STOKES_DIFF_COEFF = sim_config->diff;
+  TBSLAS_MOD_STOKES_ALPHA      = 3.0/2.0/sim_config->dt;
   EXP_ALPHA         = exp_alpha;
   // =========================================================================
   // PRINT METADATA

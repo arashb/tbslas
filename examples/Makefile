@@ -39,6 +39,8 @@ TARGET_BIN = \
        $(BINDIR)/cubic \
        $(BINDIR)/traj \
        $(BINDIR)/field-set \
+       $(BINDIR)/mod_stokes \
+       $(BINDIR)/kernel_tst \
        $(BINDIR)/ns \
 
 
