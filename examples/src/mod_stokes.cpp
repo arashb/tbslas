@@ -43,9 +43,9 @@ void fn_input_t3(const Real_t* coord, int n, Real_t* out){ //Input function
     const Real_t* c=&coord[i*COORD_DIM];
     {
       Real_t r_2=(c[0]-0.5)*(c[0]-0.5)+(c[1]-0.5)*(c[1]-0.5)+(c[2]-0.5)*(c[2]-0.5);
-      out[i*dof+0]=                                        0+2*L*exp(-L*r_2)*(c[0]-0.5);
-      out[i*dof+1]= 4*L*L*(c[2]-0.5)*(5-2*L*r_2)*exp(-L*r_2)+2*L*exp(-L*r_2)*(c[1]-0.5);
-      out[i*dof+2]=-4*L*L*(c[1]-0.5)*(5-2*L*r_2)*exp(-L*r_2)+2*L*exp(-L*r_2)*(c[2]-0.5);
+      out[i*dof+0]=                                        0+2*L*exp(-L*r_2)*(c[0]-0.5) + 0;
+      out[i*dof+1]= 4*L*L*(c[2]-0.5)*(5-2*L*r_2)*exp(-L*r_2)+2*L*exp(-L*r_2)*(c[1]-0.5) + 2*L*(c[2]-0.5)*exp(-L*r_2);
+      out[i*dof+2]=-4*L*L*(c[1]-0.5)*(5-2*L*r_2)*exp(-L*r_2)+2*L*exp(-L*r_2)*(c[2]-0.5) - 2*L*(c[1]-0.5)*exp(-L*r_2);
     }
   }
 }
