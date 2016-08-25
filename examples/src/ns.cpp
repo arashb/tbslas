@@ -54,36 +54,30 @@ typedef tbslas::MetaData<std::string,
                          std::string> MetaData_t;
 
 template <class real_t>
-void get_taylor_green_field_tv_ns(const real_t* points_pos,
+void get_taylor_green_field_ns(const real_t* points_pos,
 				  int num_points,
 				  real_t* points_values) {
 
-  real_t freq = 1;
-  real_t A = -2;
-  real_t B = 1;
-  real_t C = 1;
-  // real_t a = 1;
-  // real_t b = 1;
-  // real_t c = 1;
+  real_t A = 2.0/sqrt(3.0);
+  real_t B = 2.0/sqrt(3.0);
+  real_t C = 2.0/sqrt(3.0);
   real_t a = 2*PI;
   real_t b = 2*PI;
   real_t c = 2*PI;
-
-  real_t t = tcurr;
+  real_t theta = 0.0;
+  real_t m = +2*PI/3.0;
+  real_t n = -2*PI/3.0;
+  real_t q = 0;
   const real_t* p;
   real_t x,y,z;
-  real_t t_factor = cos(freq*t);
   for (int i = 0; i < num_points; i++) {
     p = &points_pos[i*COORD_DIM];
-    // x = -0.5*PI + p[0]*PI;
-    // y = -0.5*PI + p[1]*PI;
-    // z = -0.5*PI + p[2]*PI;
     x = p[0];
     y = p[1];
     z = p[2];
-    points_values[i*3+0] = A*cos(a*x)*sin(b*y)*sin(c*z)*t_factor;
-    points_values[i*3+1] = B*sin(a*x)*cos(b*y)*sin(c*z)*t_factor;
-    points_values[i*3+2] = C*sin(a*x)*sin(b*y)*cos(c*z)*t_factor;
+    points_values[i*3+0] = A*sin(theta+m)*sin(a*x)*cos(b*y)*cos(c*z);
+    points_values[i*3+1] = B*sin(theta+n)*cos(a*x)*sin(b*y)*cos(c*z);
+    points_values[i*3+2] = C*sin(theta+q)*cos(a*x)*cos(b*y)*sin(c*z);
   }
 }
 
@@ -110,23 +104,20 @@ void RunNS(int test, size_t N, size_t M, bool unif, int mult_order,
   // ======================================================================
   // SETUP TEST CASE
   // ======================================================================
-  void (*fn_input_)(const Real_t* , int , Real_t*)=NULL;
-  void (*fn_poten_)(const Real_t* , int , Real_t*)=NULL;
+//   void (*fn_input_)(const Real_t* , int , Real_t*)=NULL;
+//   void (*fn_poten_)(const Real_t* , int , Real_t*)=NULL;
   void (*fn_veloc_)(const Real_t* , int , Real_t*)=NULL;
 
   switch (test) {
   case 1:
-    // fn_input_ = get_taylor_green_field_tv_ns<Real_t>;
-    // fn_poten_ = get_taylor_green_field_tv_ns<Real_t>;
-    fn_veloc_ = get_taylor_green_field_tv_ns<double>;
-    // fn_veloc_ = get_taylor_green_field_tv_ns_wrapper<double>;
+    fn_veloc_ = get_taylor_green_field_ns<double>;
+    // fn_veloc_ = get_taylor_green_field_ns_wrapper<double>;
     mykernel  = &modified_stokes_kernel_d;
     // bndry = pvfmm::FreeSpace;
     bndry = pvfmm::Periodic;
     break;
   default:
-    fn_input_=NULL;
-    fn_poten_=NULL;
+    fn_veloc_ = NULL;
     break;
   }
   // Find out my identity in the default communicator
@@ -188,25 +179,25 @@ void RunNS(int test, size_t N, size_t M, bool unif, int mult_order,
 			      std::string("Input"));
 
 
-  for (  int timestep = 1; timestep < sim_config->total_num_timestep+1; timestep +=1) {
-    tcurr = tcurr_init+sim_config->dt*timestep;
-    FMM_Tree_t* tvelexact = new FMM_Tree_t(comm);
-    tbslas::ConstructTree<FMM_Tree_t>(sim_config->tree_num_point_sources,
-  				  sim_config->tree_num_points_per_octanct,
-  				  sim_config->tree_chebyshev_order,
-  				  sim_config->tree_max_depth,
-  				  sim_config->tree_adap,
-  				  sim_config->tree_tolerance,
-  				  comm,
-  				  fn_veloc_,
-  				  3,
-  				  *tvelexact);
-    if (sim_config->vtk_save_rate) {
-      tvelexact->Write2File(tbslas::GetVTKFileName(timestep, "vel_exact").c_str(),
-  		     sim_config->vtk_order);
-    }
-    delete tvelexact;
-  }
+//   for (  int timestep = 1; timestep < sim_config->total_num_timestep+1; timestep +=1) {
+//     tcurr = tcurr_init+sim_config->dt*timestep;
+//     FMM_Tree_t* tvelexact = new FMM_Tree_t(comm);
+//     tbslas::ConstructTree<FMM_Tree_t>(sim_config->tree_num_point_sources,
+//   				  sim_config->tree_num_points_per_octanct,
+//   				  sim_config->tree_chebyshev_order,
+//   				  sim_config->tree_max_depth,
+//   				  sim_config->tree_adap,
+//   				  sim_config->tree_tolerance,
+//   				  comm,
+//   				  fn_veloc_,
+//   				  3,
+//   				  *tvelexact);
+//     if (sim_config->vtk_save_rate) {
+//       tvelexact->Write2File(tbslas::GetVTKFileName(timestep, "vel_exact").c_str(),
+//   		     sim_config->vtk_order);
+//     }
+//     delete tvelexact;
+//   }
   tcurr = tcurr_init;
 
   int con_noct_sum = 0;
