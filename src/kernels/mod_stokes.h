@@ -84,7 +84,7 @@ namespace tbslas {
   template<typename Real_t>
     const char* GetModfiedStokesKernelName(Real_t alpha, Real_t diff) {
     snprintf(mod_stokes_kernel_name, sizeof(mod_stokes_kernel_name),
-	     "modified_stokes_vel_alpha_%05.2f_%05.2f",alpha, diff);
+	     "modified_stokes_vel_alpha_%05.5f_%05.9f",alpha, diff);
     return mod_stokes_kernel_name;
   }
 

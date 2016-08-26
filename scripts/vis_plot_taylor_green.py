@@ -33,7 +33,7 @@ def draw_taylor_green_velocity(plot_number,i):
     ContourAtts.colorType = ContourAtts.ColorByColorTable  # ColorBySingleColor, ColorByMultipleColors, ColorByColorTable
     ContourAtts.colorTableName = "OrRd"
     ContourAtts.legendFlag = 0
-    ContourAtts.contourNLevels = 10
+    ContourAtts.contourNLevels = 5
     ContourAtts.contourMethod = ContourAtts.Level  # Level, Value, Percent
     SetPlotOptions(ContourAtts)
 
@@ -54,4 +54,4 @@ def draw_taylor_green_velocity(plot_number,i):
 	ClipAtts.planeInverse = 0
 	ClipAtts.planeToolControlledClipPlane = ClipAtts.Plane1  # None, Plane1, Plane2, Plane3
 	SetOperatorOptions(ClipAtts, 1)
-	DrawPlots()
+    DrawPlots()

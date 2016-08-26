@@ -265,6 +265,18 @@ find_grid_index_1d(const std::vector<real_t>& grid,
   return index;
 }
 
+/* cheb_cfl = dt/(2^-L*q^-2) */
+ template<typename real_t>
+   inline real_t 
+   compute_cheb_CFL(real_t dt, int max_depth, int cheb_degree) {
+   tbslas::SimConfig* sim_config = tbslas::SimConfigSingleton::Instance();
+   int myrank;
+   MPI_Comm_rank(sim_config->comm, &myrank);
+   real_t cfl  = dt*std::pow(2.0, max_depth)*cheb_degree*cheb_degree;
+   if (!myrank) std::cout << "# CFL: " << cfl << std::endl;
+   return cfl;
+ }
+
 }  // namespace tbslas
 
 #endif  // SRC_UTILS_COMMON_H_
