@@ -82,6 +82,71 @@ void get_taylor_green_field_ns(const real_t* points_pos,
 }
 
 template <class real_t>
+void get_two_vortex_tubes_field_ns(const real_t* points_pos,
+				   int num_points,
+				   real_t* points_values) {
+  real_t r2 = 0;
+  real_t r = 0;
+  real_t R = 0;
+  real_t r_cutoff = 0.666;
+
+  real_t K = 0.5*exp(2)*log(2);
+  real_t A = 0.2;
+  
+  real_t omega0 = 26.093;
+  real_t omega = 0;
+
+  real_t xc, yc, alpha;
+  const real_t* p;
+  real_t x,y,z;
+
+  real_t scale_lentgh = 2*PI;
+  real_t scale_start = 1*PI;
+  for (int i = 0; i < num_points; i++) {
+    p = &points_pos[i*COORD_DIM];
+    
+    x = -scale_start + scale_lentgh*p[0];
+    y = -scale_start + scale_lentgh*p[1];
+    z = -scale_start + scale_lentgh*p[2];
+
+    // FIRST TUBE
+    xc = 0.866;
+    yc = 0;
+    alpha = 2*PI/3.0;
+
+    r2 = (x - (xc + A*cos(alpha)*(1+cos(z))))*(x - (xc + A*cos(alpha)*(1+cos(z))))+
+         (y - (yc + A*sin(alpha)*(1+cos(z))))*(y - (yc + A*sin(alpha)*(1+cos(z))));
+    R = sqrt(r2)/r_cutoff;
+    omega = 0;
+    if (R<1) {
+      omega = omega0*(1 - exp(-K*exp(1/(R-1))/R));
+    }
+    
+    points_values[i*3+0] = -omega*A*cos(alpha)*sin(z);
+    points_values[i*3+1] = -omega*A*sin(alpha)*sin(z);
+    points_values[i*3+2] =  omega;
+
+    // SECOND TUBE
+    xc = -0.866;
+    yc = 0;
+    alpha = PI/3.0;
+
+    r2 = (x - (xc + A*cos(alpha)*(1+cos(z))))*(x - (xc + A*cos(alpha)*(1+cos(z))))+
+         (y - (yc + A*sin(alpha)*(1+cos(z))))*(y - (yc + A*sin(alpha)*(1+cos(z))));
+    R = sqrt(r2)/r_cutoff;
+    omega = 0;
+    if (R<1) {
+      omega = omega0*(1 - exp(-K*exp(1/(R-1))/R));
+    }
+    
+    points_values[i*3+0] += -omega*A*cos(alpha)*sin(z);
+    points_values[i*3+1] += -omega*A*sin(alpha)*sin(z);
+    points_values[i*3+2] +=  omega;
+
+  }
+}
+
+template <class real_t>
 void RunNS(int test, size_t N, size_t M, bool unif, int mult_order,
 	   int cheb_deg, int depth, bool adap, real_t tol, int merge, MPI_Comm comm) {
   typedef double RealType;
@@ -109,6 +174,12 @@ void RunNS(int test, size_t N, size_t M, bool unif, int mult_order,
   switch (test) {
   case 1:
     fn_veloc_ = get_taylor_green_field_ns<double>;
+    mykernel  = &modified_stokes_kernel_d;
+    // bndry = pvfmm::FreeSpace;
+    bndry = pvfmm::Periodic;
+    break;
+  case 2:
+    fn_veloc_ = get_two_vortex_tubes_field_ns<double>;
     mykernel  = &modified_stokes_kernel_d;
     // bndry = pvfmm::FreeSpace;
     bndry = pvfmm::Periodic;
