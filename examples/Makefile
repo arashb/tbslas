@@ -26,6 +26,7 @@ OBJDIR = ./obj
 INCDIR = ./include
 
 TARGET_BIN = \
+       $(BINDIR)/curl \
        $(BINDIR)/advection  \
        $(BINDIR)/advection-inverse  \
        $(BINDIR)/advtv  \
@@ -42,6 +43,7 @@ TARGET_BIN = \
        $(BINDIR)/mod_stokes \
        $(BINDIR)/kernel_tst \
        $(BINDIR)/ns \
+
 
 
 
