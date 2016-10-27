@@ -177,15 +177,43 @@ void RunNS(int test, size_t N, size_t M, bool unif, int mult_order,
  
   }
 
-  // =========================================================================
-  // STORING THE INITIAL VELOCITY TREES
-  // =========================================================================
-  if (sim_config->vtk_save_rate) {
-    tvelp->Write2File(tbslas::GetVTKFileName(0, "velp").c_str(),
-		      sim_config->vtk_order);
-    tvelc->Write2File(tbslas::GetVTKFileName(0, "vel").c_str(),
-		      sim_config->vtk_order);
-  }
+    // =========================================================================
+    // STORING THE INITIAL VELOCITY TREES
+    // =========================================================================
+    if (sim_config->vtk_save_rate) {
+      tvelp->Write2File(tbslas::GetVTKFileName(0, "velp").c_str(),
+			sim_config->vtk_order);
+      tvelc->Write2File(tbslas::GetVTKFileName(0, "vel").c_str(),
+			sim_config->vtk_order);
+      if (test == 3) {
+	// =========================================================================
+	// CREATE THE VORTICITY TREE FOR TEST CASE 3
+	// =========================================================================
+	FMM_Tree_t* tvort = new FMM_Tree_t(comm);
+	tbslas::ConstructTree<FMM_Tree_t>(sim_config->tree_num_point_sources,
+					  sim_config->tree_num_points_per_octanct,
+					  sim_config->tree_chebyshev_order,
+					  sim_config->tree_max_depth,
+					  sim_config->tree_adap,
+					  sim_config->tree_tolerance,
+					  comm,
+					  get_vorticity_field_wrapper<double>, // used as a dummy function
+					  3,
+					  *tvort);
+
+	tbslas::SyncTreeRefinement(*tvelc, *tvort);
+
+	// =========================================================================
+	// COMPUTE THE VORTICITY
+	// =========================================================================
+	tbslas::ComputeTreeCurl<FMM_Tree_t>(*tvelc, *tvort);
+
+	// =========================================================================
+	// SAVE THE VORTICITY TREE
+	// =========================================================================
+	tvort->Write2File(tbslas::GetVTKFileName(0, "vort").c_str(), sim_config->vtk_order);
+      }
+    }
 
 
   real_t in_al2,in_rl2,in_ali,in_rli;
@@ -434,6 +462,34 @@ void RunNS(int test, size_t N, size_t M, bool unif, int mult_order,
                                     mykernel->ker_dim[1],
                                     al2,rl2,ali,rli,
                                     std::string("Output_TN" + tbslas::ToString(static_cast<long long>(timestep))));
+	if (test == 3) {
+	  // =========================================================================
+	  // CREATE THE VORTICITY TREE FOR TEST CASE 3
+	  // =========================================================================
+	  FMM_Tree_t* tvort = new FMM_Tree_t(comm);
+	  tbslas::ConstructTree<FMM_Tree_t>(sim_config->tree_num_point_sources,
+					    sim_config->tree_num_points_per_octanct,
+					    sim_config->tree_chebyshev_order,
+					    sim_config->tree_max_depth,
+					    sim_config->tree_adap,
+					    sim_config->tree_tolerance,
+					    comm,
+					    get_vorticity_field_wrapper<double>, // used as a dummy function
+					    3,
+					    *tvort);
+
+	  tbslas::SyncTreeRefinement(*treen, *tvort);
+
+	  // =========================================================================
+	  // COMPUTE THE VORTICITY
+	  // =========================================================================
+	  tbslas::ComputeTreeCurl<FMM_Tree_t>(*treen, *tvort);
+
+	  // =========================================================================
+	  // SAVE THE VORTICITY TREE
+	  // =========================================================================
+	  tvort->Write2File(tbslas::GetVTKFileName(timestep, "vort").c_str(), sim_config->vtk_order);
+	}
       }
     }
     tvelp = tvelc;
