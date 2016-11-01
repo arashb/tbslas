@@ -520,10 +520,6 @@ void get_two_vortex_tubes_curl_vorticity_field_ns(const real_t* points_pos,
     y = -scale_start + scale_lentgh*p[1];
     z = -scale_start + scale_lentgh*p[2];
 
-    // x = p[0];
-    // y = p[1];
-    // z = p[2];
-
     // FIRST TUBE
     {
       xc = 0.866;
@@ -541,10 +537,6 @@ void get_two_vortex_tubes_curl_vorticity_field_ns(const real_t* points_pos,
       real_t dRdx = xshifted/(r*r_cutoff);
       real_t dRdy = yshifted/(r*r_cutoff);
       real_t dRdz = (A*cos(alpha)*sin(z)*xshifted + A*sin(alpha)*sin(z)*yshifted)/(r*r_cutoff);
-
-      // real_t dRdx = xshifted/r;
-      // real_t dRdy = yshifted/r;
-      // real_t dRdz = (A*cos(alpha)*sin(z)*xshifted + A*sin(alpha)*sin(z)*yshifted)/(r);
 
       real_t dwdR = -omega0*exp(-K*exp(1/(R-1))/R)*exp(1/(R-1))*( K/(R*R) + K/(R*(R-1)*(R-1)) );
     
@@ -580,10 +572,6 @@ void get_two_vortex_tubes_curl_vorticity_field_ns(const real_t* points_pos,
       real_t dRdx = xshifted/(r*r_cutoff);
       real_t dRdy = yshifted/(r*r_cutoff);
       real_t dRdz = (A*cos(alpha)*sin(z)*xshifted + A*sin(alpha)*sin(z)*yshifted)/(r*r_cutoff);
-
-      // real_t dRdx = xshifted/r;
-      // real_t dRdy = yshifted/r;
-      // real_t dRdz = (A*cos(alpha)*sin(z)*xshifted + A*sin(alpha)*sin(z)*yshifted)/(r);
 
       real_t dwdR = -omega0*exp(-K*exp(1/(R-1))/R)*exp(1/(R-1))*( K/(R*R) + K/(R*(R-1)*(R-1)) );
     

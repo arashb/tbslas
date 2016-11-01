@@ -51,6 +51,7 @@ from vis_plot_utils        import *
 from vis_plot_slice        import *
 from vis_plot_porous       import *
 from vis_plot_taylor_green import *
+from vis_plot_two_vortex_tube import *
 
 ############################################################################
 # INPUT ARGUMENTS
@@ -85,6 +86,7 @@ CON_VTK_FILES3   = VTK_DIR+"/"+"conc03_T*_P.pvtu database"
 RHO_VTK_FILES    = VTK_DIR+"/"+"stokes_rho_0_.pvtu"
 VEL_VTK_FILES    = VTK_DIR+"/"+"stokes_vel_0_.pvtu"
 VEL_VTK_FILES    = VTK_DIR+"/"+"vel_T*_P.pvtu database"
+VOR_VTK_FILES    = VTK_DIR+"/"+"vort_T*_P.pvtu database"
 
 ## uncomment for taylor-green
 #CON_VTK_FILES    = VTK_DIR+"/"+"conc_T*_P.pvtu database"
@@ -186,6 +188,13 @@ def vis_taylor_green(vel_vtk_files, conc_vtk_files, output_dir):
     set_view(8*pi/12)
     save_images(output_dir)
 
+def vis_two_vortex_tubes(vor_vtk_files, output_dir):
+    OpenDatabase(vor_vtk_files, 0)
+    draw_two_vortex_vorticity(1,0);
+    # draw_taylor_green_velocity(1,0)
+    # set_view(8*pi/12)
+    save_images(output_dir)
+
 ############################################################################
 # MAIN
 ############################################################################
@@ -199,4 +208,5 @@ if __name__ == '__main__':
     #vis_porous_three_spheres(RHO_VTK_FILES, VEL_VTK_FILES, CON_VTK_FILES1, CON_VTK_FILES2, CON_VTK_FILES3, IMAGE_DIR)
     #vis_porous_three_spheres_initial_camera_rotation(RHO_VTK_FILES, VEL_VTK_FILES, CON_VTK_FILES1_0, CON_VTK_FILES2_0, CON_VTK_FILES3_0, IMAGE_DIR)
     vis_taylor_green(VEL_VTK_FILES ,CON_VTK_FILES, IMAGE_DIR)
+    # vis_two_vortex_tubes(VOR_VTK_FILES, IMAGE_DIR)
     sys.exit()
