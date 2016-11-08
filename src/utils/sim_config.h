@@ -44,7 +44,10 @@ namespace tbslas {
       tree_adap(false),
       profile(false),
       bc(pvfmm::FreeSpace),
-      diff(0.0001){
+      diff(0.0001),
+      mult_order(10),
+      merge(1),
+      test(1){
     }
     // *************************************************************************
     // time stepping
@@ -92,11 +95,14 @@ namespace tbslas {
     int tree_max_depth;
     double tree_tolerance;
     bool tree_adap;
+    int merge;
 
     // *************************************************************************
     // MISC
     // *************************************************************************
     bool profile;
+    int mult_order;		/* FMM multipole order */
+    int test;			/* test case */
   };
 
 }  // namespace tbslas

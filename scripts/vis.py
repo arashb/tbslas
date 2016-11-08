@@ -207,6 +207,6 @@ if __name__ == '__main__':
     #vis_porous(RHO_VTK_FILES, VEL_VTK_FILES, CON_VTK_FILES, IMAGE_DIR)
     #vis_porous_three_spheres(RHO_VTK_FILES, VEL_VTK_FILES, CON_VTK_FILES1, CON_VTK_FILES2, CON_VTK_FILES3, IMAGE_DIR)
     #vis_porous_three_spheres_initial_camera_rotation(RHO_VTK_FILES, VEL_VTK_FILES, CON_VTK_FILES1_0, CON_VTK_FILES2_0, CON_VTK_FILES3_0, IMAGE_DIR)
-    vis_taylor_green(VEL_VTK_FILES ,CON_VTK_FILES, IMAGE_DIR)
-    # vis_two_vortex_tubes(VOR_VTK_FILES, IMAGE_DIR)
+    # vis_taylor_green(VEL_VTK_FILES ,CON_VTK_FILES, IMAGE_DIR)
+    vis_two_vortex_tubes(VOR_VTK_FILES, IMAGE_DIR)
     sys.exit()
