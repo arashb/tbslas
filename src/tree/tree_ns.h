@@ -69,7 +69,11 @@ void SolveNS1O(TreeType* tvelp,
   const pvfmm::Kernel<real_t>* mykernel = NULL;
   const pvfmm::Kernel<real_t> modified_stokes_kernel_d =
     pvfmm::BuildKernel<real_t, tbslas::modified_stokes_vel>
-    (tbslas::GetModfiedStokesKernelName<real_t>(TBSLAS_MOD_STOKES_ALPHA, TBSLAS_MOD_STOKES_DIFF_COEFF), 3, std::pair<int,int>(3,3));
+    (tbslas::GetModfiedStokesKernelName<real_t>(TBSLAS_MOD_STOKES_ALPHA, TBSLAS_MOD_STOKES_DIFF_COEFF), 3, std::pair<int,int>(3,3),
+     NULL, NULL, NULL,
+     NULL, NULL, NULL,
+     NULL, NULL, NULL,
+     false);
   mykernel  = &modified_stokes_kernel_d;
 
   {
@@ -338,7 +342,11 @@ void SolveNS2O(TreeType* tvelp,
   const pvfmm::Kernel<real_t>* mykernel = NULL;
   const pvfmm::Kernel<real_t> modified_stokes_kernel_d =
     pvfmm::BuildKernel<real_t, tbslas::modified_stokes_vel>
-    (tbslas::GetModfiedStokesKernelName<real_t>(TBSLAS_MOD_STOKES_ALPHA, TBSLAS_MOD_STOKES_DIFF_COEFF), 3, std::pair<int,int>(3,3));
+    (tbslas::GetModfiedStokesKernelName<real_t>(TBSLAS_MOD_STOKES_ALPHA, TBSLAS_MOD_STOKES_DIFF_COEFF), 3, std::pair<int,int>(3,3),
+     NULL, NULL, NULL,
+     NULL, NULL, NULL,
+     NULL, NULL, NULL,
+     false);
   mykernel  = &modified_stokes_kernel_d;
 
   {
