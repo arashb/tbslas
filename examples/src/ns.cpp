@@ -325,6 +325,49 @@ void RunNS() {
   delete tvelc;
 }
 
+template<class real_t>
+void SetupFMMPrecomp() {
+  tbslas::SimConfig* sim_config     = tbslas::SimConfigSingleton::Instance();
+
+  typedef pvfmm::FMM_Node<pvfmm::Cheb_Node<real_t> > FMMNode_t;
+  typedef pvfmm::FMM_Cheb<FMMNode_t> FMM_Mat_t;
+  typedef pvfmm::FMM_Tree<FMM_Mat_t> FMM_Tree_t;
+  typedef typename FMM_Tree_t::Node_t NodeType;
+
+  // ======================================================================
+  // SETUP FMM KERNEL
+  // ======================================================================
+  {
+    TBSLAS_MOD_STOKES_DIFF_COEFF = sim_config->diff;
+    TBSLAS_MOD_STOKES_ALPHA      = 3.0/2.0/sim_config->dt;
+
+    const pvfmm::Kernel<real_t>* mykernel = NULL;
+    const pvfmm::Kernel<real_t> modified_stokes_kernel_d =
+      pvfmm::BuildKernel<real_t, tbslas::modified_stokes_vel>
+      (tbslas::GetModfiedStokesKernelName<real_t>(TBSLAS_MOD_STOKES_ALPHA, TBSLAS_MOD_STOKES_DIFF_COEFF), 3, std::pair<int,int>(3,3),
+       NULL, NULL, NULL,
+       NULL, NULL, NULL,
+       NULL, NULL, NULL,
+       false);
+    mykernel  = &modified_stokes_kernel_d;
+
+    // ======================================================================
+    // SETUP FMM
+    // ======================================================================
+    //Initialize FMM_Mat.
+    FMM_Mat_t* fmm_mat = NULL;
+    {
+      fmm_mat = new FMM_Mat_t;
+      fmm_mat->Initialize(sim_config->mult_order,
+			  sim_config->tree_chebyshev_order,
+			  sim_config->comm,
+			  mykernel);
+    }
+    if (fmm_mat)
+      delete fmm_mat;
+  }
+}
+
 int main (int argc, char **argv) {
   MPI_Init(&argc, &argv);
   MPI_Comm comm=MPI_COMM_WORLD;
@@ -360,6 +403,9 @@ int main (int argc, char **argv) {
   if (!myrank) {
     MetaData_t::Print();
   }
+
+  // SetupFMMPrecomp<double>();
+
   // =========================================================================
   // RUN
   // =========================================================================
