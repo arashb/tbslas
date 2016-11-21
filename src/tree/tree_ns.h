@@ -398,18 +398,18 @@ void SolveNS2O(TreeType* tvelp,
     // =====================================================================
     // (SEMI) MERGE TO FIX IMBALANCE
     // =====================================================================
-    switch(sim_config->merge) {
-    case 2:
-      pvfmm::Profile::Tic("CMerge", &sim_config->comm, false, 5);
-      tbslas::MergeTree(*tvelc, *tvelp);
-      pvfmm::Profile::Toc();
-      break;
-    case 3:
-      pvfmm::Profile::Tic("SMerge", &sim_config->comm, false, 5);
-      tbslas::SemiMergeTree(*tvelc, *tvelp);
-      pvfmm::Profile::Toc();
-      break;
-    }
+    /* switch(sim_config->merge) { */
+    /* case 2: */
+    /*   pvfmm::Profile::Tic("CMerge", &sim_config->comm, false, 5); */
+    /*   tbslas::MergeTree(*tvelc, *tvelp); */
+    /*   pvfmm::Profile::Toc(); */
+    /*   break; */
+    /* case 3: */
+    /*   pvfmm::Profile::Tic("SMerge", &sim_config->comm, false, 5); */
+    /*   tbslas::SemiMergeTree(*tvelc, *tvelp); */
+    /*   pvfmm::Profile::Toc(); */
+    /*   break; */
+    /* } */
 
     // use previous time step's tree for the next time step
     FMM_Tree_t* treen = tvelp;
@@ -581,6 +581,8 @@ void SolveNS2O(TreeType* tvelp,
 	  // SAVE THE VORTICITY TREE
 	  // =========================================================================
 	  tvort->Write2File(tbslas::GetVTKFileName(timestep, "vort").c_str(), sim_config->vtk_order);
+
+	  delete tvort;
 	}
       }
     }

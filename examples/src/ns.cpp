@@ -166,6 +166,8 @@ void RunNS() {
     tvelc->RunFMM();
     tvelc->Copy_FMMOutput(); //Copy FMM output to tree Data.
     pvfmm::Profile::Toc();
+
+    delete fmm_mat;
  
   }
 
@@ -204,6 +206,8 @@ void RunNS() {
 	// SAVE THE VORTICITY TREE
 	// =========================================================================
 	tvort->Write2File(tbslas::GetVTKFileName(0, "vort").c_str(), sim_config->vtk_order);
+
+	delete tvort;
       }
     }
 
