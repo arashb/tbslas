@@ -74,20 +74,14 @@ void RunNS() {
   switch (sim_config->test) {
   case 1:
     fn_veloc_ = get_taylor_green_field_ns<real_t>;
-    // bndry = pvfmm::FreeSpace;
-    // mykernel  = &modified_stokes_kernel_d;
     bndry = pvfmm::Periodic;
     break;
   case 2:
     fn_veloc_ = get_two_vortex_tubes_vorticity_field_ns<real_t>;
-    // mykernel  = &modified_stokes_kernel_d;
-    // bndry = pvfmm::FreeSpace;
     bndry = pvfmm::Periodic;
     break;
   case 3:
       fn_veloc_ = get_two_vortex_tubes_curl_vorticity_field_ns<real_t>;
-      // mykernel  = &modified_stokes_kernel_d;
-      // bndry = pvfmm::FreeSpace;
       bndry = pvfmm::Periodic;
     break;
   default:
@@ -179,7 +173,7 @@ void RunNS() {
 			sim_config->vtk_order);
       tvelc->Write2File(tbslas::GetVTKFileName(0, "vel").c_str(),
 			sim_config->vtk_order);
-      if (sim_config->test == 3) {
+      if (sim_config->vtk_save_vor) {
 	// =========================================================================
 	// CREATE THE VORTICITY TREE FOR TEST CASE 3
 	// =========================================================================

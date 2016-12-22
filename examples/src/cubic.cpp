@@ -84,8 +84,6 @@ int main (int argc, char **argv) {
     // =========================================================================
     tbslas::SimConfig* sim_config       = tbslas::SimConfigSingleton::Instance();
     sim_config->vtk_filename_variable   = "conc";
-    // sim_config->use_cubic = true;
-    // sim_config->cubic_use_analytical = true;
     pvfmm::Profile::Enable(sim_config->profile);
     // =========================================================================
     // PRINT METADATA
@@ -138,10 +136,6 @@ int main (int argc, char **argv) {
   if(!myrank) {
     Rep::AddData("TOL", sim_config->tree_tolerance);
     Rep::AddData("NOCT", num_leaves, tbslas::REP_INT);
-
-    Rep::AddData("CUBIC", sim_config->use_cubic, tbslas::REP_INT);
-    Rep::AddData("CUF", sim_config->cubic_upsampling_factor, tbslas::REP_INT);
-    // Rep::AddData("ANAL", sim_config->cubic_use_analytical);
 
     Rep::AddData("OutAL2", al2);
     Rep::AddData("OutALINF", ali);

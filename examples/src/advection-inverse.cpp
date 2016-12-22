@@ -472,9 +472,6 @@ int main (int argc, char **argv) {
       Rep::AddData("CMaxD", tcon_max_depth, tbslas::REP_INT);
       Rep::AddData("VMaxD", tvel_max_depth, tbslas::REP_INT);
 
-      Rep::AddData("CBC", sim_config->use_cubic?1:0, tbslas::REP_INT);
-      Rep::AddData("CUF", sim_config->cubic_upsampling_factor, tbslas::REP_INT);
-
       Rep::AddData("DT", sim_config->dt);
       Rep::AddData("TN", sim_config->total_num_timestep, tbslas::REP_INT);
       Rep::AddData("TEST", test, tbslas::REP_INT);

@@ -432,7 +432,9 @@ void parse_command_line_options(int argc, char** argv) {
           commandline_option(argc, argv, "-vsr", "1", false,
                              "-vsr  <int> = (1)    : VTK files saving rate"));
 
-
+  bool vtk_save_vor =
+      (commandline_option(argc, argv, "-vor", NULL, false,
+                          "-vor                  : Compute vorticit field")!=NULL);
   commandline_option_end(argc, argv);
   // =========================================================================
   // SIMULATION PARAMETERS
@@ -444,8 +446,7 @@ void parse_command_line_options(int argc, char** argv) {
   sim_config->diff                    = diff;
   sim_config->vtk_order               = q;
   sim_config->vtk_save_rate           = vtk_save_rate;
-  sim_config->use_cubic               = cubic;
-  sim_config->cubic_upsampling_factor = cubic?cuf:0;
+  sim_config->vtk_save_vor            = vtk_save_vor;
   sim_config->num_omp_threads         = omp;
   omp_set_num_threads(omp);
   // *************************************************************************

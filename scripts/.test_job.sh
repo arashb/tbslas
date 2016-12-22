@@ -1,22 +1,22 @@
 #!/bin/bash
 #SBATCH -J TESTJOB           # job name
 #SBATCH -o TESTJOB.o%j       # output and error file name (%j expands to jobID)
-#SBATCH -n 256              # total number of mpi tasks requested
-#SBATCH -N 256  
+#SBATCH -n 32              # total number of mpi tasks requested
+#SBATCH -N 32  
 #SBATCH -A PADAS
-#SBATCH -p normal     # queue (partition) -- normal, development, etc.
+#SBATCH -p vis     # queue (partition) -- normal, development, etc.
 #SBATCH -t 04:00:00        # run time (hh:mm:ss) - 1.5 hours
 
 # ibrun -n 32 -o 0 tacc_affinity ../examples/bin/ns -N 64.0 -tol 1e-03 -d 4 -q 14 -tn 2 -dt 0.001 -merge 3 -omp 16 -vsr 1 -diff 1e-3 -test 2
 # ibrun -n 32 -o 0 tacc_affinity ../examples/bin/ns -N 64.0 -tol 1e-03 -d 15 -q 14 -tn 0 -dt 0.0628 -merge 3 -omp 20 -vsr 1 -diff 1e-3 -test 2
 
-# ibrun -n 16 -o 0 tacc_affinity ../examples/bin/ns -N 64 -tol 1e-02 -d 4 -q 14 -tn 10 -dt 0.0314 -merge 3 -omp 20 -vsr 1 -diff 1e-3 -test 1
+# ibrun -n 32 -o 0 tacc_affinity ../examples/bin/ns -N 2048 -tol 1e-3 -d 10 -q 14 -tn 100 -dt 0.0628 -merge 3 -omp 20 -vsr 1 -diff 1e-3 -test 1 -vor 1
 
 # ibrun -n 8 -o 0 tacc_affinity ../examples/bin/ns -N 64.0 -tol 1e-03 -d 6 -q 14 -tn 200 -dt 0.0314 -merge 3 -omp 20 -vsr 1 -diff 1e-3 -test 3
-# ibrun -n 8 -o 0 tacc_affinity ../examples/bin/ns -N 64.0 -tol 1e-02 -d 5 -q 14 -tn 200 -dt 0.0314 -merge 3 -omp 20 -vsr 1 -diff 1e-3 -test 3
+# ibrun -n 8 -o 0 tacc_affinity ../examples/bin/ns -N 64.0 -tol 1e-ls02 -d 5 -q 14 -tn 200 -dt 0.0314 -merge 3 -omp 20 -vsr 1 -diff 1e-3 -test 3
 # ibrun -n 32 -o 0 tacc_affinity ../examples/bin/ns -N 64.0 -tol 1e-03 -d 6 -q 14 -tn 200 -dt 0.0314 -merge 3 -omp 20 -vsr 1 -diff 1e-3 -test 3
 
-ibrun -n 256 -o 0 tacc_affinity ../examples/bin/ns -N 2048 -tol 1e-07 -d 10 -q 14 -tn 1000 -dt 1e-4 -merge 3 -omp 16 -vsr 1 -diff 1e-3 -test 3
+ibrun -n 32 -o 0 tacc_affinity ../examples/bin/ns -N 2048 -tol 1e-04 -d 10 -q 14 -tn 1000 -dt 1e-4 -merge 3 -omp 20 -vsr 1 -diff 1e-3 -test 3 -vor 1
 
 # ibrun -n 1024 -o 0 tacc_affinity /home1/03237/ga29hoj/code/tbslas/examples/bin/advdiff-ss -N 2048 -tol 1e-05 -d 15 -q 14 -cuf 4 -tn 1 -dt 0.00625 -merge 3 -omp 16 -vsr 0 -test 7 -diff 0.001 -ea 160 -m 8
 # ibrun -n 1024 -o 0 tacc_affinity /home1/03237/ga29hoj/code/tbslas/examples/bin/advdiff-ss -N 2048 -tol 1e-05 -d 15 -q 14 -cuf 4 -tn 1 -dt 0.00625 -merge 3 -omp 16 -vsr 0 -test 7 -diff 0.001 -ea 160 -m 8

@@ -349,6 +349,23 @@ void SolveNS2O(TreeType* tvelp,
      false);
   mykernel  = &modified_stokes_kernel_d;
 
+  // ======================================================================
+  // SETUP FMM
+  // ======================================================================
+  //Initialize FMM_Mat.
+  FMM_Mat_t* fmm_mat = NULL;
+  {
+    fmm_mat = new FMM_Mat_t;
+    fmm_mat->Initialize(sim_config->mult_order,
+                        sim_config->tree_chebyshev_order,
+                        sim_config->comm,
+                        mykernel);
+  }
+
+
+  // ======================================================================
+  // SETUP FMM
+  // ======================================================================
   {
     std::vector<NodeType*>  nlist = tvelc->GetNodeList();
     for(int i = 0; i < nlist.size(); i++) {
@@ -371,19 +388,6 @@ void SolveNS2O(TreeType* tvelp,
     n_curr = tvelc->PostorderNxt(n_curr);
   }
   int data_dof = n_curr->DataDOF();
-
-  // ======================================================================
-  // SETUP FMM
-  // ======================================================================
-  //Initialize FMM_Mat.
-  FMM_Mat_t* fmm_mat = NULL;
-  {
-    fmm_mat = new FMM_Mat_t;
-    fmm_mat->Initialize(sim_config->mult_order,
-                        sim_config->tree_chebyshev_order,
-                        sim_config->comm,
-                        mykernel);
-  }
 
   // ======================================================================
   // RUN
@@ -537,6 +541,9 @@ void SolveNS2O(TreeType* tvelp,
     treen->RefineTree();
     pvfmm::Profile::Toc();
 
+    // =====================================================================
+    // REFINE TREE
+    // =====================================================================
     pvfmm::Profile::Tic("Balance21", &sim_config->comm, false, 5);
     treen->Balance21(sim_config->bc);
     pvfmm::Profile::Toc();
@@ -554,7 +561,7 @@ void SolveNS2O(TreeType* tvelp,
         //                             mykernel->ker_dim[1],
         //                             al2,rl2,ali,rli,
         //                             std::string("Output_TN" + tbslas::ToString(static_cast<long long>(timestep))));
-	if (sim_config->test == 3) {
+	if (sim_config->vtk_save_vor) {
 	  // =========================================================================
 	  // CREATE THE VORTICITY TREE FOR TEST CASE 3
 	  // =========================================================================
