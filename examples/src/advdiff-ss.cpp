@@ -451,6 +451,12 @@ void RunAdvectDiff(int test, size_t N, size_t M, bool unif, int mult_order,
                         mykernel);
   }
 
+  int tcon_init_depth=0;
+  int tvel_init_depth=0;
+  tbslas::GetTreeMaxDepth<FMM_Tree_t>(*treec, tcon_init_depth);
+  tbslas::GetTreeMaxDepth<FMM_Tree_t>(*tvel , tvel_init_depth);
+
+
   for (; timestep < NUM_TIME_STEPS+1; timestep +=1) {
     // =====================================================================
     // (SEMI) MERGE TO FIX IMBALANCE
@@ -487,6 +493,7 @@ void RunAdvectDiff(int test, size_t N, size_t M, bool unif, int mult_order,
       vel_noct_sum += vel_noct;
       if (vel_noct > vel_noct_max) vel_noct_max = vel_noct;
       if (vel_noct < vel_noct_min) vel_noct_min = vel_noct;
+
     }
 
     // UPDATE THE SIMULATION CURRENT TIME
@@ -663,6 +670,8 @@ void RunAdvectDiff(int test, size_t N, size_t M, bool unif, int mult_order,
     Rep::AddData("Q", sim_config->tree_chebyshev_order, tbslas::REP_INT);
 
     Rep::AddData("MaxD", sim_config->tree_max_depth, tbslas::REP_INT);
+    Rep::AddData("CIniD", tcon_init_depth, tbslas::REP_INT);
+    Rep::AddData("VIniD", tvel_init_depth, tbslas::REP_INT);
     Rep::AddData("CMaxD", tcon_max_depth, tbslas::REP_INT);
     Rep::AddData("VMaxD", tvel_max_depth, tbslas::REP_INT);
 
