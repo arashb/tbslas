@@ -22,52 +22,46 @@
 #include <utils/common.h>
 #include <utils/reporter.h>
 #include <utils/fields.h>
-#include <kernels/mod_laplace.h>
+#include <kernels/mod_stokes.h>
 
 int NUM_TIME_STEPS = 1;
 double TBSLAS_DT;
-double TBSLAS_DIFF_COEFF;
-double TBSLAS_ALPHA;
+double TBSLAS_MOD_STOKES_DIFF_COEFF;
+double TBSLAS_MOD_STOKES_ALPHA;
 
 // current simulation time
 double tcurr = 25;
 
+///////////////////////////////////////////////////////////////////////////////
+// Test3: Stokes problem, Smooth Gaussian, FreeSpace Boundary
+///////////////////////////////////////////////////////////////////////////////
 template <class Real_t>
-void fn_input_t1(const Real_t* coord,
-                 int n,
-                 Real_t* out) {
-  const Real_t amp = 1e-2;
-  const Real_t xc = 0.5;
-  const Real_t yc = 0.5;
-  const Real_t zc = 0.5;
-  tbslas::diffusion_kernel(coord,
-                           n,
-                           out,
-                           TBSLAS_DIFF_COEFF,
-                           tcurr,
-                           amp,
-                           xc,
-                           yc,
-                           zc);
+void fn_input_t3(const Real_t* coord, int n, Real_t* out){ //Input function
+  int dof=3;
+  Real_t L=125;
+  for(int i=0;i<n;i++){
+    const Real_t* c=&coord[i*COORD_DIM];
+    {
+      Real_t r_2=(c[0]-0.5)*(c[0]-0.5)+(c[1]-0.5)*(c[1]-0.5)+(c[2]-0.5)*(c[2]-0.5);
+      out[i*dof+0]=                                        0+2*L*exp(-L*r_2)*(c[0]-0.5) + 0;
+      out[i*dof+1]= 4*L*L*(c[2]-0.5)*(5-2*L*r_2)*exp(-L*r_2)+2*L*exp(-L*r_2)*(c[1]-0.5) + 2*L*(c[2]-0.5)*exp(-L*r_2);
+      out[i*dof+2]=-4*L*L*(c[1]-0.5)*(5-2*L*r_2)*exp(-L*r_2)+2*L*exp(-L*r_2)*(c[2]-0.5) - 2*L*(c[1]-0.5)*exp(-L*r_2);
+    }
+  }
 }
-
 template <class Real_t>
-void fn_input_t2(const Real_t* coord,
-                 int n,
-                 Real_t* out) {
-  tbslas::gaussian_kernel_diffusion_input(coord,
-                                          n,
-                                          out,
-                                          TBSLAS_ALPHA);
-}
-
-template <class Real_t>
-void fn_poten_t2(const Real_t* coord,
-                 int n,
-                 Real_t* out) {
-  tbslas::gaussian_kernel(coord,
-                          n,
-                          out);
+void fn_poten_t3(const Real_t* coord, int n, Real_t* out){ //Output potential
+  int dof=3;
+  Real_t L=125;
+  for(int i=0;i<n;i++){
+    const Real_t* c=&coord[i*COORD_DIM];
+    {
+      Real_t r_2=(c[0]-0.5)*(c[0]-0.5)+(c[1]-0.5)*(c[1]-0.5)+(c[2]-0.5)*(c[2]-0.5);
+      out[i*dof+0]= 0;
+      out[i*dof+1]= 2*L*(c[2]-0.5)*exp(-L*r_2);
+      out[i*dof+2]=-2*L*(c[1]-0.5)*exp(-L*r_2);
+    }
+  }
 }
 
 typedef tbslas::MetaData<std::string,
@@ -75,7 +69,7 @@ typedef tbslas::MetaData<std::string,
                          std::string> MetaData_t;
 
 template <class Real_t>
-void RunDiffusion(int test_case, size_t N, size_t M, bool unif, int mult_order,
+void RunModStokesSolver(int test_case, size_t N, size_t M, bool unif, int mult_order,
                   int cheb_deg, int depth, bool adap, Real_t tol, MPI_Comm comm) {
   typedef pvfmm::FMM_Node<pvfmm::Cheb_Node<Real_t> > FMMNode_t;
   typedef pvfmm::FMM_Cheb<FMMNode_t> FMM_Mat_t;
@@ -94,21 +88,18 @@ void RunDiffusion(int test_case, size_t N, size_t M, bool unif, int mult_order,
   const pvfmm::Kernel<Real_t>* mykernel=NULL;
   const pvfmm::Kernel<Real_t>* mykernel_grad=NULL;;
   pvfmm::BoundaryType bndry;
-  const pvfmm::Kernel<double> modified_laplace_kernel_d =
-      pvfmm::BuildKernel<double, tbslas::modified_laplace_poten>
-      (tbslas::GetModfiedLaplaceKernelName<double>(TBSLAS_ALPHA), 3, std::pair<int,int>(1,1));
+  const pvfmm::Kernel<double> modified_stokes_kernel_d =
+    pvfmm::BuildKernel<double, tbslas::modified_stokes_vel>
+    (tbslas::GetModfiedStokesKernelName<double>(TBSLAS_MOD_STOKES_ALPHA, TBSLAS_MOD_STOKES_DIFF_COEFF), 3, std::pair<int,int>(3,3));
+
+      // pvfmm::BuildKernel<double, tbslas::modified_laplace_poten>
+      // (tbslas::GetModfiedLaplaceKernelName<double>(TBSLAS_ALPHA), 3, std::pair<int,int>(1,1));
 
   switch (test_case) {
-    case 2:
-      fn_input_ = fn_input_t2<Real_t>;
-      fn_poten_ = fn_poten_t2<Real_t>;
-      mykernel  = &modified_laplace_kernel_d;
-      bndry = pvfmm::FreeSpace;
-      break;
     case 1:
-      fn_input_ = fn_input_t1<Real_t>;
-      fn_poten_ = fn_input_t1<Real_t>;
-      mykernel  = &modified_laplace_kernel_d;
+      fn_input_ = fn_input_t3<Real_t>;
+      fn_poten_ = fn_poten_t3<Real_t>;
+      mykernel  = &modified_stokes_kernel_d;
       bndry = pvfmm::FreeSpace;
       break;
     default:
@@ -227,8 +218,8 @@ void RunDiffusion(int test_case, size_t N, size_t M, bool unif, int mult_order,
     Rep::AddData("DT", sim_config->dt);
     Rep::AddData("TN", sim_config->total_num_timestep, tbslas::REP_INT);
 
-    Rep::AddData("DIFF", TBSLAS_DIFF_COEFF);
-    Rep::AddData("ALPHA", TBSLAS_ALPHA);
+    Rep::AddData("DIFF",  TBSLAS_MOD_STOKES_DIFF_COEFF);
+    Rep::AddData("ALPHA", TBSLAS_MOD_STOKES_ALPHA);
 
     Rep::AddData("InAL2", in_al2);
     Rep::AddData("OutAL2", al2);
@@ -272,8 +263,8 @@ int main (int argc, char **argv) {
 
   NUM_TIME_STEPS    = sim_config->total_num_timestep;
   TBSLAS_DT         = sim_config->dt;
-  TBSLAS_DIFF_COEFF = 0.0001;
-  TBSLAS_ALPHA      = (1.0)/TBSLAS_DT/TBSLAS_DIFF_COEFF;
+  TBSLAS_MOD_STOKES_DIFF_COEFF = 1;//0.0001;
+  TBSLAS_MOD_STOKES_ALPHA      = 1;//(1.0)/TBSLAS_DT/TBSLAS_DIFF_COEFF;
 
   pvfmm::Profile::Enable(sim_config->profile);
   // =========================================================================
@@ -285,8 +276,8 @@ int main (int argc, char **argv) {
   // =========================================================================
   // RUN
   // =========================================================================
-  pvfmm::Profile::Tic("RunDiffuionSolver",&comm,true);
-  RunDiffusion<double>(test,
+  pvfmm::Profile::Tic("RunModStokesSolver",&comm,true);
+  RunModStokesSolver<double>(test,
                        sim_config->tree_num_point_sources,
                        sim_config->tree_num_points_per_octanct,
                        unif,

@@ -10,8 +10,8 @@
 // limitations under the License.
 // *************************************************************************
 
-#ifndef SRC_KERNEL_H_
-#define SRC_KERNEL_H_
+#ifndef SRC_KERNEL_MOD_LAPLACE_H_
+#define SRC_KERNEL_MOD_LAPLACE_H_
 
 #include <utility>
 #include <cmath>
@@ -21,7 +21,7 @@
 
 extern double TBSLAS_ALPHA;
 
-char kernel_name[256];
+char mod_laplace_kernel_name[256];
 
 namespace tbslas {
 
@@ -57,17 +57,26 @@ void modified_laplace_poten(Real_t* r_src,
   }
 }
 
+//////////////////////////////////////////////////////////////////////
+// CONSTRUCT THE KERNEL NAME
+//////////////////////////////////////////////////////////////////////
 template<typename Real_t>
 const char* GetModfiedLaplaceKernelName(Real_t alpha) {
-  snprintf(kernel_name, sizeof(kernel_name),
+  snprintf(mod_laplace_kernel_name, sizeof(mod_laplace_kernel_name),
            "modified_laplace_alpha_%5.2f",alpha);
-  return kernel_name;
+  return mod_laplace_kernel_name;
 }
 
+//////////////////////////////////////////////////////////////////////
+// GLOBAL VARIABLE FOR KERNEL
+//////////////////////////////////////////////////////////////////////
 const pvfmm::Kernel<double> modified_laplace_potn_d =
     pvfmm::BuildKernel<double, modified_laplace_poten>
     (GetModfiedLaplaceKernelName(TBSLAS_ALPHA), 3, std::pair<int,int>(1,1));
 
+//////////////////////////////////////////////////////////////////////
+// KERNEL STRUCTURE
+//////////////////////////////////////////////////////////////////////
 template<class Real_t>
 struct ModifiedLaplaceKernel{
   inline static const pvfmm::Kernel<Real_t>& potn_ker();
@@ -79,4 +88,4 @@ template<> const pvfmm::Kernel<double>& ModifiedLaplaceKernel<double>::potn_ker(
 
 }  // namespace tbslas
 
-#endif  // SRC_KERNEL_H_
+#endif  // SRC_KERNEL_MOD_LAPLACE_H_
