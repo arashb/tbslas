@@ -541,6 +541,18 @@ void SetTreeGridValues(TreeType& treen,
     n_next = treen.PostorderNxt(n_next);
   }
 
+  /* int d = cheb_deg+1; */
+  /* int num_pnts_per_node = d*d*d; */
+  /* std::vector<double> mt_pnts_val_ml(merged_tree_num_points*data_dof); */
+  /* for (int nindx = 0; nindx < num_leaf; nindx++) { */
+  /*   int input_shift = nindx*num_pnts_per_node*data_dof; */
+  /*   for (int j = 0; j < num_pnts_per_node; j++) { */
+  /*     for (int i = 0 ; i < data_dof; i++) { */
+  /* 	mt_pnts_val_ml[input_shift+j+i*num_pnts_per_node] = merged_tree_points_val[input_shift+j*data_dof+i]; */
+  /*     } */
+  /*   } */
+  /* } */
+
   int omp_p=omp_get_max_threads();
   static pvfmm::Matrix<RealType> M;
   tbslas::GetPt2CoeffMatrix<RealType>(cheb_deg, M);
@@ -748,6 +760,47 @@ MergeTree(TreeType& tree1,
     n2 = tree2.PreorderNxt(n2);
   }
 }
+
+ template<typename TreeType>
+   void
+   ComputeTreeCurl(TreeType& tree1,
+		   TreeType& tree2) {
+   typedef typename TreeType::Real_t RealType;
+   typedef typename TreeType::Node_t NodeType;
+
+   NodeType* n1 = tree1.PostorderFirst();
+   NodeType* n2 = tree2.PostorderFirst();
+
+   while (n1 != NULL) {
+     if(!n1->IsGhost() && n1->IsLeaf())
+       break;
+     n1 = tree1.PostorderNxt(n1);
+   }
+
+   while (n2 != NULL) {
+     if(!n2->IsGhost() && n2->IsLeaf())
+       break;
+     n2 = tree2.PostorderNxt(n2);
+   }
+
+   int cheb_deg = tree1.RootNode()->ChebDeg();
+   int data_dof = tree1.RootNode()->DataDOF();
+   /* tree1.RootNode()->Curl(); */
+   int dim = 3;
+   while (n1 != NULL && n2 != NULL) {
+     if (n1->IsLeaf() && !n1->IsGhost()) {
+       /* n1->Curl(); */
+       pvfmm::cheb_curl<RealType>( &(n1->ChebData()[0]), cheb_deg, &(n2->ChebData()[0]) );
+       RealType scale=pvfmm::pow<RealType>(2,n1->Depth());
+       for(size_t i=0;i<n2->ChebData().Dim();i++)
+	 n2->ChebData()[i]*=scale;
+
+     }
+     n1 = tree1.PostorderNxt(n1);
+     n2 = tree2.PostorderNxt(n2);
+   }
+ }
+
 
 
 }  // namespace tbslas

@@ -88,7 +88,7 @@ namespace tbslas {
 
       void update(Tree_t* new_tree, Real_t time) {
 	// POP FRONT (DEALLOCATE AND REMOVE) THE FIRST TREE IN THE QUEUE
-	delete tp;
+	delete tp_;
 	tp_ = tc_;
 	tc_ = new_tree;
       }

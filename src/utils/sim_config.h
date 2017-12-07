@@ -33,8 +33,6 @@ namespace tbslas {
       vtk_save_rate(1),
       vtk_filename_format("%s/%s_T%04d_P"),
       vtk_filename_variable("val"),
-      use_cubic(false),
-      cubic_upsampling_factor(4),
       comm(MPI_COMM_WORLD),
       num_omp_threads(1),
       tree_num_point_sources(1),
@@ -43,8 +41,12 @@ namespace tbslas {
       tree_max_depth(15),
       tree_adap(false),
       profile(false),
+      vtk_save_vor(false),
       bc(pvfmm::FreeSpace),
-      diff(0.0001){
+      diff(0.0001),
+      mult_order(10),
+      merge(1),
+      test(1){
     }
     // *************************************************************************
     // time stepping
@@ -68,14 +70,9 @@ namespace tbslas {
     // *************************************************************************
     int vtk_order;
     int vtk_save_rate;
+    bool vtk_save_vor;
     std::string vtk_filename_format;
     std::string vtk_filename_variable;
-
-    // *************************************************************************
-    // cubic interpolation
-    // *************************************************************************
-    bool use_cubic;
-    int cubic_upsampling_factor;
 
     // *************************************************************************
     // parallelization
@@ -92,11 +89,14 @@ namespace tbslas {
     int tree_max_depth;
     double tree_tolerance;
     bool tree_adap;
+    int merge;
 
     // *************************************************************************
     // MISC
     // *************************************************************************
     bool profile;
+    int mult_order;		/* FMM multipole order */
+    int test;			/* test case */
   };
 
 }  // namespace tbslas

@@ -33,7 +33,7 @@
 #include <utils/reporter.h>
 #include <utils/fields.h>
 
-#include <diffusion/kernel.h>
+#include <kernels/mod_laplace.h>
 
 #include <tree/tree_semilag.h>
 #include <tree/tree_utils.h>
