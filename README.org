@@ -1,8 +1,8 @@
 * What is TbSLAS
 TbSLAS is a parallel, fast solver for the scalar advection-diffusion and
-the incompressible Navier-Stokes equations using dynamic adaptive mesh refinement.
-TbSLAS is based on a second-order accurate, unconditionally stable Semi-Lagrangian/Volume Integral method using an
-implicit-explicit time integration with an arbitrary-order accurate Chebyshev octree spatial discretization.
+the incompressible Navier-Stokes equations using dynamic adaptive mesh refinement (AMR).
+TbSLAS is based on a second-order accurate implicit-explicit time integrator using unconditionally stable Semi-Lagrangian/Volume Integral method
+and an arbitrary-order accurate Chebyshev octree spatial discretization.
 
 * Documentation
 TbSLAS is fully documented [[https://mediatum.ub.tum.de/604993?query=Arash+Bakhtiari&show_id=1351899][here]].
