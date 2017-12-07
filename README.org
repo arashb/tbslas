@@ -14,4 +14,4 @@ Please see the file called INSTALL.
 Please see the file called LICENSE.
 
 * Contacts
-[[www.arashb.com][Arash Bakhtiari]]
+[[http://www.arashb.com/][Arash Bakhtiari]]
