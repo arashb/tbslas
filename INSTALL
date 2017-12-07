@@ -1,0 +1,138 @@
+**********************************************************************
+TbSLAS, INSTALL FILE 
+**********************************************************************
+This file provides an step-by-step instruction  to  build  and  compile
+TbSLAS; The required libraries, guide to build on a  local  machine and LRZ
+Linux cluster. It also includes the the procedures to compile  the  example
+codes which are included in the package and how to run the corresponding
+executables.
+
+**********************************************************************
+Required Software
+**********************************************************************
+In order to compile TbSLAS, at least, the following Softwares are required:
+
+        1- C++ compiler
+        2- MPI: an implementation of Message passing interface
+        3- BLAS: Basic Linear Algebra subprograms routines
+        4- FFTW3: C subroutine library for computing discrete Fourier transform
+        5- PVFMM: library for solving certain types of elliptic partial differential
+        equations.
+
+        -NOTE: before following the instruction to build TbSLAS make sure  that you
+        have all the mentioned APIs up and running on your machine.
+
+**********************************************************************
+Compilation of the examples
+**********************************************************************
+In order to compile the examples following steps has to be taken:
+
+        1- set the following environmental variables:
+
+                > export PVFMM_DIR=PATH/TO/PVFMM/
+                > export TBSLAS_DIR=PATH/TO/TBSLAS/
+
+        2- 'cd' to the examples subdirectory and type make:
+
+                > cd examples
+                > make
+
+The executable files will be placed in /examples/bin.
+
+
+**********************************************************************
+Building and compilation on Linux cluster (LRZ)
+**********************************************************************
+Compilation procedure on the LRZ cluster is the same as the
+procedure on a local machine, the only difference is to load  the  settings
+for packages using the module mechanism:
+
+                > module load fftw
+
+After loading the mentioned modules follow the procedures, described in
+'Compile the examples':
+
+                > export PVFMM_DIR=PATH/TO/PVFMM/
+                > export TBSLAS_DIR=PATH/TO/TBSLAS/
+
+                > cd examples
+                > make
+
+                -NOTE: if the MPI, Intel compiler and Math Kernel Library (which includes
+        BLAS) are not already loaded, use the following commands:
+
+                > module load mpi
+                > module load intel
+                > module load mkl
+
+
+**********************************************************************
+NOTEs on the required libraries (for LRZ cluster)
+**********************************************************************
+I-All the required libraries which were mentioned in the Required Software
+  section, except for PVFMM, are  already  installed  on  LRZ  cluster  and
+  accessible through Module mechanism. so the user just loads the  required
+  environmental variables using the following command:
+
+                > module load DESIRED_MODULE
+
+
+II-Installing PVFMM on the cluster is a bit tricky and it is explained
+   in here:
+
+        1- load the required modules:
+
+                > module load fftw
+                > module load gcc
+
+        2- 'cd' to the directory containing the package's source code and type
+       './autogen.sh'. This will generate a configure.sh in the same directory
+                which is then used to configure the compilation process.
+
+                > cd /PATH/TO/PVFMM
+                > ./autogen.sh
+
+        3- run configure.sh using the following flags and then invoke make
+
+                > ./configure --prefix=DESIRED_DIR --with-fftw="$FFTW_BASE" FFLAGS="$MKL_F90_LIB"
+                > make
+                > make install
+
+
+                -NOTE: refer to the PVFMM Installation guide for more information and
+        other configuration options.
+
+**********************************************************************
+Run the executables
+**********************************************************************
+I- run:
+In order to run the executables, mpirun/mpiexec is invoked. For example
+, after the compilation, executable 'advdiff' is created in
+        '$TBSLAS_DIR/examples/bin/' and it can be run as following:
+
+                > cd $TBSLAS_DIR/examples/bin/
+                > mpirun -n 4 ./bin/advection -N 8 -omp 8
+
+This command invokes parallel execution of the code on 4 machines with
+8 cores (1 thread per code) for a problem with N=8.
+
+
+II- outputs:
+The simulation results can be saved as .vtk files. In order to get them,
+one needs to follow this instruction before running the executable:
+
+        1- create the output  directory  where  you want to save the files (if the
+        directory does not exist the output will not be saved)
+
+                > cd tbslas/examples
+                > mkdir results
+
+
+        2- set the following environmental variable:
+
+                > export TBSLAS_RESULT_DIR=$TBSLAS_DIR/examples/bin/results
+
+        3- run the program (in this case with 4 MPI processes and 8 theards for
+        each process)
+
+                > mpirun -n 4 ./bin/advection -N 8 -omp 8
