@@ -1,4 +1,4 @@
-* What is TbSLAS
+* What is TbSLAS?
 TbSLAS is a parallel, fast solver for the scalar advection-diffusion and
 the incompressible Navier-Stokes equations using dynamic adaptive mesh refinement (AMR).
 TbSLAS is based on a second-order accurate implicit-explicit time integrator using unconditionally stable Semi-Lagrangian/Volume Integral method
