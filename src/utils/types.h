@@ -4,13 +4,7 @@
 namespace tbslas {
 
 // point distribution types
-enum DistribType{
-  UnifGrid,
-  RandUnif,
-  RandGaus,
-  RandElps,
-  RandSphr
-};
+enum DistribType { UnifGrid, RandUnif, RandGaus, RandElps, RandSphr };
 
 // boundary condition types
 // enum BoundaryConditionType{
@@ -18,6 +12,6 @@ enum DistribType{
 //   BC_Periodic
 // };
 
-}
+}  // namespace tbslas
 
 #endif /* TYPES_H */

@@ -1,28 +1,28 @@
 #include <mpi.h>
-#include <cstdlib>
-#include <iostream>
 #include <omp.h>
 #include <stdio.h>
+#include <cstdlib>
+#include <iostream>
 #include <string>
 #include <utility>
 #include <vector>
 
 // PVFMM
-#include <pvfmm_common.hpp>
-#include <profile.hpp>
+#include <cheb_node.hpp>
 #include <fmm_cheb.hpp>
 #include <fmm_node.hpp>
 #include <fmm_tree.hpp>
-#include <cheb_node.hpp>
+#include <profile.hpp>
+#include <pvfmm_common.hpp>
 
 // LOCAL
 #include <utils.hpp>
 
 // TBSLAS
-#include <utils/common.h>
-#include <utils/reporter.h>
-#include <utils/fields.h>
 #include <kernels/mod_laplace.h>
+#include <utils/common.h>
+#include <utils/fields.h>
+#include <utils/reporter.h>
 
 int NUM_TIME_STEPS = 1;
 double TBSLAS_DT;
@@ -33,121 +33,109 @@ double TBSLAS_ALPHA;
 double tcurr = 25;
 
 template <class Real_t>
-void fn_input_t1(const Real_t* coord,
-                 int n,
-                 Real_t* out) {
+void fn_input_t1(const Real_t* coord, int n, Real_t* out) {
   const Real_t amp = 1e-2;
   const Real_t xc = 0.5;
   const Real_t yc = 0.5;
   const Real_t zc = 0.5;
-  tbslas::diffusion_kernel(coord,
-                           n,
-                           out,
-                           TBSLAS_DIFF_COEFF,
-                           tcurr,
-                           amp,
-                           xc,
-                           yc,
+  tbslas::diffusion_kernel(coord, n, out, TBSLAS_DIFF_COEFF, tcurr, amp, xc, yc,
                            zc);
 }
 
 template <class Real_t>
-void fn_input_t2(const Real_t* coord,
-                 int n,
-                 Real_t* out) {
-  tbslas::gaussian_kernel_diffusion_input(coord,
-                                          n,
-                                          out,
-                                          TBSLAS_ALPHA);
+void fn_input_t2(const Real_t* coord, int n, Real_t* out) {
+  tbslas::gaussian_kernel_diffusion_input(coord, n, out, TBSLAS_ALPHA);
 }
 
 template <class Real_t>
-void fn_poten_t2(const Real_t* coord,
-                 int n,
-                 Real_t* out) {
-  tbslas::gaussian_kernel(coord,
-                          n,
-                          out);
+void fn_poten_t2(const Real_t* coord, int n, Real_t* out) {
+  tbslas::gaussian_kernel(coord, n, out);
 }
 
-typedef tbslas::MetaData<std::string,
-                         std::string,
-                         std::string> MetaData_t;
+typedef tbslas::MetaData<std::string, std::string, std::string> MetaData_t;
 
 template <class Real_t>
 void RunDiffusion(int test_case, size_t N, size_t M, bool unif, int mult_order,
-                  int cheb_deg, int depth, bool adap, Real_t tol, MPI_Comm comm) {
+                  int cheb_deg, int depth, bool adap, Real_t tol,
+                  MPI_Comm comm) {
   typedef pvfmm::FMM_Node<pvfmm::Cheb_Node<Real_t> > FMMNode_t;
   typedef pvfmm::FMM_Cheb<FMMNode_t> FMM_Mat_t;
   typedef pvfmm::FMM_Tree<FMM_Mat_t> FMM_Tree_t;
-  tbslas::SimConfig* sim_config       = tbslas::SimConfigSingleton::Instance();
+  tbslas::SimConfig* sim_config = tbslas::SimConfigSingleton::Instance();
   // Find out my identity in the default communicator
   int myrank, p;
   MPI_Comm_rank(comm, &myrank);
-  MPI_Comm_size(comm,&p);
+  MPI_Comm_size(comm, &p);
   // Find out number of OMP thereads.
-  int omp_p=omp_get_max_threads();
+  int omp_p = omp_get_max_threads();
 
-  void (*fn_input_)(const Real_t* , int , Real_t*)=NULL;
-  void (*fn_poten_)(const Real_t* , int , Real_t*)=NULL;
-  void (*fn_grad_ )(const Real_t* , int , Real_t*)=NULL;
-  const pvfmm::Kernel<Real_t>* mykernel=NULL;
-  const pvfmm::Kernel<Real_t>* mykernel_grad=NULL;;
+  void (*fn_input_)(const Real_t*, int, Real_t*) = NULL;
+  void (*fn_poten_)(const Real_t*, int, Real_t*) = NULL;
+  void (*fn_grad_)(const Real_t*, int, Real_t*) = NULL;
+  const pvfmm::Kernel<Real_t>* mykernel = NULL;
+  const pvfmm::Kernel<Real_t>* mykernel_grad = NULL;
+  ;
   pvfmm::BoundaryType bndry;
   const pvfmm::Kernel<double> modified_laplace_kernel_d =
-      pvfmm::BuildKernel<double, tbslas::modified_laplace_poten>
-      (tbslas::GetModfiedLaplaceKernelName<double>(TBSLAS_ALPHA), 3, std::pair<int,int>(1,1));
+      pvfmm::BuildKernel<double, tbslas::modified_laplace_poten>(
+          tbslas::GetModfiedLaplaceKernelName<double>(TBSLAS_ALPHA), 3,
+          std::pair<int, int>(1, 1));
 
   switch (test_case) {
     case 2:
       fn_input_ = fn_input_t2<Real_t>;
       fn_poten_ = fn_poten_t2<Real_t>;
-      mykernel  = &modified_laplace_kernel_d;
+      mykernel = &modified_laplace_kernel_d;
       bndry = pvfmm::FreeSpace;
       break;
     case 1:
       fn_input_ = fn_input_t1<Real_t>;
       fn_poten_ = fn_input_t1<Real_t>;
-      mykernel  = &modified_laplace_kernel_d;
+      mykernel = &modified_laplace_kernel_d;
       bndry = pvfmm::FreeSpace;
       break;
     default:
-      fn_input_=NULL;
-      fn_poten_=NULL;
-      fn_grad_ =NULL;
+      fn_input_ = NULL;
+      fn_poten_ = NULL;
+      fn_grad_ = NULL;
       break;
   }
   // ======================================================================
   // TREE DATA
   // ======================================================================
   typename FMMNode_t::NodeData tree_data;
-  tree_data.dim=COORD_DIM;
-  tree_data.max_depth=depth;
-  tree_data.cheb_deg=cheb_deg;
-  //Set input function pointer
-  tree_data.input_fn=fn_input_;
-  tree_data.data_dof=mykernel->ker_dim[0];
-  tree_data.tol=tol;
-  //Set source coordinates.
+  tree_data.dim = COORD_DIM;
+  tree_data.max_depth = depth;
+  tree_data.cheb_deg = cheb_deg;
+  // Set input function pointer
+  tree_data.input_fn = fn_input_;
+  tree_data.data_dof = mykernel->ker_dim[0];
+  tree_data.tol = tol;
+  // Set source coordinates.
   std::vector<Real_t> pt_coord;
-  if(unif) pt_coord = tbslas::point_distrib<Real_t>(tbslas::UnifGrid,N,comm);
-  else pt_coord = tbslas::point_distrib<Real_t>(tbslas::RandElps,N,comm); //RandElps, RandGaus
-  tree_data.max_pts=M; // Points per octant.
-  tree_data.pt_coord=pt_coord;
-  //Print various parameters.
+  if (unif)
+    pt_coord = tbslas::point_distrib<Real_t>(tbslas::UnifGrid, N, comm);
+  else
+    pt_coord = tbslas::point_distrib<Real_t>(tbslas::RandElps, N,
+                                             comm);  // RandElps, RandGaus
+  tree_data.max_pts = M;                             // Points per octant.
+  tree_data.pt_coord = pt_coord;
+  // Print various parameters.
   if (!myrank) {
-    std::cout<<std::setprecision(2)<<std::scientific;
-    std::cout<<"Number of MPI processes: "<<p<<'\n';
-    std::cout<<"Number of OpenMP threads: "<<omp_p<<'\n';
-    std::cout<<"Order of multipole expansions: "<<mult_order<<'\n';
-    std::cout<<"Order of Chebyshev polynomials: "<<tree_data.cheb_deg<<'\n';
-    std::cout<<"FMM Kernel name: "<<mykernel->ker_name<<'\n';
-    std::cout<<"Number of point samples: "<<N<<'\n';
-    std::cout<<"Uniform distribution: "<<(unif?"true":"false")<<'\n';
-    std::cout<<"Maximum points per octant: "<<tree_data.max_pts<<'\n';
-    std::cout<<"Chebyshev Tolerance: "<<tree_data.tol<<'\n';
-    std::cout<<"Maximum Tree Depth: "<<depth<<'\n';
-    std::cout<<"BoundaryType: "<<(bndry==pvfmm::Periodic?"Periodic":"FreeSpace")<<'\n';
+    std::cout << std::setprecision(2) << std::scientific;
+    std::cout << "Number of MPI processes: " << p << '\n';
+    std::cout << "Number of OpenMP threads: " << omp_p << '\n';
+    std::cout << "Order of multipole expansions: " << mult_order << '\n';
+    std::cout << "Order of Chebyshev polynomials: " << tree_data.cheb_deg
+              << '\n';
+    std::cout << "FMM Kernel name: " << mykernel->ker_name << '\n';
+    std::cout << "Number of point samples: " << N << '\n';
+    std::cout << "Uniform distribution: " << (unif ? "true" : "false") << '\n';
+    std::cout << "Maximum points per octant: " << tree_data.max_pts << '\n';
+    std::cout << "Chebyshev Tolerance: " << tree_data.tol << '\n';
+    std::cout << "Maximum Tree Depth: " << depth << '\n';
+    std::cout << "BoundaryType: "
+              << (bndry == pvfmm::Periodic ? "Periodic" : "FreeSpace") << '\n';
   }
 
   // ======================================================================
@@ -156,71 +144,69 @@ void RunDiffusion(int test_case, size_t N, size_t M, bool unif, int mult_order,
   FMM_Tree_t* tree = new FMM_Tree_t(comm);
   tree->Initialize(&tree_data);
   tree->RefineTree();
-  tree->InitFMM_Tree(false,bndry);
+  tree->InitFMM_Tree(false, bndry);
 
   // ======================================================================
   // SETUP FMM
   // ======================================================================
-  FMM_Mat_t* fmm_mat=NULL;
+  FMM_Mat_t* fmm_mat = NULL;
   {
     fmm_mat = new FMM_Mat_t;
-    fmm_mat->Initialize(mult_order,
-                        tree_data.cheb_deg,
-                        comm,
-                        mykernel);
+    fmm_mat->Initialize(mult_order, tree_data.cheb_deg, comm, mykernel);
   }
 
   // ======================================================================
   // Write2File
   // ======================================================================
   if (sim_config->vtk_save_rate) {
-    tree->Write2File(tbslas::GetVTKFileName(0, sim_config->vtk_filename_variable).c_str(),
-                     tree_data.cheb_deg);
+    tree->Write2File(
+        tbslas::GetVTKFileName(0, sim_config->vtk_filename_variable).c_str(),
+        tree_data.cheb_deg);
   }
-  double in_al2,in_rl2,in_ali,in_rli;
-  CheckChebOutput<FMM_Tree_t>(tree,
-                              fn_input_,
-                              mykernel->ker_dim[1],
-                              in_al2, in_rl2, in_ali, in_rli,
-                              std::string("Input"));
+  double in_al2, in_rl2, in_ali, in_rli;
+  CheckChebOutput<FMM_Tree_t>(tree, fn_input_, mykernel->ker_dim[1], in_al2,
+                              in_rl2, in_ali, in_rli, std::string("Input"));
 
   // ======================================================================
   // DIFFUSUION SOLVER
   // ======================================================================
-  for (int timestep = 1; timestep < NUM_TIME_STEPS+1; timestep++) {
-    pvfmm::Profile::Tic(std::string("Solve_TN" + tbslas::ToString(static_cast<long long>(timestep))).c_str(), &comm, true);
+  for (int timestep = 1; timestep < NUM_TIME_STEPS + 1; timestep++) {
+    pvfmm::Profile::Tic(
+        std::string("Solve_TN" +
+                    tbslas::ToString(static_cast<long long>(timestep)))
+            .c_str(),
+        &comm, true);
 
-    pvfmm::Profile::Tic("FMM",&comm,true);
-    tree->InitFMM_Tree(false,bndry);
+    pvfmm::Profile::Tic("FMM", &comm, true);
+    tree->InitFMM_Tree(false, bndry);
     tree->SetupFMM(fmm_mat);
     tree->RunFMM();
-    tree->Copy_FMMOutput(); //Copy FMM output to tree Data.
+    tree->Copy_FMMOutput();  // Copy FMM output to tree Data.
     pvfmm::Profile::Toc();
 
-    pvfmm::Profile::Toc();        // solve
+    pvfmm::Profile::Toc();  // solve
 
     tcurr += TBSLAS_DT;
 
     if (sim_config->vtk_save_rate) {
       if (timestep % sim_config->vtk_save_rate == 0)
-        tree->Write2File(tbslas::GetVTKFileName(timestep, sim_config->vtk_filename_variable).c_str(),
-                         tree_data.cheb_deg);
+        tree->Write2File(
+            tbslas::GetVTKFileName(timestep, sim_config->vtk_filename_variable)
+                .c_str(),
+            tree_data.cheb_deg);
     }
   }
 
   // =========================================================================
   // REPORT RESULTS
   // =========================================================================
-  //Find error in FMM output.
-  double al2,rl2,ali,rli;
-  CheckChebOutput<FMM_Tree_t>(tree,
-                              fn_poten_,
-                              mykernel->ker_dim[1],
-                              al2,rl2,ali,rli,
-                              std::string("Output"));
+  // Find error in FMM output.
+  double al2, rl2, ali, rli;
+  CheckChebOutput<FMM_Tree_t>(tree, fn_poten_, mykernel->ker_dim[1], al2, rl2,
+                              ali, rli, std::string("Output"));
   int num_leaves = tbslas::CountNumLeafNodes(*tree);
   typedef tbslas::Reporter<Real_t> Rep;
-  if(!myrank) {
+  if (!myrank) {
     Rep::AddData("TOL", sim_config->tree_tolerance);
     Rep::AddData("NOCT", num_leaves, tbslas::REP_INT);
 
@@ -244,36 +230,43 @@ void RunDiffusion(int test_case, size_t N, size_t M, bool unif, int mult_order,
 
     Rep::Report();
   }
-  //Delete matrices.
-  if(fmm_mat)
-    delete fmm_mat;
+  // Delete matrices.
+  if (fmm_mat) delete fmm_mat;
 
-  //Delete the tree.
+  // Delete the tree.
   delete tree;
 }
 
-int main (int argc, char **argv) {
+int main(int argc, char** argv) {
   MPI_Init(&argc, &argv);
-  MPI_Comm comm=MPI_COMM_WORLD;
+  MPI_Comm comm = MPI_COMM_WORLD;
   int myrank;
   MPI_Comm_rank(comm, &myrank);
 
   parse_command_line_options(argc, argv);
 
-  bool  unif = (commandline_option(argc, argv, "-unif",    NULL, false,
-                                   "-unif                : Uniform point distribution."        )!=NULL);
-  int      m = strtoul(commandline_option(argc, argv,    "-m",    "10", false,
-                                          "-m    <int> = (10)   : Multipole order (+ve even integer)."),NULL,10);
-  int   test = strtoul(commandline_option(argc, argv, "-test",     "1", false,
-                                          "-test <int> = (1)    : 1) Modified Laplace, Smooth Gaussian, FreeSpace Boundary"),NULL,10);
+  bool unif =
+      (commandline_option(
+           argc, argv, "-unif", NULL, false,
+           "-unif                : Uniform point distribution.") != NULL);
+  int m =
+      strtoul(commandline_option(
+                  argc, argv, "-m", "10", false,
+                  "-m    <int> = (10)   : Multipole order (+ve even integer)."),
+              NULL, 10);
+  int test =
+      strtoul(commandline_option(argc, argv, "-test", "1", false,
+                                 "-test <int> = (1)    : 1) Modified Laplace, "
+                                 "Smooth Gaussian, FreeSpace Boundary"),
+              NULL, 10);
 
-  tbslas::SimConfig* sim_config       = tbslas::SimConfigSingleton::Instance();
-  sim_config->vtk_filename_variable   = "conc";
+  tbslas::SimConfig* sim_config = tbslas::SimConfigSingleton::Instance();
+  sim_config->vtk_filename_variable = "conc";
 
-  NUM_TIME_STEPS    = sim_config->total_num_timestep;
-  TBSLAS_DT         = sim_config->dt;
+  NUM_TIME_STEPS = sim_config->total_num_timestep;
+  TBSLAS_DT = sim_config->dt;
   TBSLAS_DIFF_COEFF = 0.0001;
-  TBSLAS_ALPHA      = (1.0)/TBSLAS_DT/TBSLAS_DIFF_COEFF;
+  TBSLAS_ALPHA = (1.0) / TBSLAS_DT / TBSLAS_DIFF_COEFF;
 
   pvfmm::Profile::Enable(sim_config->profile);
   // =========================================================================
@@ -285,20 +278,15 @@ int main (int argc, char **argv) {
   // =========================================================================
   // RUN
   // =========================================================================
-  pvfmm::Profile::Tic("RunDiffuionSolver",&comm,true);
-  RunDiffusion<double>(test,
-                       sim_config->tree_num_point_sources,
-                       sim_config->tree_num_points_per_octanct,
-                       unif,
-                       m,
+  pvfmm::Profile::Tic("RunDiffuionSolver", &comm, true);
+  RunDiffusion<double>(test, sim_config->tree_num_point_sources,
+                       sim_config->tree_num_points_per_octanct, unif, m,
                        sim_config->tree_chebyshev_order,
-                       sim_config->tree_max_depth,
-                       sim_config->tree_adap,
-                       sim_config->tree_tolerance,
-                       comm);
+                       sim_config->tree_max_depth, sim_config->tree_adap,
+                       sim_config->tree_tolerance, comm);
   pvfmm::Profile::Toc();
 
-  //Output Profiling results.
+  // Output Profiling results.
   pvfmm::Profile::print(&comm);
 
   // Shut down MPI

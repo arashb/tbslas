@@ -13,26 +13,26 @@
 #include <mpi.h>
 #include <omp.h>
 #include <stdio.h>
-#include <vector>
+#include <algorithm>
+#include <cassert>
 #include <cstdlib>
 #include <iostream>
-#include <cassert>
-#include <algorithm>
+#include <vector>
 
-#include <pvfmm_common.hpp>
-#include <mpi_tree.hpp>
 #include <cheb_node.hpp>
-#include <vector.hpp>
 #include <cheb_utils.hpp>
+#include <mpi_tree.hpp>
 #include <profile.hpp>
+#include <pvfmm_common.hpp>
+#include <vector.hpp>
 
-#include <utils.hpp>
 #include <field_wrappers.h>
+#include <utils.hpp>
 
 #include <utils/common.h>
+#include <utils/fields.h>
 #include <utils/metadata.h>
 #include <utils/reporter.h>
-#include <utils/fields.h>
 
 #include <tree/tree_semilag.h>
 #include <tree/tree_utils.h>
@@ -40,18 +40,16 @@
 typedef pvfmm::Cheb_Node<double> Node_t;
 typedef pvfmm::MPI_Tree<Node_t> Tree_t;
 
-typedef tbslas::MetaData<std::string,
-                         std::string,
-                         std::string> MetaData_t;
+typedef tbslas::MetaData<std::string, std::string, std::string> MetaData_t;
 double tcurr = 0;
 double EXP_ALPHA;
 
-void (*fn_vel)(const double* , int , double*)=NULL;
-void (*fn_con)(const double* , int , double*)=NULL;
+void (*fn_vel)(const double*, int, double*) = NULL;
+void (*fn_con)(const double*, int, double*) = NULL;
 
-int main (int argc, char **argv) {
+int main(int argc, char** argv) {
   MPI_Init(&argc, &argv);
-  MPI_Comm comm=MPI_COMM_WORLD;
+  MPI_Comm comm = MPI_COMM_WORLD;
   int np;
   MPI_Comm_size(comm, &np);
   int myrank;
@@ -59,16 +57,23 @@ int main (int argc, char **argv) {
 
   parse_command_line_options(argc, argv);
 
-  int   test = strtoul(commandline_option(argc, argv, "-test",     "1", false,
-                                          "-test <int> = (1)    : 1) Gaussian profile 2) Zalesak disk"),NULL,10);
-  int   merge = strtoul(commandline_option(argc, argv, "-merge",     "1", false,
-                                          "-merge <int> = (1)    : 1) no merge 2) complete merge 3) Semi-Merge"),NULL,10);
+  int test =
+      strtoul(commandline_option(
+                  argc, argv, "-test", "1", false,
+                  "-test <int> = (1)    : 1) Gaussian profile 2) Zalesak disk"),
+              NULL, 10);
+  int merge = strtoul(commandline_option(argc, argv, "-merge", "1", false,
+                                         "-merge <int> = (1)    : 1) no merge "
+                                         "2) complete merge 3) Semi-Merge"),
+                      NULL, 10);
 
-  double exp_alpha = strtod(commandline_option(argc, argv,  "-ea",  "10", false, "-ea <real> = (10) : alpha" ), NULL);
-  EXP_ALPHA         = exp_alpha;
+  double exp_alpha = strtod(commandline_option(argc, argv, "-ea", "10", false,
+                                               "-ea <real> = (10) : alpha"),
+                            NULL);
+  EXP_ALPHA = exp_alpha;
 
   {
-    tbslas::SimConfig* sim_config       = tbslas::SimConfigSingleton::Instance();
+    tbslas::SimConfig* sim_config = tbslas::SimConfigSingleton::Instance();
     pvfmm::Profile::Enable(sim_config->profile);
     sim_config->num_rk_step = 1;
     // =========================================================================
@@ -81,43 +86,43 @@ int main (int argc, char **argv) {
     // =========================================================================
     // TEST CASE
     // =========================================================================
-    int max_depth_vel=0;
-    int max_depth_con=0;
+    int max_depth_vel = 0;
+    int max_depth_con = 0;
     pvfmm::BoundaryType bc;
-    switch(test) {
+    switch (test) {
       case 1:
-        fn_vel = tbslas::get_vorticity_field<double,3>;
-        fn_con = get_gaussian_field_atT<double,3>;
+        fn_vel = tbslas::get_vorticity_field<double, 3>;
+        fn_con = get_gaussian_field_atT<double, 3>;
         // fn_con = get_gaussian_field_cylinder_atT<double,3>;
         bc = pvfmm::FreeSpace;
         // bc = pvfmm::Periodic;
         break;
       case 2:
-        fn_vel = tbslas::get_vorticity_field<double,3>;
-        fn_con = get_slotted_cylinder_atT<double,3>;
+        fn_vel = tbslas::get_vorticity_field<double, 3>;
+        fn_con = get_slotted_cylinder_atT<double, 3>;
         bc = pvfmm::FreeSpace;
         // bc = pvfmm::Periodic;
         break;
       case 3:
-        fn_vel = tbslas::get_vel_field_hom_y<double,3>;
-        fn_con = get_gaussian_field_atT<double,3>;
+        fn_vel = tbslas::get_vel_field_hom_y<double, 3>;
+        fn_con = get_gaussian_field_atT<double, 3>;
         bc = pvfmm::Periodic;
         break;
-      case 4:                     // regular V, regular C
-        max_depth_vel=6;
-        max_depth_con=6;
-        fn_vel = tbslas::get_vel_field_hom_x<double,3>;
-        fn_con = tbslas::get_linear_field_y<double,3>;
+      case 4:  // regular V, regular C
+        max_depth_vel = 6;
+        max_depth_con = 6;
+        fn_vel = tbslas::get_vel_field_hom_x<double, 3>;
+        fn_con = tbslas::get_linear_field_y<double, 3>;
         bc = pvfmm::Periodic;
         break;
-      case 5:         // regular V, irregular C
-        max_depth_vel=6;
-        fn_vel = tbslas::get_vorticity_field<double,3>;
+      case 5:  // regular V, irregular C
+        max_depth_vel = 6;
+        fn_vel = tbslas::get_vorticity_field<double, 3>;
         fn_con = get_guassian_kernel_wraper<double>;
         // bc = pvfmm::FreeSpace;
         bc = pvfmm::Periodic;
         break;
-      case 6:         // irregular V, irregular C
+      case 6:  // irregular V, irregular C
         fn_vel = get_hopf_field_wrapper<double>;
         fn_con = get_guassian_kernel_wraper<double>;
         // bc = pvfmm::FreeSpace;
@@ -143,7 +148,7 @@ int main (int argc, char **argv) {
     // =========================================================================
     // SIMULATION PARAMETERS
     // =========================================================================
-    sim_config->vtk_filename_variable   = "conc";
+    sim_config->vtk_filename_variable = "conc";
     sim_config->bc = bc;
 
     tbslas::new_nodes<Tree_t::Real_t>(sim_config->tree_chebyshev_order, 3);
@@ -152,56 +157,49 @@ int main (int argc, char **argv) {
     // INIT THE VELOCITY TREE
     // =========================================================================
     Tree_t tvel(comm);
-    tbslas::ConstructTree<Tree_t>(sim_config->tree_num_point_sources,
-                                  sim_config->tree_num_points_per_octanct,
-                                  sim_config->tree_chebyshev_order,
-                                  max_depth_vel?max_depth_vel:sim_config->tree_max_depth,
-                                  sim_config->tree_adap,
-                                  sim_config->tree_tolerance,
-                                  comm,
-                                  fn_vel,
-                                  3,
-                                  tvel);
-    tbslas::NodeFieldFunctor<double,Tree_t> tvel_func = tbslas::NodeFieldFunctor<double, Tree_t>(&tvel);
+    tbslas::ConstructTree<Tree_t>(
+        sim_config->tree_num_point_sources,
+        sim_config->tree_num_points_per_octanct,
+        sim_config->tree_chebyshev_order,
+        max_depth_vel ? max_depth_vel : sim_config->tree_max_depth,
+        sim_config->tree_adap, sim_config->tree_tolerance, comm, fn_vel, 3,
+        tvel);
+    tbslas::NodeFieldFunctor<double, Tree_t> tvel_func =
+        tbslas::NodeFieldFunctor<double, Tree_t>(&tvel);
 
     // =========================================================================
     // INIT THE CONCENTRATION TREE
     // =========================================================================
     tcurr = 0;
     Tree_t tcon(comm);
-    tbslas::ConstructTree<Tree_t>(sim_config->tree_num_point_sources,
-                                  sim_config->tree_num_points_per_octanct,
-                                  sim_config->tree_chebyshev_order,
-                                  max_depth_con?max_depth_con:sim_config->tree_max_depth,
-                                  sim_config->tree_adap,
-                                  sim_config->tree_tolerance,
-                                  comm,
-                                  fn_con,
-                                  1,
-                                  tcon);
+    tbslas::ConstructTree<Tree_t>(
+        sim_config->tree_num_point_sources,
+        sim_config->tree_num_points_per_octanct,
+        sim_config->tree_chebyshev_order,
+        max_depth_con ? max_depth_con : sim_config->tree_max_depth,
+        sim_config->tree_adap, sim_config->tree_tolerance, comm, fn_con, 1,
+        tcon);
 
     if (sim_config->vtk_save_rate) {
       tvel.Write2File(tbslas::GetVTKFileName(0, "vel").c_str(),
                       sim_config->vtk_order);
 
-      tcon.Write2File(tbslas::GetVTKFileName(0, sim_config->vtk_filename_variable).c_str(),
-                      sim_config->vtk_order);
+      tcon.Write2File(
+          tbslas::GetVTKFileName(0, sim_config->vtk_filename_variable).c_str(),
+          sim_config->vtk_order);
     }
 
     // =========================================================================
     // RUN
     // =========================================================================
     // set the input_fn to NULL -> needed for adaptive refinement
-    std::vector<Node_t*>  ncurr_list = tcon.GetNodeList();
-    for(int i = 0; i < ncurr_list.size(); i++) {
-      ncurr_list[i]->input_fn = (void (*)(const double* , int , double*))NULL;
+    std::vector<Node_t*> ncurr_list = tcon.GetNodeList();
+    for (int i = 0; i < ncurr_list.size(); i++) {
+      ncurr_list[i]->input_fn = (void (*)(const double*, int, double*))NULL;
     }
 
-    double in_al2,in_rl2,in_ali,in_rli;
-    CheckChebOutput<Tree_t>(&tcon,
-                            fn_con,
-                            1,
-                            in_al2,in_rl2,in_ali,in_rli,
+    double in_al2, in_rl2, in_ali, in_rli;
+    CheckChebOutput<Tree_t>(&tcon, fn_con, 1, in_al2, in_rl2, in_ali, in_rli,
                             std::string("Input"));
 
     int con_noct_sum = 0;
@@ -238,26 +236,27 @@ int main (int argc, char **argv) {
     // xtmp2[1] = 1.0;
     // xtmp2[2] = 0.3;
 
-    // int i = pvfmm::MortonId(xtmp1.data(),1) < pvfmm::MortonId(xtmp2.data(),1);
-    // std::cout << "MID: " <<  i  << std::endl;
+    // int i = pvfmm::MortonId(xtmp1.data(),1) <
+    // pvfmm::MortonId(xtmp2.data(),1); std::cout << "MID: " <<  i  <<
+    // std::endl;
 
     // std::vector<double> vtmp(num_points*3);
-    // tbslas::NodeFieldFunctor<double,Tree_t> cfun = tbslas::NodeFieldFunctor<double,Tree_t>(&tvel);
-    // cfun(xtmp1.data(), num_points, vtmp.data());
-    // std::cout << "vals: " << vtmp[0] << " " << vtmp[1] << " " << vtmp[2] << std::endl;
+    // tbslas::NodeFieldFunctor<double,Tree_t> cfun =
+    // tbslas::NodeFieldFunctor<double,Tree_t>(&tvel); cfun(xtmp1.data(),
+    // num_points, vtmp.data()); std::cout << "vals: " << vtmp[0] << " " <<
+    // vtmp[1] << " " << vtmp[2] << std::endl;
 
     // cfun(xtmp2.data(), num_points, vtmp.data());
-    // std::cout << "vals: " << vtmp[0] << " " << vtmp[1] << " " << vtmp[2] << std::endl;
-
+    // std::cout << "vals: " << vtmp[0] << " " << vtmp[1] << " " << vtmp[2] <<
+    // std::endl;
 
     int timestep = 1;
-    for (; timestep < sim_config->total_num_timestep+1; timestep++) {
-
+    for (; timestep < sim_config->total_num_timestep + 1; timestep++) {
       // =====================================================================
       // (SEMI) MERGE TO FIX IMBALANCE
       // =====================================================================
       pvfmm::Profile::Tic("Merge", &sim_config->comm, false, 5);
-      switch(merge) {
+      switch (merge) {
         case 2:
           tbslas::MergeTree(tvel, tcon);
           break;
@@ -267,80 +266,78 @@ int main (int argc, char **argv) {
       }
       pvfmm::Profile::Toc();
 
-        // =====================================================================
-        // ESTIMATE THE PROBLEM SIZE -> NUMBER OF TREES' OCTANTS
-        // =====================================================================
-        pvfmm::Profile::Tic("CountLVS", &sim_config->comm, false, 5);
-        if (sim_config->profile) {
-          int con_noct = tbslas::CountNumLeafNodes(tcon);
-          con_noct_sum += con_noct;
-          if (con_noct > con_noct_max) con_noct_max = con_noct;
-          if (con_noct < con_noct_min) con_noct_min = con_noct;
+      // =====================================================================
+      // ESTIMATE THE PROBLEM SIZE -> NUMBER OF TREES' OCTANTS
+      // =====================================================================
+      pvfmm::Profile::Tic("CountLVS", &sim_config->comm, false, 5);
+      if (sim_config->profile) {
+        int con_noct = tbslas::CountNumLeafNodes(tcon);
+        con_noct_sum += con_noct;
+        if (con_noct > con_noct_max) con_noct_max = con_noct;
+        if (con_noct < con_noct_min) con_noct_min = con_noct;
 
-          int vel_noct = tbslas::CountNumLeafNodes(tvel);
-          vel_noct_sum += vel_noct;
-          if (vel_noct > vel_noct_max) vel_noct_max = vel_noct;
-          if (vel_noct < vel_noct_min) vel_noct_min = vel_noct;
-        }
-        pvfmm::Profile::Toc();
+        int vel_noct = tbslas::CountNumLeafNodes(tvel);
+        vel_noct_sum += vel_noct;
+        if (vel_noct > vel_noct_max) vel_noct_max = vel_noct;
+        if (vel_noct < vel_noct_min) vel_noct_min = vel_noct;
+      }
+      pvfmm::Profile::Toc();
 
-        pvfmm::Profile::Tic(std::string("Solve_TN" + tbslas::ToString(static_cast<long long>(timestep))).c_str(), &comm, true);
-        {
-          // ===================================================================
-          // SOLVE SEMILAG
-          // ===================================================================
-          pvfmm::Profile::Tic("SLM", &sim_config->comm, false, 5);
-          tbslas::SolveSemilagInSitu(tvel_func,
-                                     tcon,
-                                     timestep,
-                                     sim_config->dt,
-                                     sim_config->num_rk_step);
-          pvfmm::Profile::Toc();
-        }
-        pvfmm::Profile::Toc();        // solve
-
-
+      pvfmm::Profile::Tic(
+          std::string("Solve_TN" +
+                      tbslas::ToString(static_cast<long long>(timestep)))
+              .c_str(),
+          &comm, true);
+      {
         // ===================================================================
-        // REFINE TREE
+        // SOLVE SEMILAG
         // ===================================================================
-        pvfmm::Profile::Tic("RefineTree", &sim_config->comm, false, 5);
-        tcon.RefineTree();
+        pvfmm::Profile::Tic("SLM", &sim_config->comm, false, 5);
+        tbslas::SolveSemilagInSitu(tvel_func, tcon, timestep, sim_config->dt,
+                                   sim_config->num_rk_step);
         pvfmm::Profile::Toc();
+      }
+      pvfmm::Profile::Toc();  // solve
 
-        pvfmm::Profile::Tic("Balance21", &sim_config->comm, false, 5);
-        tcon.Balance21(sim_config->bc);
-        pvfmm::Profile::Toc();
+      // ===================================================================
+      // REFINE TREE
+      // ===================================================================
+      pvfmm::Profile::Tic("RefineTree", &sim_config->comm, false, 5);
+      tcon.RefineTree();
+      pvfmm::Profile::Toc();
 
-        //TODO: ONLY FOR STEADY VELOCITY TREES
-        tvel.RefineTree();
+      pvfmm::Profile::Tic("Balance21", &sim_config->comm, false, 5);
+      tcon.Balance21(sim_config->bc);
+      pvfmm::Profile::Toc();
 
-        // =====================================================================
-        // Write2File and print error every N time steps
-        // =====================================================================
-        if (sim_config->vtk_save_rate) {
-          if ( timestep % sim_config->vtk_save_rate == 0) {
-            tcon.Write2File(tbslas::GetVTKFileName(timestep, sim_config->vtk_filename_variable).c_str(),
-                            sim_config->vtk_order);
-            tcurr = timestep*sim_config->dt;
-            double al2,rl2,ali,rli;
-            CheckChebOutput<Tree_t>(&tcon,
-                                    fn_con,
-                                    1,
-                                    al2,rl2,ali,rli,
-                                    std::string("Output_TN" + tbslas::ToString(static_cast<long long>(timestep))));
-          }
+      // TODO: ONLY FOR STEADY VELOCITY TREES
+      tvel.RefineTree();
+
+      // =====================================================================
+      // Write2File and print error every N time steps
+      // =====================================================================
+      if (sim_config->vtk_save_rate) {
+        if (timestep % sim_config->vtk_save_rate == 0) {
+          tcon.Write2File(tbslas::GetVTKFileName(
+                              timestep, sim_config->vtk_filename_variable)
+                              .c_str(),
+                          sim_config->vtk_order);
+          tcurr = timestep * sim_config->dt;
+          double al2, rl2, ali, rli;
+          CheckChebOutput<Tree_t>(
+              &tcon, fn_con, 1, al2, rl2, ali, rli,
+              std::string("Output_TN" +
+                          tbslas::ToString(static_cast<long long>(timestep))));
         }
+      }
     }  // end for
 
     // =========================================================================
     // COMPUTE ERROR
     // =========================================================================
-    tcurr = sim_config->total_num_timestep*sim_config->dt;
-    double al2,rl2,ali,rli;
-    CheckChebOutput<Tree_t>(&tcon,
-                            fn_con,
-                            1,
-                            al2,rl2,ali,rli,
+    tcurr = sim_config->total_num_timestep * sim_config->dt;
+    double al2, rl2, ali, rli;
+    CheckChebOutput<Tree_t>(&tcon, fn_con, 1, al2, rl2, ali, rli,
                             std::string("Output"));
 
     // =========================================================================
@@ -352,7 +349,7 @@ int main (int argc, char **argv) {
     tbslas::GetTreeMaxDepth(tvel, tvel_max_depth);
 
     typedef tbslas::Reporter<double> Rep;
-    if(!myrank) {
+    if (!myrank) {
       Rep::AddData("NP", np, tbslas::REP_INT);
       Rep::AddData("OMP", sim_config->num_omp_threads, tbslas::REP_INT);
 
@@ -364,7 +361,8 @@ int main (int argc, char **argv) {
       Rep::AddData("VMaxD", tvel_max_depth, tbslas::REP_INT);
 
       // Rep::AddData("CBC", sim_config->use_cubic?1:0, tbslas::REP_INT);
-      // Rep::AddData("CUF", sim_config->cubic_upsampling_factor, tbslas::REP_INT);
+      // Rep::AddData("CUF", sim_config->cubic_upsampling_factor,
+      // tbslas::REP_INT);
 
       Rep::AddData("DT", sim_config->dt);
       Rep::AddData("TN", sim_config->total_num_timestep, tbslas::REP_INT);
@@ -384,19 +382,21 @@ int main (int argc, char **argv) {
       Rep::AddData("OutRLINF", rli);
 
       Rep::AddData("CMinNOCT", con_noct_min, tbslas::REP_INT);
-      Rep::AddData("CAvgNOCT", con_noct_sum/(sim_config->total_num_timestep+1),
-                   tbslas::REP_INT); // NUMBER OF TIMESTEPS + INITIAL TREE
+      Rep::AddData("CAvgNOCT",
+                   con_noct_sum / (sim_config->total_num_timestep + 1),
+                   tbslas::REP_INT);  // NUMBER OF TIMESTEPS + INITIAL TREE
       Rep::AddData("CMaxNOCT", con_noct_max, tbslas::REP_INT);
 
       Rep::AddData("VMinNOCT", vel_noct_min, tbslas::REP_INT);
-      Rep::AddData("VAvgNOCT", vel_noct_sum/(sim_config->total_num_timestep+1),
-                   tbslas::REP_INT); // NUMBER OF TIMESTEPS + INITIAL TREE
+      Rep::AddData("VAvgNOCT",
+                   vel_noct_sum / (sim_config->total_num_timestep + 1),
+                   tbslas::REP_INT);  // NUMBER OF TIMESTEPS + INITIAL TREE
       Rep::AddData("VMaxNOCT", vel_noct_max, tbslas::REP_INT);
 
       Rep::Report();
     }
 
-    //Output Profiling results.
+    // Output Profiling results.
     pvfmm::Profile::print(&comm);
   }
 

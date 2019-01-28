@@ -18,75 +18,45 @@
 
 namespace tbslas {
 
-template<typename real_t>
+template <typename real_t>
 class CubicInterpPolicy {
-
  public:
-  CubicInterpPolicy() {};
-  virtual ~CubicInterpPolicy() {};
+  CubicInterpPolicy(){};
+  virtual ~CubicInterpPolicy(){};
 
  private:
+  inline static real_t h00(real_t t) { return 2 * t * t * t - 3 * t * t + 1; }
 
-  inline static real_t
-  h00(real_t t) {
-    return 2*t*t*t - 3*t*t + 1;
-  }
+  inline static real_t h10(real_t t) { return t * t * t - 2 * t * t + t; }
 
-  inline static real_t
-  h10(real_t t) {
-    return t*t*t - 2*t*t + t;
-  }
+  inline static real_t h01(real_t t) { return -2 * t * t * t + 3 * t * t; }
 
-  inline static real_t
-  h01(real_t t) {
-    return -2*t*t*t + 3*t*t;
-  }
+  inline static real_t h11(real_t t) { return t * t * t - t * t; }
 
-  inline static real_t
-  h11(real_t t) {
-    return t*t*t - t*t;
-  }
-
-  inline static real_t
-  tangent(real_t tk_1,
-          real_t tk,
-          real_t tk1,
-          real_t pk_1,
-          real_t pk,
-          real_t pk1) {
-    return (pk1 - pk)*0.5/(tk1 - tk) + (pk - pk_1)*0.5/(tk - tk_1) ;
+  inline static real_t tangent(real_t tk_1, real_t tk, real_t tk1, real_t pk_1,
+                               real_t pk, real_t pk1) {
+    return (pk1 - pk) * 0.5 / (tk1 - tk) + (pk - pk_1) * 0.5 / (tk - tk_1);
   }
 
  public:
+  static real_t InterpCubic1D(real_t x, real_t xx[4], real_t pp[4]) {
+    real_t mk =
+        CubicInterpPolicy::tangent(xx[0], xx[1], xx[2], pp[0], pp[1], pp[2]);
 
-  static real_t
-  InterpCubic1D(real_t x,
-                real_t xx[4],
-                real_t pp[4]
-                ) {
-    real_t mk = CubicInterpPolicy::tangent(xx[0], xx[1], xx[2],
-                                           pp[0], pp[1], pp[2]);
+    real_t mk1 =
+        CubicInterpPolicy::tangent(xx[1], xx[2], xx[3], pp[1], pp[2], pp[3]);
+    real_t t = (x - xx[1]) / (xx[2] - xx[1]);
 
-    real_t mk1 = CubicInterpPolicy::tangent(xx[1], xx[2], xx[3],
-                                            pp[1], pp[2], pp[3]);
-    real_t t = (x - xx[1])/(xx[2] - xx[1]);
-
-    real_t val =
-        CubicInterpPolicy::h00(t)*pp[1] +
-        CubicInterpPolicy::h10(t)*(xx[2] - xx[1])*mk +
-        CubicInterpPolicy::h01(t)*pp[2] +
-        CubicInterpPolicy::h11(t)*(xx[2] - xx[1])*mk1;
+    real_t val = CubicInterpPolicy::h00(t) * pp[1] +
+                 CubicInterpPolicy::h10(t) * (xx[2] - xx[1]) * mk +
+                 CubicInterpPolicy::h01(t) * pp[2] +
+                 CubicInterpPolicy::h11(t) * (xx[2] - xx[1]) * mk1;
 
     return val;
   }
 
-  static real_t
-  InterpCubic2D(real_t x,
-                real_t y,
-                real_t xx[4],
-                real_t yy[4],
-                real_t pp[4][4]
-                ) {
+  static real_t InterpCubic2D(real_t x, real_t y, real_t xx[4], real_t yy[4],
+                              real_t pp[4][4]) {
     real_t val[4];
     val[0] = CubicInterpPolicy::InterpCubic1D(y, yy, pp[0]);
     val[1] = CubicInterpPolicy::InterpCubic1D(y, yy, pp[1]);
@@ -95,15 +65,8 @@ class CubicInterpPolicy {
     return CubicInterpPolicy::InterpCubic1D(x, xx, val);
   }
 
-  static real_t
-  InterpCubic3D(real_t x,
-                real_t y,
-                real_t z,
-                real_t xx[4],
-                real_t yy[4],
-                real_t zz[4],
-                real_t pp[4][4][4]
-                ) {
+  static real_t InterpCubic3D(real_t x, real_t y, real_t z, real_t xx[4],
+                              real_t yy[4], real_t zz[4], real_t pp[4][4][4]) {
     real_t val[4];
     val[0] = CubicInterpPolicy::InterpCubic2D(y, z, yy, zz, pp[0]);
     val[1] = CubicInterpPolicy::InterpCubic2D(y, z, yy, zz, pp[1]);

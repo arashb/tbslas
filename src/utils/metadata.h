@@ -13,51 +13,43 @@
 #ifndef SRC_UTILS_METADATA_H_
 #define SRC_UTILS_METADATA_H_
 
-#include <string>
 #include <map>
+#include <string>
 
 namespace tbslas {
 
-template<typename _KeyType,
-         typename _ValueType,
-         typename _DescType>
+template <typename _KeyType, typename _ValueType, typename _DescType>
 class MetaData {
  public:
   MetaData();
   virtual ~MetaData();
 
-  static void
-  AddMetaData(_KeyType key,
-              _ValueType value,
-              _DescType desc
-              ) {
-    values[key]       = value;
+  static void AddMetaData(_KeyType key, _ValueType value, _DescType desc) {
+    values[key] = value;
     descriptions[key] = desc;
   }
 
-  static
-  void Print() {
-    printf("======================================================================\n");
+  static void Print() {
+    printf(
+        "==================================================================="
+        "===\n");
     printf(" METADATA\n");
-    printf("======================================================================\n");
+    printf(
+        "==================================================================="
+        "===\n");
     typename std::map<_KeyType, _ValueType>::const_iterator _iter;
     _iter = values.begin();
     for (; _iter != values.end(); ++_iter) {
-      _KeyType _key   = _iter->first;
+      _KeyType _key = _iter->first;
       _ValueType _val = _iter->second;
       _DescType _desc = descriptions[_key];
-      std::cout << std::setw(10)
-                << std::left
-                << _key
-                << std::setw(10)
-                << std::left
-                << _val
-                << std::setw(30)
-                << std::left
-                << _desc
+      std::cout << std::setw(10) << std::left << _key << std::setw(10)
+                << std::left << _val << std::setw(30) << std::left << _desc
                 << std::endl;
     }
-    printf("======================================================================\n");
+    printf(
+        "==================================================================="
+        "===\n");
   }
 
  private:
@@ -67,17 +59,13 @@ class MetaData {
 };
 
 // static members definition
-template<typename _KeyType,
-         typename _ValueType,
-         typename _DescType>
+template <typename _KeyType, typename _ValueType, typename _DescType>
 std::map<_KeyType, _ValueType>
-MetaData<_KeyType, _ValueType, _DescType>::values;
+    MetaData<_KeyType, _ValueType, _DescType>::values;
 
-template<typename _KeyType,
-         typename _ValueType,
-         typename _DescType>
+template <typename _KeyType, typename _ValueType, typename _DescType>
 std::map<_KeyType, _DescType>
-MetaData<_KeyType, _ValueType, _DescType>::descriptions;
+    MetaData<_KeyType, _ValueType, _DescType>::descriptions;
 
 }  // namespace tbslas
 

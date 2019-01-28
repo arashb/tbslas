@@ -11,32 +11,32 @@
 // *************************************************************************
 // SYSTEM
 #include <mpi.h>
-#include <pvfmm_common.hpp>
-#include <cstdlib>
-#include <iostream>
 #include <omp.h>
 #include <stdio.h>
+#include <cstdlib>
+#include <iostream>
+#include <pvfmm_common.hpp>
 #include <string>
-#include <vector>
 #include <utility>
+#include <vector>
 // PVFMM
-#include <profile.hpp>
+#include <cheb_node.hpp>
 #include <fmm_cheb.hpp>
 #include <fmm_node.hpp>
 #include <fmm_tree.hpp>
-#include <cheb_node.hpp>
+#include <profile.hpp>
 // LOCAL
-#include <utils.hpp>
 #include <field_wrappers.h>
+#include <utils.hpp>
 // TBSLAS
 #include <utils/common.h>
-#include <utils/reporter.h>
 #include <utils/fields.h>
+#include <utils/reporter.h>
 
-#include <tree/tree_semilag.h>
-#include <tree/tree_utils.h>
-#include <tree/tree_set_functor.h>
 #include <tree/tree_extrap_functor.h>
+#include <tree/tree_semilag.h>
+#include <tree/tree_set_functor.h>
+#include <tree/tree_utils.h>
 
 #include <kernels/mod_stokes.h>
 
@@ -50,10 +50,7 @@ double EXP_ALPHA;
 double tcurr_init = 0;
 double tcurr = 0;
 
-typedef tbslas::MetaData<std::string,
-                         std::string,
-                         std::string> MetaData_t;
-
+typedef tbslas::MetaData<std::string, std::string, std::string> MetaData_t;
 
 template <class real_t>
 void RunNS() {
@@ -64,29 +61,29 @@ void RunNS() {
   typedef pvfmm::FMM_Cheb<FMMNode_t> FMM_Mat_t;
   typedef pvfmm::FMM_Tree<FMM_Mat_t> FMM_Tree_t;
   typedef typename FMM_Tree_t::Node_t NodeType;
-  
+
   // ======================================================================
   // SETUP TEST CASE
   // ======================================================================
-  void (*fn_veloc_)(const real_t* , int , real_t*)=NULL;
+  void (*fn_veloc_)(const real_t*, int, real_t*) = NULL;
   pvfmm::BoundaryType bndry;
 
   switch (sim_config->test) {
-  case 1:
-    fn_veloc_ = get_taylor_green_field_ns<real_t>;
-    bndry = pvfmm::Periodic;
-    break;
-  case 2:
-    fn_veloc_ = get_two_vortex_tubes_vorticity_field_ns<real_t>;
-    bndry = pvfmm::Periodic;
-    break;
-  case 3:
+    case 1:
+      fn_veloc_ = get_taylor_green_field_ns<real_t>;
+      bndry = pvfmm::Periodic;
+      break;
+    case 2:
+      fn_veloc_ = get_two_vortex_tubes_vorticity_field_ns<real_t>;
+      bndry = pvfmm::Periodic;
+      break;
+    case 3:
       fn_veloc_ = get_two_vortex_tubes_curl_vorticity_field_ns<real_t>;
       bndry = pvfmm::Periodic;
-    break;
-  default:
-    fn_veloc_ = NULL;
-    break;
+      break;
+    default:
+      fn_veloc_ = NULL;
+      break;
   }
   // Find out my identity in the default communicator
   int myrank, np;
@@ -105,108 +102,96 @@ void RunNS() {
   FMM_Tree_t* tvelc = new FMM_Tree_t(sim_config->comm);
   {
     tcurr = tcurr_init - sim_config->dt;
-    tbslas::ConstructTree<FMM_Tree_t>(sim_config->tree_num_point_sources,
-				      sim_config->tree_num_points_per_octanct,
-				      sim_config->tree_chebyshev_order,
-				      sim_config->tree_max_depth,
-				      sim_config->tree_adap,
-				      sim_config->tree_tolerance,
-				      sim_config->comm,
-				      fn_veloc_,
-				      3,
-				      *tvelp);
+    tbslas::ConstructTree<FMM_Tree_t>(
+        sim_config->tree_num_point_sources,
+        sim_config->tree_num_points_per_octanct,
+        sim_config->tree_chebyshev_order, sim_config->tree_max_depth,
+        sim_config->tree_adap, sim_config->tree_tolerance, sim_config->comm,
+        fn_veloc_, 3, *tvelp);
     tcurr = tcurr_init;
-    tbslas::ConstructTree<FMM_Tree_t>(sim_config->tree_num_point_sources,
-				      sim_config->tree_num_points_per_octanct,
-				      sim_config->tree_chebyshev_order,
-				      sim_config->tree_max_depth,
-				      sim_config->tree_adap,
-				      sim_config->tree_tolerance,
-				      sim_config->comm,
-				      fn_veloc_,
-				      3,
-				      *tvelc);
+    tbslas::ConstructTree<FMM_Tree_t>(
+        sim_config->tree_num_point_sources,
+        sim_config->tree_num_points_per_octanct,
+        sim_config->tree_chebyshev_order, sim_config->tree_max_depth,
+        sim_config->tree_adap, sim_config->tree_tolerance, sim_config->comm,
+        fn_veloc_, 3, *tvelc);
   }
-  if (sim_config->test == 3){
+  if (sim_config->test == 3) {
     // ======================================================================
     // SETUP FMM
     // ======================================================================
-    //Initialize FMM_Mat.
-    const pvfmm::Kernel<real_t>* mykernel= &pvfmm::StokesKernel<real_t>::velocity();
+    // Initialize FMM_Mat.
+    const pvfmm::Kernel<real_t>* mykernel =
+        &pvfmm::StokesKernel<real_t>::velocity();
     FMM_Mat_t* fmm_mat = NULL;
     {
       fmm_mat = new FMM_Mat_t;
       fmm_mat->Initialize(sim_config->mult_order,
-			  sim_config->tree_chebyshev_order,
-			  sim_config->comm,
-			  mykernel);
+                          sim_config->tree_chebyshev_order, sim_config->comm,
+                          mykernel);
     }
     // =========================================================================
     // RUN FMM
     // =========================================================================
-    pvfmm::Profile::Tic("FMM",&sim_config->comm,true);
-    tvelp->InitFMM_Tree(false,bndry);
+    pvfmm::Profile::Tic("FMM", &sim_config->comm, true);
+    tvelp->InitFMM_Tree(false, bndry);
     tvelp->SetupFMM(fmm_mat);
     tvelp->RunFMM();
-    tvelp->Copy_FMMOutput(); //Copy FMM output to tree Data.
+    tvelp->Copy_FMMOutput();  // Copy FMM output to tree Data.
     pvfmm::Profile::Toc();
 
-   // =========================================================================
+    // =========================================================================
     // RUN FMM
     // =========================================================================
-    pvfmm::Profile::Tic("FMM",&sim_config->comm,true);
-    tvelc->InitFMM_Tree(false,bndry);
+    pvfmm::Profile::Tic("FMM", &sim_config->comm, true);
+    tvelc->InitFMM_Tree(false, bndry);
     tvelc->SetupFMM(fmm_mat);
     tvelc->RunFMM();
-    tvelc->Copy_FMMOutput(); //Copy FMM output to tree Data.
+    tvelc->Copy_FMMOutput();  // Copy FMM output to tree Data.
     pvfmm::Profile::Toc();
 
     delete fmm_mat;
- 
   }
 
-    // =========================================================================
-    // STORING THE INITIAL VELOCITY TREES
-    // =========================================================================
-    if (sim_config->vtk_save_rate) {
-      tvelp->Write2File(tbslas::GetVTKFileName(0, "velp").c_str(),
-			sim_config->vtk_order);
-      tvelc->Write2File(tbslas::GetVTKFileName(0, "vel").c_str(),
-			sim_config->vtk_order);
-      if (sim_config->vtk_save_vor) {
-	// =========================================================================
-	// CREATE THE VORTICITY TREE FOR TEST CASE 3
-	// =========================================================================
-	FMM_Tree_t* tvort = new FMM_Tree_t(sim_config->comm);
-	tbslas::ConstructTree<FMM_Tree_t>(sim_config->tree_num_point_sources,
-					  sim_config->tree_num_points_per_octanct,
-					  sim_config->tree_chebyshev_order,
-					  sim_config->tree_max_depth,
-					  sim_config->tree_adap,
-					  sim_config->tree_tolerance,
-					  sim_config->comm,
-					  get_vorticity_field_wrapper<double>, // used as a dummy function
-					  3,
-					  *tvort);
+  // =========================================================================
+  // STORING THE INITIAL VELOCITY TREES
+  // =========================================================================
+  if (sim_config->vtk_save_rate) {
+    tvelp->Write2File(tbslas::GetVTKFileName(0, "velp").c_str(),
+                      sim_config->vtk_order);
+    tvelc->Write2File(tbslas::GetVTKFileName(0, "vel").c_str(),
+                      sim_config->vtk_order);
+    if (sim_config->vtk_save_vor) {
+      // =========================================================================
+      // CREATE THE VORTICITY TREE FOR TEST CASE 3
+      // =========================================================================
+      FMM_Tree_t* tvort = new FMM_Tree_t(sim_config->comm);
+      tbslas::ConstructTree<FMM_Tree_t>(
+          sim_config->tree_num_point_sources,
+          sim_config->tree_num_points_per_octanct,
+          sim_config->tree_chebyshev_order, sim_config->tree_max_depth,
+          sim_config->tree_adap, sim_config->tree_tolerance, sim_config->comm,
+          get_vorticity_field_wrapper<double>,  // used as a dummy function
+          3, *tvort);
 
-	tbslas::SyncTreeRefinement(*tvelc, *tvort);
+      tbslas::SyncTreeRefinement(*tvelc, *tvort);
 
-	// =========================================================================
-	// COMPUTE THE VORTICITY
-	// =========================================================================
-	tbslas::ComputeTreeCurl<FMM_Tree_t>(*tvelc, *tvort);
+      // =========================================================================
+      // COMPUTE THE VORTICITY
+      // =========================================================================
+      tbslas::ComputeTreeCurl<FMM_Tree_t>(*tvelc, *tvort);
 
-	// =========================================================================
-	// SAVE THE VORTICITY TREE
-	// =========================================================================
-	tvort->Write2File(tbslas::GetVTKFileName(0, "vort").c_str(), sim_config->vtk_order);
+      // =========================================================================
+      // SAVE THE VORTICITY TREE
+      // =========================================================================
+      tvort->Write2File(tbslas::GetVTKFileName(0, "vort").c_str(),
+                        sim_config->vtk_order);
 
-	delete tvort;
-      }
+      delete tvort;
     }
+  }
 
-
-  real_t in_al2,in_rl2,in_ali,in_rli;
+  real_t in_al2, in_rl2, in_ali, in_rli;
   // CheckChebOutput<FMM_Tree_t>(tvelc,
   // 			      fn_veloc_,
   // 			      mykernel->ker_dim[1],
@@ -219,7 +204,7 @@ void RunNS() {
   int vel_noct_sum = 0;
   int vel_noct_max = 0;
   int vel_noct_min = 0;
-  int tvel_depth     = 0;
+  int tvel_depth = 0;
   int tvel_depth_max = 0;
 
   int cfl_sum = 0;
@@ -245,33 +230,28 @@ void RunNS() {
   //   cfl_min  = cfl_val;
   // }
 
-
   // SolveNS1O<real_t>(tvelp,
-  // 		    tvelc, 
+  // 		    tvelc,
   // 		    tcurr_init,
   // 		    sim_config->total_num_timestep,
   // 		    sim_config->dt);
 
-  SolveNS2O<real_t>(tvelp,
-  		    tvelc, 
-  		    tcurr_init,
-  		    sim_config->total_num_timestep,
-  		    sim_config->dt);
+  SolveNS2O<real_t>(tvelp, tvelc, tcurr_init, sim_config->total_num_timestep,
+                    sim_config->dt);
 
   // =========================================================================
   // REPORT RESULTS
   // =========================================================================
-  tcurr = tcurr_init + sim_config->total_num_timestep*sim_config->dt;
-  real_t al2,rl2,ali,rli;
+  tcurr = tcurr_init + sim_config->total_num_timestep * sim_config->dt;
+  real_t al2, rl2, ali, rli;
   // CheckChebOutput<FMM_Tree_t>(tvelc,
   //                             fn_veloc_,
   //                             mykernel->ker_dim[1],
   //                             al2,rl2,ali,rli,
   //                             std::string("Output"));
 
-
   typedef tbslas::Reporter<real_t> Rep;
-  if(!myrank) {
+  if (!myrank) {
     Rep::AddData("NP", np, tbslas::REP_INT);
     Rep::AddData("OMP", sim_config->num_omp_threads, tbslas::REP_INT);
 
@@ -303,12 +283,15 @@ void RunNS() {
     Rep::AddData("OutRLINF", rli);
 
     Rep::AddData("VMinNOCT", vel_noct_min, tbslas::REP_INT);
-    Rep::AddData("VAvgNOCT", vel_noct_sum/(sim_config->total_num_timestep+1),
-                 tbslas::REP_INT); // NUMBER OF TIMESTEPS + INITIAL TREE
+    Rep::AddData("VAvgNOCT",
+                 vel_noct_sum / (sim_config->total_num_timestep + 1),
+                 tbslas::REP_INT);  // NUMBER OF TIMESTEPS + INITIAL TREE
     Rep::AddData("VMaxNOCT", vel_noct_max, tbslas::REP_INT);
 
     Rep::AddData("VMinCFL", cfl_min);
-    Rep::AddData("VAvgCFL", cfl_sum/(sim_config->total_num_timestep+1)); // NUMBER OF TIMESTEPS + INITIAL TREE
+    Rep::AddData("VAvgCFL",
+                 cfl_sum / (sim_config->total_num_timestep +
+                            1));  // NUMBER OF TIMESTEPS + INITIAL TREE
     Rep::AddData("VMaxCFL", cfl_max);
 
     Rep::Report();
@@ -318,14 +301,14 @@ void RunNS() {
   // CLEAN UP MEMORY
   // ======================================================================
 
-  //Delete the tree.
+  // Delete the tree.
   delete tvelp;
   delete tvelc;
 }
 
-template<class real_t>
+template <class real_t>
 void SetupFMMPrecomp() {
-  tbslas::SimConfig* sim_config     = tbslas::SimConfigSingleton::Instance();
+  tbslas::SimConfig* sim_config = tbslas::SimConfigSingleton::Instance();
 
   typedef pvfmm::FMM_Node<pvfmm::Cheb_Node<real_t> > FMMNode_t;
   typedef pvfmm::FMM_Cheb<FMMNode_t> FMM_Mat_t;
@@ -337,55 +320,66 @@ void SetupFMMPrecomp() {
   // ======================================================================
   {
     TBSLAS_MOD_STOKES_DIFF_COEFF = sim_config->diff;
-    TBSLAS_MOD_STOKES_ALPHA      = 3.0/2.0/sim_config->dt;
+    TBSLAS_MOD_STOKES_ALPHA = 3.0 / 2.0 / sim_config->dt;
 
     const pvfmm::Kernel<real_t>* mykernel = NULL;
     const pvfmm::Kernel<real_t> modified_stokes_kernel_d =
-      pvfmm::BuildKernel<real_t, tbslas::modified_stokes_vel>
-      (tbslas::GetModfiedStokesKernelName<real_t>(TBSLAS_MOD_STOKES_ALPHA, TBSLAS_MOD_STOKES_DIFF_COEFF), 3, std::pair<int,int>(3,3),
-       NULL, NULL, NULL,
-       NULL, NULL, NULL,
-       NULL, NULL, NULL,
-       false);
-    mykernel  = &modified_stokes_kernel_d;
+        pvfmm::BuildKernel<real_t, tbslas::modified_stokes_vel>(
+            tbslas::GetModfiedStokesKernelName<real_t>(
+                TBSLAS_MOD_STOKES_ALPHA, TBSLAS_MOD_STOKES_DIFF_COEFF),
+            3, std::pair<int, int>(3, 3), NULL, NULL, NULL, NULL, NULL, NULL,
+            NULL, NULL, NULL, false);
+    mykernel = &modified_stokes_kernel_d;
 
     // ======================================================================
     // SETUP FMM
     // ======================================================================
-    //Initialize FMM_Mat.
+    // Initialize FMM_Mat.
     FMM_Mat_t* fmm_mat = NULL;
     {
       fmm_mat = new FMM_Mat_t;
       fmm_mat->Initialize(sim_config->mult_order,
-			  sim_config->tree_chebyshev_order,
-			  sim_config->comm,
-			  mykernel);
+                          sim_config->tree_chebyshev_order, sim_config->comm,
+                          mykernel);
     }
-    if (fmm_mat)
-      delete fmm_mat;
+    if (fmm_mat) delete fmm_mat;
   }
 }
 
-int main (int argc, char **argv) {
+int main(int argc, char** argv) {
   MPI_Init(&argc, &argv);
-  MPI_Comm comm=MPI_COMM_WORLD;
+  MPI_Comm comm = MPI_COMM_WORLD;
   int myrank;
   MPI_Comm_rank(comm, &myrank);
 
   parse_command_line_options(argc, argv);
 
-  bool  unif=              (commandline_option(argc, argv, "-unif",    NULL, false, "-unif                : Uniform point distribution."        )!=NULL);
-  int      m=       strtoul(commandline_option(argc, argv,    "-m",    "10", false, "-m    <int> = (10)   : Multipole order (+ve even integer)."),NULL,10);
-  int   test=       strtoul(commandline_option(argc, argv, "-test",     "1", false,
-                                               "-test <int> = (1)    : 1) Laplace, Smooth Gaussian, Periodic Boundary"),NULL,10);
-  int   merge = strtoul(commandline_option(argc, argv, "-merge",     "1", false,
-                                           "-merge <int> = (1)    : 1) no merge 2) complete merge 3) Semi-Merge"),NULL,10);
-  double exp_alpha = strtod(commandline_option(argc, argv,  "-ea",  "10", false, "-ea <real> = (10) : diffusivity" ), NULL);
+  bool unif =
+      (commandline_option(
+           argc, argv, "-unif", NULL, false,
+           "-unif                : Uniform point distribution.") != NULL);
+  int m =
+      strtoul(commandline_option(
+                  argc, argv, "-m", "10", false,
+                  "-m    <int> = (10)   : Multipole order (+ve even integer)."),
+              NULL, 10);
+  int test = strtoul(commandline_option(argc, argv, "-test", "1", false,
+                                        "-test <int> = (1)    : 1) Laplace, "
+                                        "Smooth Gaussian, Periodic Boundary"),
+                     NULL, 10);
+  int merge = strtoul(commandline_option(argc, argv, "-merge", "1", false,
+                                         "-merge <int> = (1)    : 1) no merge "
+                                         "2) complete merge 3) Semi-Merge"),
+                      NULL, 10);
+  double exp_alpha =
+      strtod(commandline_option(argc, argv, "-ea", "10", false,
+                                "-ea <real> = (10) : diffusivity"),
+             NULL);
 
   // =========================================================================
   // SIMULATION PARAMETERS
   // =========================================================================
-  tbslas::SimConfig* sim_config     = tbslas::SimConfigSingleton::Instance();
+  tbslas::SimConfig* sim_config = tbslas::SimConfigSingleton::Instance();
 
   pvfmm::Profile::Enable(sim_config->profile);
   sim_config->vtk_filename_variable = "vel";
@@ -393,7 +387,7 @@ int main (int argc, char **argv) {
   sim_config->merge = merge;
   sim_config->test = test;
 
-  EXP_ALPHA         = exp_alpha;
+  EXP_ALPHA = exp_alpha;
 
   // =========================================================================
   // PRINT METADATA
@@ -424,7 +418,7 @@ int main (int argc, char **argv) {
   // =========================================================================
   // RUN
   // =========================================================================
-  pvfmm::Profile::Tic("NS",&comm,true);
+  pvfmm::Profile::Tic("NS", &comm, true);
   RunNS<double>();
   // sim_config->test,
   // 		sim_config->tree_num_point_sources,
@@ -438,7 +432,7 @@ int main (int argc, char **argv) {
   // 		sim_config->merge,
   // 		comm);
   pvfmm::Profile::Toc();
-  //Output Profiling results.
+  // Output Profiling results.
   // pvfmm::Profile::print(&comm);
 
   // Shut down MPI

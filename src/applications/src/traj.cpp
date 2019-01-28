@@ -13,24 +13,24 @@
 #include <mpi.h>
 #include <omp.h>
 #include <stdio.h>
-#include <vector>
+#include <algorithm>
+#include <cassert>
 #include <cstdlib>
 #include <iostream>
-#include <cassert>
-#include <algorithm>
+#include <vector>
 
-#include <pvfmm_common.hpp>
-#include <mpi_tree.hpp>
 #include <cheb_node.hpp>
+#include <cheb_utils.hpp>
+#include <mpi_tree.hpp>
+#include <profile.hpp>
+#include <pvfmm_common.hpp>
 #include <utils.hpp>
 #include <vector.hpp>
-#include <cheb_utils.hpp>
-#include <profile.hpp>
 
 #include <utils/common.h>
+#include <utils/fields.h>
 #include <utils/metadata.h>
 #include <utils/reporter.h>
-#include <utils/fields.h>
 
 #include <tree/tree_semilag.h>
 #include <tree/tree_utils.h>
@@ -38,16 +38,14 @@
 typedef pvfmm::Cheb_Node<double> Node_t;
 typedef pvfmm::MPI_Tree<Node_t> Tree_t;
 
-typedef tbslas::MetaData<std::string,
-                         std::string,
-                         std::string> MetaData_t;
+typedef tbslas::MetaData<std::string, std::string, std::string> MetaData_t;
 double tcurr = 0;
 
-void (*fn_vel)(const double* , int , double*)=NULL;
+void (*fn_vel)(const double*, int, double*) = NULL;
 
-int main (int argc, char **argv) {
+int main(int argc, char** argv) {
   MPI_Init(&argc, &argv);
-  MPI_Comm comm=MPI_COMM_WORLD;
+  MPI_Comm comm = MPI_COMM_WORLD;
   int np;
   MPI_Comm_size(comm, &np);
   int myrank;
@@ -55,13 +53,18 @@ int main (int argc, char **argv) {
 
   parse_command_line_options(argc, argv);
 
-  int   test = strtoul(commandline_option(argc, argv, "-test",     "1", false,
-                                          "-test <int> = (1)    : 1) Gaussian profile 2) Zalesak disk"),NULL,10);
-  int   merge = strtoul(commandline_option(argc, argv, "-merge",     "1", false,
-                                          "-merge <int> = (1)    : 1) no merge 2) complete merge 3) Semi-Merge"),NULL,10);
+  int test =
+      strtoul(commandline_option(
+                  argc, argv, "-test", "1", false,
+                  "-test <int> = (1)    : 1) Gaussian profile 2) Zalesak disk"),
+              NULL, 10);
+  int merge = strtoul(commandline_option(argc, argv, "-merge", "1", false,
+                                         "-merge <int> = (1)    : 1) no merge "
+                                         "2) complete merge 3) Semi-Merge"),
+                      NULL, 10);
 
   {
-    tbslas::SimConfig* sim_config       = tbslas::SimConfigSingleton::Instance();
+    tbslas::SimConfig* sim_config = tbslas::SimConfigSingleton::Instance();
     pvfmm::Profile::Enable(sim_config->profile);
 
     // =========================================================================
@@ -74,44 +77,38 @@ int main (int argc, char **argv) {
     // =========================================================================
     // TEST CASE
     // =========================================================================
-    int max_depth_vel=0;
-    int max_depth_con=0;
+    int max_depth_vel = 0;
+    int max_depth_con = 0;
     pvfmm::BoundaryType bc;
-    switch(test) {
+    switch (test) {
       case 1:
-        fn_vel = tbslas::get_vorticity_field<double,3>;
+        fn_vel = tbslas::get_vorticity_field<double, 3>;
         break;
     }
 
     // =========================================================================
     // SIMULATION PARAMETERS
     // =========================================================================
-    sim_config->vtk_filename_variable   = "conc";
+    sim_config->vtk_filename_variable = "conc";
     sim_config->bc = bc;
 
     // =========================================================================
     // INIT THE VELOCITY TREE
     // =========================================================================
     Tree_t tvel(comm);
-    tbslas::ConstructTree<Tree_t>(sim_config->tree_num_point_sources,
-                                  sim_config->tree_num_points_per_octanct,
-                                  sim_config->tree_chebyshev_order,
-                                  max_depth_vel?max_depth_vel:sim_config->tree_max_depth,
-                                  sim_config->tree_adap,
-                                  sim_config->tree_tolerance,
-                                  comm,
-                                  fn_vel,
-                                  3,
-                                  tvel);
+    tbslas::ConstructTree<Tree_t>(
+        sim_config->tree_num_point_sources,
+        sim_config->tree_num_points_per_octanct,
+        sim_config->tree_chebyshev_order,
+        max_depth_vel ? max_depth_vel : sim_config->tree_max_depth,
+        sim_config->tree_adap, sim_config->tree_tolerance, comm, fn_vel, 3,
+        tvel);
 
     // =========================================================================
     // RUN
     // =========================================================================
-    double in_al2,in_rl2,in_ali,in_rli;
-    CheckChebOutput<Tree_t>(&tvel,
-                            fn_vel,
-                            3,
-                            in_al2,in_rl2,in_ali,in_rli,
+    double in_al2, in_rl2, in_ali, in_rli;
+    CheckChebOutput<Tree_t>(&tvel, fn_vel, 3, in_al2, in_rl2, in_ali, in_rli,
                             std::string("Input"));
 
     // double xinit = 0.5+1.0/pow(2.0,8.0)/sim_config->tree_chebyshev_order;
@@ -120,20 +117,18 @@ int main (int argc, char **argv) {
     double zinit = 0.5;
 
     int num_points = 1;
-    std::vector<double> init_points_pos(num_points*COORD_DIM);
-    std::vector<double> dprt_points_pos(num_points*COORD_DIM);
+    std::vector<double> init_points_pos(num_points * COORD_DIM);
+    std::vector<double> dprt_points_pos(num_points * COORD_DIM);
 
     init_points_pos[0] = xinit;
     init_points_pos[1] = yinit;
     init_points_pos[2] = zinit;
 
-    tbslas::NodeFieldFunctor<double,Tree_t> vel_evaluator(&tvel);
-    tbslas::ComputeTrajRK2(vel_evaluator,
-                           init_points_pos,
-                           tcurr,
-                           tcurr - sim_config->total_num_timestep*sim_config->dt,
-                           sim_config->total_num_timestep,
-                           dprt_points_pos);
+    tbslas::NodeFieldFunctor<double, Tree_t> vel_evaluator(&tvel);
+    tbslas::ComputeTrajRK2(
+        vel_evaluator, init_points_pos, tcurr,
+        tcurr - sim_config->total_num_timestep * sim_config->dt,
+        sim_config->total_num_timestep, dprt_points_pos);
 
     // =========================================================================
     // COMPUTE ERROR
@@ -144,9 +139,8 @@ int main (int argc, char **argv) {
     double l2_err_sum = 0;
     for (int i = 0; i < COORD_DIM; i++) {
       err = init_points_pos[i] - dprt_points_pos[i];
-      l2_err_sum += err*err;
-      if (abs(err) > err_max)
-        err_max = abs(err);
+      l2_err_sum += err * err;
+      if (abs(err) > err_max) err_max = abs(err);
     }
     double l2_err = 0;
     l2_err = sqrt(l2_err_sum);
@@ -154,13 +148,13 @@ int main (int argc, char **argv) {
     // =========================================================================
     // REPORT RESULTS
     // =========================================================================
-    int tvel_max_depth=0;
+    int tvel_max_depth = 0;
     tbslas::GetTreeMaxDepth(tvel, tvel_max_depth);
 
     typedef tbslas::Reporter<double> Rep;
-    if(!myrank) {
+    if (!myrank) {
       Rep::AddData("NP", np, tbslas::REP_INT);
-      Rep::AddData("OMP",  sim_config->num_omp_threads, tbslas::REP_INT);
+      Rep::AddData("OMP", sim_config->num_omp_threads, tbslas::REP_INT);
 
       Rep::AddData("TOL", sim_config->tree_tolerance);
       Rep::AddData("Q", sim_config->tree_chebyshev_order, tbslas::REP_INT);
@@ -182,7 +176,7 @@ int main (int argc, char **argv) {
       Rep::Report();
     }
 
-    //Output Profiling results.
+    // Output Profiling results.
     // pvfmm::Profile::print(&comm);
   }
 
